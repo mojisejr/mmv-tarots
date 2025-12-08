@@ -1,23 +1,17 @@
 @import "tailwindcss";
 
+/* CSS Variables for theme compatibility */
 :root {
-  /* Design tokens from template.html */
-  --primary: #F27669; /* Salmon/Coral */
-  --accent: #FCBD74;  /* Golden Orange */
-  --foreground: #ffffff;
-  --muted-foreground: #a0a0a0;
-  --background: #2a2a2e;
-
-  /* Fonts */
-  --font-sans: 'Montserrat', sans-serif;
-  --font-serif: 'Merriweather', serif;
-  --font-mono: 'Ubuntu Mono', monospace;
+  --color-background: #2a2a2e;
+  --color-foreground: #ffffff;
+  --color-muted-foreground: #a0a0a0;
 }
 
+/* Base styles */
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Montserrat', system-ui, sans-serif;
   overflow: hidden;
 }
 
@@ -30,50 +24,12 @@ body {
   scrollbar-width: none;
 }
 
-/* Animations */
-@keyframes float-slow {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(20px, -20px) scale(1.05); }
-}
-@keyframes float-delayed {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-20px, 20px) scale(0.95); }
-}
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.1; transform: scale(1); }
-  50% { opacity: 0.15; transform: scale(1.1); }
-}
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-float-slow { animation: float-slow 15s ease-in-out infinite; }
-.animate-float-delayed { animation: float-delayed 18s ease-in-out infinite; }
-.animate-pulse-slow { animation: pulse-slow 10s ease-in-out infinite; }
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in-down {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.animate-fade-in-up { animation: fade-in-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-.animate-fade-in-down { animation: fade-in-down 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-.animate-fade-in { animation: fade-in 1s ease-out forwards; }
-.perspective-1000 { perspective: 1000px; }
-
 /* Liquid Noise Texture */
 .liquid-noise {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
+/* Text balance utility */
 @layer utilities {
   .text-balance {
     text-wrap: balance;

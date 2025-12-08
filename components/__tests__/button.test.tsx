@@ -32,14 +32,14 @@ describe('GlassButton', () => {
     render(<GlassButton variant="primary" onClick={mockOnClick}>Primary</GlassButton>);
 
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-[var(--primary)]/90');
+    expect(button).toHaveClass('bg-primary/90');
   });
 
   it('should apply outline variant styles', () => {
     render(<GlassButton variant="outline" onClick={mockOnClick}>Outline</GlassButton>);
 
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('border');
+    expect(button).toHaveClass('border-glass-border');
   });
 
   it('should be disabled when disabled prop is true', () => {
@@ -78,6 +78,6 @@ describe('GlassButton', () => {
     render(<GlassButton variant="line" onClick={mockOnClick}>Line Button</GlassButton>);
 
     const button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-[#06C755]');
+    expect(button).toHaveClass('bg-success');
   });
 });

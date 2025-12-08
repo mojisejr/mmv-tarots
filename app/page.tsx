@@ -6,10 +6,10 @@ export default function Home() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header Section */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-serif text-[var(--foreground)]">
+          <h1 className="text-4xl font-serif text-foreground">
             MimiVibe
           </h1>
-          <p className="text-lg text-[var(--muted-foreground)]">
+          <p className="text-lg text-muted-foreground">
             AI-Powered Tarot Reading Application
           </p>
         </div>
@@ -17,14 +17,14 @@ export default function Home() {
         {/* Avatar Feature Section */}
         <GlassCard className="p-6">
           <h2 className="text-2xl font-semibold mb-2 text-center">Meet Mimi</h2>
-          <p className="text-center text-[var(--muted-foreground)] mb-6">
+          <p className="text-center text-muted-foreground mb-6">
             Your AI tarot guide, here to illuminate your path
           </p>
 
           <div className="grid md:grid-cols-2 gap-6">
             {/* Normal Avatar */}
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-center text-[var(--accent)]">
+              <h3 className="text-lg font-semibold text-center text-accent">
                 Ready for Reading
               </h3>
               <div className="w-64 h-64 mx-auto relative">
@@ -33,14 +33,14 @@ export default function Home() {
                   <MimiAvatar />
                 </div>
               </div>
-              <p className="text-center text-xs text-[var(--muted-foreground)]">
+              <p className="text-center text-xs text-muted-foreground">
                 Contemplative and focused
               </p>
             </div>
 
             {/* Loading Avatar */}
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-center text-[var(--primary)]">
+              <h3 className="text-lg font-semibold text-center text-primary">
                 Consulting the Cards
               </h3>
               <div className="w-64 h-64 mx-auto relative">
@@ -49,7 +49,7 @@ export default function Home() {
                   <MimiLoadingAvatar />
                 </div>
               </div>
-              <p className="text-center text-xs text-[var(--muted-foreground)]">
+              <p className="text-center text-xs text-muted-foreground">
                 Processing your reading
               </p>
             </div>
@@ -58,7 +58,7 @@ export default function Home() {
 
         {/* UI Components Section */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold text-center text-[var(--foreground)]">
+          <h2 className="text-2xl font-semibold text-center text-foreground">
             UI Components
           </h2>
 
@@ -76,12 +76,12 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-4">Icon Examples</h3>
               <div className="flex justify-center gap-6">
                 <div className="text-center">
-                  <Sparkles className="w-10 h-10 text-[var(--primary)] mx-auto mb-2" />
-                  <span className="text-xs text-[var(--muted-foreground)]">Magic</span>
+                  <Sparkles className="w-10 h-10 text-primary mx-auto mb-2" />
+                  <span className="text-xs text-muted-foreground">Magic</span>
                 </div>
                 <div className="text-center">
-                  <Moon className="w-10 h-10 text-[var(--accent)] mx-auto mb-2" />
-                  <span className="text-xs text-[var(--muted-foreground)]">Mystery</span>
+                  <Moon className="w-10 h-10 text-accent mx-auto mb-2" />
+                  <span className="text-xs text-muted-foreground">Mystery</span>
                 </div>
               </div>
             </GlassCard>

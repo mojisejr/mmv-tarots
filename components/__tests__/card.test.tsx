@@ -22,8 +22,8 @@ describe('GlassCard', () => {
 
     const card = screen.getByText('Test').parentElement;
     expect(card).toHaveClass('backdrop-blur-xl');
-    expect(card).toHaveClass('bg-white/5');
-    expect(card).toHaveClass('border');
+    expect(card).toHaveClass('bg-glass-white');
+    expect(card).toHaveClass('border-glass-border');
   });
 
   it('should apply custom className', () => {

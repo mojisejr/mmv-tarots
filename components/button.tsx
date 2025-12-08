@@ -7,11 +7,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-[var(--primary)]/90 text-white shadow-[0_0_20px_rgba(242,118,105,0.4)] hover:shadow-[0_0_30px_rgba(242,118,105,0.6)] border border-white/10 hover:bg-[var(--primary)]',
-        outline: 'bg-white/5 border border-white/10 text-[var(--foreground)] hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]',
-        ghost: 'bg-transparent text-[var(--muted-foreground)] hover:text-white hover:bg-white/5',
-        icon: 'p-3.5 rounded-full aspect-square bg-white/5 hover:bg-white/10 text-[var(--foreground)] border border-white/5',
-        line: 'bg-[#06C755] hover:bg-[#05b34c] text-white border border-[#06C755]/50 shadow-[0_4px_15px_rgba(6,199,85,0.3)] hover:shadow-[0_6px_25px_rgba(6,199,85,0.5)]',
+        primary: 'bg-primary/90 text-white shadow-glow-primary hover:shadow-lg border border-glass-border hover:bg-primary',
+        outline: 'bg-glass-white border-glass-border text-foreground hover:bg-glass-whiteHover hover:border-glass-borderHover hover:shadow-md',
+        ghost: 'bg-transparent text-muted-foreground hover:text-white hover:bg-white/5',
+        icon: 'p-3.5 rounded-full aspect-square bg-glass-white hover:bg-glass-whiteHover text-foreground border border-white/5',
+        line: 'bg-success hover:bg-success-600 text-white border border-success/50 shadow-md hover:shadow-lg',
       },
     },
     defaultVariants: {
