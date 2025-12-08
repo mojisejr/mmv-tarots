@@ -113,20 +113,24 @@ All operations MUST:
 
 ## 🌐 Response Language Policy
 
-### Automatic Language Matching (MANDATORY)
+### Thai-Only Responses (MANDATORY)
 
-- **If user asks in Thai** → Respond in Thai (ยกเว้น technical terms)
-- **If user asks in English** → Respond in English
-- **Mixed language** → Follow the primary language of the question
-- **Technical terms** → Always use English (Next.js, TypeScript, Neon, etc.)
+- **ALL responses MUST be in Thai language** - ไม่ว่าผู้ใช้จะถามเป็นภาษาใด
+- **User asks in English** → Respond in Thai
+- **User asks in Thai** → Respond in Thai
+- **User asks in any language** → Respond in Thai
+- **Technical terms** → Keep English terms in parentheses (Next.js, TypeScript, Neon, etc.)
 
-### Examples
+### ตัวอย่าง / Examples
+
+**User (English)**: "Why is the AI pipeline failing?"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
 
 **User (Thai)**: "ทำไม AI pipeline ถึง fail ?"
 **Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
 
-**User (English)**: "Why is the AI pipeline failing?"
-**Agent (English)**: "After analyzing the AI pipeline in `app/workflows/`, I found..."
+**User (Japanese)**: "AIパイプラインが失敗するのはなぜですか？"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
 
 ---
 

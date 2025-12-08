@@ -116,6 +116,29 @@ All operations MUST:
 
 ---
 
+## 🌐 Response Language Policy
+
+### Thai-Only Responses (MANDATORY)
+
+- **ALL responses MUST be in Thai language** - ไม่ว่าผู้ใช้จะถามเป็นภาษาใด
+- **User asks in English** → Respond in Thai
+- **User asks in Thai** → Respond in Thai
+- **User asks in any language** → Respond in Thai
+- **Technical terms** → Keep English terms in parentheses (Next.js, TypeScript, Neon, etc.)
+
+### ตัวอย่าง / Examples
+
+**User (English)**: "Why is the AI pipeline failing?"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
+
+**User (Thai)**: "ทำไม AI pipeline ถึง fail ?"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
+
+**User (Japanese)**: "AIパイプラインが失敗するのはなぜですか？"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
+
+---
+
 ## 📊 Agent Communication Standards
 
 ### Response Quality
