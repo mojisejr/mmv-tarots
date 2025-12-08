@@ -1,216 +1,230 @@
-# impl
-
-Implementation Workflow - Execute GitHub issue implementation based on current mode.
+# Implementation Workflow Command
 
 ## Usage
-
 ```
-/impl [issue-number] [optional message]
+/impl [task description] [issue-number]
+/impl [issue-number]
 ```
 
-## Examples
+## Implementation Workflow (TDD Red-Green-Refactor)
 
+### 🔍 Phase 0: Analysis & Planning
+1. **Analyze Requirement Carefully**
+   - Break down the requirement into smaller, testable components
+   - Identify what needs to be implemented vs what already exists
+   - Determine success criteria and acceptance tests
+   - Check if Neon DB connection or Vercel Workflow setup is needed
+
+2. **Analyze Codebase & Dependencies**
+   - Explore relevant code to understand existing patterns
+   - Check app directory structure (Next.js App Router)
+   - Verify if new dependencies need to be added to package.json
+   - **STOP IMPLEMENTATION** if additional config/setup is required
+   - Inform user about any missing prerequisites
+
+3. **TDD Planning with Success Criteria**
+   - Create comprehensive todo list with Red-Green-Refactor phases
+   - Define what "success" looks like for each component
+   - Plan test cases covering: happy path, edge cases, error handling
+   - Consider testing framework for Next.js (Jest, Vitest, or Playwright)
+
+### 🔴 Phase 1: RED - Write Failing Tests
+1. **Write Tests BEFORE Implementation**
+   - Create test files alongside implementation or in __tests__ directories
+   - For API routes: test in app/api/__tests__/
+   - For components: test in components/__tests__/ or using .test.tsx
+   - For utilities: test in utils/__tests__/ or using .test.ts
+   - Tests must clearly define expected behavior
+
+2. **Verify Tests FAIL**
+   - Run test suite to ensure all new tests FAIL (Red phase)
+   - Verify error messages clearly indicate missing implementation
+   - Confirm tests actually test the intended functionality
+
+### 🟢 Phase 2: GREEN - Make Tests Pass
+1. **Minimal Implementation**
+   - Write the SIMPLEST code that makes tests pass
+   - Focus on functionality over optimization
+   - Do NOT refactor or optimize in this phase
+   - Add just enough code to satisfy test requirements
+
+2. **Continuous Test Execution**
+   - Run tests after every small change
+   - Fix failing tests immediately
+   - **NEVER proceed to next test until current tests pass 100%**
+
+### 🔵 Phase 3: REFACTOR - Improve Code Quality
+1. **Code Improvement**
+   - Refactor implementation for clarity and maintainability
+   - Apply Next.js best practices and TypeScript strict typing
+   - Use proper React patterns (hooks, Server/Client components)
+   - Remove code duplication and improve structure
+
+2. **Continuous Validation**
+   - Run tests after EVERY refactor change
+   - Ensure 100% test pass rate is maintained
+   - Check TypeScript compilation: `npx tsc --noEmit`
+   - Repeat Refactor phase until code quality meets standards
+
+### 🔄 Phase 4: Final Quality Assurance
+1. **Comprehensive Testing**
+   - Run ENTIRE test suite (existing + new tests)
+   - **MUST achieve 100% pass rate - NO failing tests allowed**
+   - Verify test coverage is complete and meaningful
+
+2. **Build & Lint Validation**
+   - **Build MUST pass 100%**: `npm run build` - No build errors allowed
+   - **Linter MUST pass 100%**: `npm run lint` - No warnings/errors allowed
+   - **TypeScript MUST pass**: `npx tsc --noEmit` - No type errors allowed
+   - Fix any issues before proceeding
+
+### 📋 Branch Management
+- Check current branch immediately upon command execution
+- If not on staging, checkout to staging branch
+- For new features: create feature branch from staging
+- **ALWAYS work on staging or feature branches, NEVER on main**
+
+### 🤖 Multi-Agent Task Management
+- Use Task tool with subagent_type='general-purpose' for complex tasks
+- Use Task tool with subagent_type='Explore' for codebase exploration
+- Use Task tool with subagent_type='Plan' for architecture planning
+- Run agents in parallel when possible for efficiency
+
+### 📊 Continuous Progress Tracking
+- Use TodoWrite tool to track Red-Green-Refactor phases
+- Mark tasks as in_progress and completed systematically
+- Keep working until ALL phases are complete
+- Never skip any test case or phase
+
+### ✅ Git Commit Standards
+- Run `git add .` after all phases complete successfully
+- Create comprehensive commit messages that are:
+  - Follow conventional commits: feat:, fix:, docs:, refactor:, etc.
+  - Include scope: e.g., feat(api): add tarot prediction endpoint
+  - Include issue reference: closes #123
+  - Descriptive and readable for future reference
+- Include context about what was changed and why
+
+### 🚫 PR Policy
+- NEVER create PRs automatically
+- Only create PR when explicitly requested by user
+- PRs should go to staging branch for review
+
+## Implementation Commands
+
+### When executing /impl command:
+
+#### Step 1: Environment Setup
 ```bash
-/impl 123                    # Implement issue #123
-/impl 123 with extra context # Implement with additional context
-/impl 456                    # Implement issue #456
+# Check current branch
+Bash git branch --show-current
+
+# If not staging, run:
+Bash git checkout staging
+
+# For new feature, create feature branch:
+Bash git checkout -b feature/task-123-description
 ```
 
-## Implementation
+#### Step 2: TDD Execution Flow
+1. **Phase 0: Analysis**
+   - Analyze requirement carefully
+   - Check codebase and dependencies
+   - Create comprehensive todo list with Red-Green-Refactor phases
 
-### Pre-Implementation Validation
+2. **Phase 1: RED**
+   - Write failing tests for ALL components
+   - Use appropriate testing framework (Jest/Vitest/Playwright)
+   - Run tests: `npm test` or specific test runner
+   - Verify tests actually FAIL (100% red phase)
 
-1. **Setup .tmp folder**: `mkdir -p .tmp && echo ".tmp/" >> .gitignore`
+3. **Phase 2: GREEN**
+   - Implement minimal code to make tests pass
+   - Run tests continuously: `npm test` (watch mode)
+   - **NEVER proceed until 100% tests pass**
 
-2. **Check Dependencies**:
-   - Validate GitHub CLI (`gh`) availability
-   - Verify Git tools are available
+4. **Phase 3: REFACTOR**
+   - Refactor and optimize code
+   - Apply Next.js best practices
+   - Run tests after EVERY refactor
+   - Check TypeScript: `npx tsc --noEmit`
+   - Maintain 100% test pass rate throughout
 
-3. **Validate Issue**:
-   - Check issue exists and is open
-   - Verify issue has `task` label
-   - Extract issue title and metadata to `.tmp/issue-details.md`
+5. **Phase 4: Quality Assurance**
+   - Run build: `npm run build` (MUST pass 100%)
+   - Run linter: `npm run lint` (MUST pass 100%)
+   - Run TypeScript check: `npx tsc --noEmit` (MUST pass)
+   - Run ALL tests: `npm test` (MUST pass 100%)
+   - **MUST achieve 100% pass on ALL checks**
 
-4. **Validate Environment**:
-   - Ensure clean git working directory
-   - Verify we're in a git repository
-
-5. **Cleanup temporary files**: `rm .tmp/issue-details.md` (only if no other temp files exist)
-
-### Implementation Steps
-
-1. **Sync Staging Branch**:
-   ```bash
-   git checkout staging
-   git pull origin staging
-   ```
-
-2. **Create Feature Branch**:
-   ```bash
-   git checkout -b feature/task-[issue-number]-[description]
-   ```
-   - Extract description from issue title
-   - Use naming convention: `feature/task-{issue}-{description}`
-
-3. **Step 0: Write Tests First (Red Phase)** ⚠️ MANDATORY:
-   ```bash
-   # Create test files BEFORE implementing code
-   # Tests should fail initially (Red phase)
-   [test command]
-   # Expected: Tests fail (no implementation yet)
-   ```
-   - Write comprehensive unit tests for the new functionality
-   - Write integration tests for API endpoints or service integrations
-   - Tests document the expected behavior before code exists
-   - This ensures Test-Driven Development (TDD) workflow
-
-4. **Mode-Specific Execution**:
-
-   **MANUAL Mode**:
-   - Provide detailed implementation guidance
-   - Show step-by-step workflow instructions
-   - Include TDD requirements
-   - Include validation requirements
-   - Display commit message format
-   - Provide next steps for human developer
-
-   **COPILOT Mode**:
-   - Trigger automatic implementation
-   - Handle all validation steps
-   - Enforce TDD workflow
-   - Create commit with proper format
-   - Push branch and create PR
-
-## Validation Requirements (100% required):
-   ```bash
-   ✅ Test must be written BEFORE code implementation (Red Phase)
-   ✅ Test coverage must be comprehensive for new/modified code
-   ✅ Tests must PASS (Green Phase complete)
-   [build command]     # Build validation (e.g., npm run build, cargo build --release)
-   [lint command]      # Lint validation (e.g., npm run lint, cargo clippy -- -D warnings)
-   [typecheck command] # Type check validation (e.g., tsc --noEmit, cargo check)
-   [format command]    # Format validation (e.g., prettier --check, cargo fmt -- --check)
-   [test command]      # Test validation (MANDATORY)
-   ```
-
-## 🔴🟢🔵 Red-Green-Refactor Cycle (TDD)
-
-The Red-Green-Refactor cycle is the core of Test-Driven Development:
-
-### 🔴 Red Phase (Tests First)
-- **Write failing tests** for the functionality you want to implement
-- Tests document the expected behavior
-- Run tests: `[test command]` → tests FAIL (because code doesn't exist yet)
-
-### 🟢 Green Phase (Minimal Implementation)
-- **Write minimal code** to make the failing tests pass
-- Don't implement extra features yet
-- Focus only on passing the tests you wrote
-- Run tests: `[test command]` → tests PASS
-
-### 🔵 Refactor Phase (Improve Code)
-- **Refactor the code** for clarity, performance, and maintainability
-- Keep tests passing while improving code quality
-- Run tests: `[test command]` → tests still PASS
-- Run linter: `[lint command]` → zero warnings/errors
-- Run formatter: `[format command]` → consistent style
-
-### Complete TDD Workflow Example
+#### Step 3: Git Operations
 ```bash
-# Step 1: RED - Create failing tests
-# Write test file following project conventions
-[test command]                              # → FAILS (no implementation)
+Bash git add .  # After ALL phases complete
+Bash git commit -m "feat(api): add tarot prediction endpoint
 
-# Step 2: GREEN - Implement minimal code
-# Write code to make tests pass
-[test command]                              # → PASSES
-[build command]                             # → Success
+- Implement POST /api/predict for question submission
+- Add GET /api/predict/[jobId] for status checking
+- Integrate with Vercel Workflow for async processing
+- Connect to Neon database for data persistence
 
-# Step 3: REFACTOR - Improve code quality
-# Improve implementation while keeping tests passing
-[lint command]                              # → Zero warnings
-[format command]                            # → Formatted
-[test command]                              # → Still PASSES
-
-# Final validation
-[build command]                             # ✅ 100% SUCCESS
-[lint command]                              # ✅ 100% SUCCESS
-[test command]                              # ✅ 100% SUCCESS
+Closes #123"
 ```
 
-## Commit Format
+#### Step 4: Report Completion
+- Document TDD phases completed
+- Report final test coverage
+- Confirm all quality checks passed
+- Summarize what was implemented
 
-5. **Commit Format**:
-   ```bash
-   git commit -m "feat: [feature description]
+## Next.js-Specific Considerations:
 
-   - Address #[issue-number]: [task title]
-   - Test-first implemented: Tests written before code implementation
-   - Red-Green-Refactor cycle followed (Red → Green → Refactor)
-   - Build validation: 100% PASS ([build command])
-   - Lint validation: 100% PASS ([lint command])
-   - Type validation: 100% PASS ([typecheck command])
-   - Format validation: 100% PASS ([format command])
+### File Structure Guidelines:
+- **API Routes**: `app/api/*/route.ts` (for App Router)
+- **Pages**: `app/*/page.tsx`
+- **Layouts**: `app/*/layout.tsx`
+- **Components**: `components/*/` or alongside pages
+- **Utilities**: `lib/`, `utils/`, or `helpers/`
+- **Types**: `types/` or inline with components
 
-   🤖 Generated with Claude Code
-   Co-Authored-By: Claude <noreply@anthropic.com>"
-   ```
+### Testing Patterns:
+- **Components**: Use React Testing Library + Jest/Vitest
+- **API Routes**: Test request/response with supertest
+- **Database**: Use test database or mocks
+- **Integration**: Playwright for E2E tests
 
-## Mode-Specific Behavior
+### TypeScript Requirements:
+- Always use strict mode
+- Define interfaces for all props and data structures
+- Use proper typing for API responses
+- Leverage Next.js built-in types
 
-### MANUAL Mode
+## Example Execution Flow:
+```
+1. Check branch → Switch to staging if needed
+2. Phase 0: Analyze requirement & plan tests
+3. Phase 1: RED → Write failing tests (verify they fail)
+4. Phase 2: GREEN → Implement minimal code (100% tests pass)
+5. Phase 3: REFACTOR → Apply Next.js best practices (maintain 100% pass)
+6. Phase 4: QA → Build + Lint + TypeScript + All tests (100% pass)
+7. Git add → Commit with conventional commit format
+8. Report completion with metrics
+```
 
-**Output Includes**:
-- Task information (issue, title, branch)
-- Implementation steps checklist
-- TDD requirements (Red-Green-Refactor)
-- Validation requirements
-- Commit message template
-- Next steps for human developer
+## Critical Rules (NEVER VIOLATE):
+- **TDD RED-GREEN-REFACTOR phases are MANDATORY**
+- **100% test pass rate REQUIRED at every stage**
+- **NEVER skip test cases - NO exceptions**
+- **NEVER proceed with build/lint/test failures**
+- **ALWAYS work on staging or feature branches**
+- **NEVER create PRs unless explicitly requested**
+- **STOP if additional config/environment needed**
+- **ALWAYS follow Next.js App Router conventions**
+- **ALWAYS use TypeScript strict mode**
 
-**Human Developer Responsibilities**:
-- Write tests FIRST (Red phase)
-- Execute implementation according to task requirements
-- Run all validations before committing
-- Use proper commit format
-- Push branch and create PR with `/pr`
-
-### COPILOT Mode
-
-**Automatic Execution**:
-- Complete TDD workflow (tests first!)
-- All validation steps
-- Proper commit formatting
-- Branch creation and push
-- PR creation via `/pr`
-
-## Error Handling
-
-- **Issue not found**: Clear error with issue number
-- **Invalid environment**: Git status and directory checks
-- **Validation failures**: Stop workflow and report errors
-- **TDD violations**: Error if tests not written first
-- **Mode-specific**: Provide appropriate guidance per mode
-
-## Integration
-
-- **Before**: Use `/plan [task]` to create task issues
-- **After**: Use `/pr [feedback]` to create pull request
-- **Mode**: Use `/mode [manual|copilot]` to set execution mode
-- **Context**: Use `/fcs [topic]` for context discussions
-
-## Files
-
-- Feature branches: `feature/task-{issue}-{description}`
-- `.claude/current_mode` - Determines execution behavior
-- GitHub Issues - Task definitions and requirements
-
-## Notes
-
-- Always works from **staging** branch as base (never from main)
-- Feature branch naming is strictly enforced
-- 100% validation is mandatory before commits
-- **Test-Driven Development is MANDATORY** - Tests must be written before code
-- Mode affects who performs implementation steps
-- **PR always goes to staging** - developer handles staging → main merge
-- Commands adapt to project type (Node.js, Rust, Python, etc.)
+## Success Criteria:
+- All tests written first (RED phase confirmed)
+- Implementation makes all tests pass (GREEN phase)
+- Code follows Next.js best practices (REFACTOR phase)
+- 100% pass rate on: build, lint, TypeScript, ALL tests
+- Comprehensive commit with conventional format
+- No TypeScript errors or warnings

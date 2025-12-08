@@ -1,9 +1,9 @@
 ## Project Overview
 
-**Project Name**: [PROJECT_NAME] (Workflow Template)
+**Project Name**: MiMiVibe 
 
-**Repository**: [REPOSITORY_URL]
-**Author**: [AUTHOR_NAME] <[EMAIL]>
+**Repository**: https://github.com/mojisejr/mmv-tarots
+**Author**: mojisejr
 
 **Description**: Generic, reusable agent workflow and implementation template. Use this repository to document mandatory agent safety rules, workflow commands, templates, and the implementation checklist used by automated agents and developers. Replace placeholders with project-specific metadata when adapting this template.
 
