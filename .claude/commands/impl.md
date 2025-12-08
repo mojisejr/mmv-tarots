@@ -78,11 +78,13 @@
    - **TypeScript MUST pass**: `npx tsc --noEmit` - No type errors allowed
    - Fix any issues before proceeding
 
-### 📋 Branch Management
-- Check current branch immediately upon command execution
-- If not on staging, checkout to staging branch
-- For new features: create feature branch from staging
-- **ALWAYS work on staging or feature branches, NEVER on main**
+### 📋 Branch Management (STAGING-ONLY POLICY)
+- **MANDATORY**: Check current branch immediately upon command execution
+- **FORBIDDEN**: NEVER code, implement, or modify files on main branch
+- **REQUIRED**: ALWAYS work on staging branch ONLY
+- **FEATURE BRANCHES**: Create from staging ONLY when needed
+- **SAFETY CHECK**: If on main branch, IMMEDIATELY switch to staging
+- **HARD STOP**: Command execution HALTS if cannot switch to staging
 
 ### 🤖 Multi-Agent Task Management
 - Use Task tool with subagent_type='general-purpose' for complex tasks
@@ -114,15 +116,20 @@
 
 ### When executing /impl command:
 
-#### Step 1: Environment Setup
+#### Step 1: Environment Setup (STAGING-ONLY ENFORCEMENT)
 ```bash
-# Check current branch
+# MANDATORY: Check current branch FIRST
 Bash git branch --show-current
 
-# If not staging, run:
+# CRITICAL: If on main branch, IMMEDIATELY switch:
 Bash git checkout staging
 
-# For new feature, create feature branch:
+# FORBIDDEN: NEVER work on main branch
+# - If branch is 'main', STOP ALL IMPLEMENTATION
+# - Switch to staging BEFORE any coding
+# - ONLY proceed if on staging or feature branch
+
+# OPTIONAL: Create feature branch FROM staging:
 Bash git checkout -b feature/task-123-description
 ```
 
@@ -200,7 +207,7 @@ Closes #123"
 
 ## Example Execution Flow:
 ```
-1. Check branch → Switch to staging if needed
+1. **MANDATORY**: Check branch → **IMMEDIATELY** switch to staging if on main
 2. Phase 0: Analyze requirement & plan tests
 3. Phase 1: RED → Write failing tests (verify they fail)
 4. Phase 2: GREEN → Implement minimal code (100% tests pass)
@@ -215,7 +222,10 @@ Closes #123"
 - **100% test pass rate REQUIRED at every stage**
 - **NEVER skip test cases - NO exceptions**
 - **NEVER proceed with build/lint/test failures**
-- **ALWAYS work on staging or feature branches**
+- **STAGING-ONLY POLICY: NEVER code on main branch - FORBIDDEN**
+- **ALWAYS work on staging branch ONLY**
+- **IMMEDIATELY switch from main to staging before ANY coding**
+- **STOP execution if cannot switch to staging**
 - **NEVER create PRs unless explicitly requested**
 - **STOP if additional config/environment needed**
 - **ALWAYS follow Next.js App Router conventions**
