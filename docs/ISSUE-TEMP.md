@@ -6,30 +6,30 @@
 ## 🎯 [ISSUE-XXX] [Context Title]
 
 ### 🎯 CONTEXT OBJECTIVE
-**Goal หลักที่ต้องการทำ:**
-- [เป้าหมายหลักของ context นี้]
-- [ประโยชน์ที่ต้องการจาก Context นี้]
+**Primary Goal:**
+- [Main objective of this context]
+- [Expected benefits from this context]
 
 ### 📝 DISCUSSION LOG
 **Session Timeline:**
-- **Initial Session**: [YYYY-MM-DD HH:MM] - เริ่ม discuss
-- **Update Session 1**: [YYYY-MM-DD HH:MM] - เพิ่มเติม requirements
-- **Update Session 2**: [YYYY-MM-DD HH:MM] - ปรับ clarify ขอบเขต
-- [สามารถเพิ่มได้ตามจำนวน discussion sessions]
+- **Initial Session**: [YYYY-MM-DD HH:MM] - Initial discussion
+- **Update Session 1**: [YYYY-MM-DD HH:MM] - Added requirements
+- **Update Session 2**: [YYYY-MM-DD HH:MM] - Clarified scope
+- [Add more sessions as needed]
 
 ### 🔄 CURRENT STATUS
-**Context Phase**:
-- `[Planning]` - กำลังวางแผน/ปรึกษา
-- `[Ready for Planning]` - พร้อมสำหรับ =plan
-- `[Implementation Ready]` - พร้อม implement
+**Context Phase:**
+- `[Planning]` - Planning/consultation phase
+- `[Ready for Planning]` - Ready for implementation planning
+- `[Implementation Ready]` - Ready for implementation
 
 **Last Updated**: [YYYY-MM-DD HH:MM]
 
 ### 📋 ACCUMULATED CONTEXT
-**Requirements ที่ได้จากการ discuss:**
-- [Requirement 1 - จาก session แรก]
-- [Requirement 2 - จาก session ต่อมา]
-- [Requirement N - จาก session ล่าสุด]
+**Requirements from Discussions:**
+- [Requirement 1 - from initial session]
+- [Requirement 2 - from subsequent session]
+- [Requirement N - from latest session]
 
 **Technical Decisions:**
 - [Decision 1 - architecture choice]
@@ -37,85 +37,88 @@
 - [Decision 3 - implementation approach]
 
 **Constraints & Assumptions:**
-- [Constraint 1 - performance/time]
-- [Assumption 1 - user behavior]
-- [Constraint 2 - technical limitation]
+- [Constraint 1 - performance/time limitations]
+- [Assumption 1 - user behavior patterns]
+- [Constraint 2 - technical limitations]
 
 **Scope Boundaries:**
 **IN SCOPE:**
-- [Feature/Component ที่ต้องทำ]
-- [Functionality ที่ต้องรองรับ]
+- [Features/components to implement]
+- [Functionality to support]
 
 **OUT OF SCOPE:**
-- [Feature/Component ที่ไม่ต้องทำ]
-- [Functionality ที่ไม่ต้องรองรับใน context นี้]
+- [Features/components not to implement]
+- [Functionality not to support in this context]
 
 ### 🏗️ TECHNICAL ARCHITECTURE
 **System Components:**
-- **Frontend Components**: [components/pages ที่จะ implement]
-- **Backend Services**: [APIs/services ที่จะ implement]
-- **Database Models**: [tables/models ที่จะ implement]
-- **External Integrations**: [services ที่ต้อง connect]
+- **Next.js Components**: [App Router pages/layouts]
+- **API Routes**: [Next.js API endpoints]
+- **Database Models**: [Neon PostgreSQL tables]
+- **Vercel Workflows**: [AI pipeline workflows]
+- **External Integrations**: [AI Gateway, other services]
 
 **Architecture Patterns:**
-- [Pattern 1 - design pattern ที่จะใช้]
-- [Pattern 2 - technical approach ที่เลือก]
+- [Pattern 1 - Serverless functions]
+- [Pattern 2 - AI orchestration]
+- [Pattern 3 - Async processing]
 
 **Key Technical Requirements:**
-- **Performance**: [ความเร็ว/ขนาด/response time]
-- **Security**: [ความปลอดภัยที่ต้องการ]
-- **Scalability**: [การรองรับผู้ใช้งาน]
-- **Compatibility**: [browser/device support]
+- **Performance**: API response < 200ms (p95)
+- **Security**: Input validation, environment variables
+- **Scalability**: Serverless auto-scaling
+- **Type Safety**: TypeScript strict mode
 
 ### 🎯 IMPLEMENTATION DIRECTIONS
 **Breaking Down Strategy:**
-- [แนะนำวิธีแบ่งเป็น atomic tasks]
-- [ลำดับความสำคัญของ features]
-- [Dependencies ที่ต้องจัดการ]
+- [Suggest atomic task breakdown]
+- [Feature priority order]
+- [Dependencies to manage]
 
 **Risk Areas Identified:**
-- [Risk 1 - technical complexity]
-- [Risk 2 - integration challenge]
-- [Risk 3 - time/skill constraint]
+- [Risk 1 - AI integration complexity]
+- [Risk 2 - Vercel Workflow limitations]
+- [Risk 3 - Neon DB connection issues]
 
 **Success Criteria:**
 - [Criteria 1 - measurable outcome]
-- [Criteria 2 - user impact metric]
+- [Criteria 2 - user experience metric]
 - [Criteria 3 - technical requirement]
 
 ### 📚 REFERENCE MATERIALS
 **Documentation:**
-- [Documentation Link 1]
-- [Documentation Link 2]
+- `docs/PRD.md` - Product Requirements Document
+- `.claude/commands/impl.md` - Implementation workflow guide
+- `.claude/commands/run-test.md` - Testing framework setup
 
 **Code Examples:**
-- [Code Reference 1]
-- [Implementation Pattern 2]
+- [Code Reference 1 - Next.js pattern]
+- [Implementation Pattern 2 - Vercel Workflow]
 
 **External Resources:**
-- [External Article/Resource 1]
-- [Tool/Library Documentation 2]
+- [Vercel AI SDK Documentation]
+- [Neon Database Documentation]
 
 ### 🔄 SESSION NOTES
 **Notes from [YYYY-MM-DD HH:MM] Session:**
-- **สิ่งที่คุยกันใน session นี้:**
-  - [Topic 1 - สิ่งที่ discuss]
-  - [Topic 2 - ข้อมูลที่ได้]
-- **Decisions ที่ทำใน session นี้:**
+- **Discussed Topics:**
+  - [Topic 1 - discussed item]
+  - [Topic 2 - information gathered]
+- **Decisions Made:**
   - [Decision 1]
   - [Decision 2]
-- **Questions ที่ยังไม่ตอบ:**
+- **Unanswered Questions:**
   - [Question 1]
   - [Question 2]
 
 **Action Items:**
-- [ ] [Action item 1 - ทำต่อใน session หน้า]
-- [ ] [Action item 2 - ตรวจสอบ/validate]
+- [ ] [Action item 1 - for next session]
+- [ ] [Action item 2 - research/validate]
 
 **Next Session Focus:**
-- [สิ่งที่จะคุยต่อใน session หน้า]
-- [ข้อมูลที่ต้องเตรียมมา]
-- [Decisions ที่ต้องทำใน session หน้า]
+- [What to discuss in next session]
+- [Information to prepare]
+- [Decisions needed]
 
 ### 📋 PLANNING READINESS CHECKLIST
 ✅ **Requirements are clear and complete**
@@ -124,14 +127,14 @@
 - [ ] User stories/use cases are clear
 
 ✅ **Technical approach is validated**
-- [ ] Architecture decisions are confirmed
-- [ ] Technology stack is selected
-- [ ] Implementation patterns are defined
+- [ ] Next.js architecture decisions are confirmed
+- [ ] Neon + Vercel integration is validated
+- [ ] AI pipeline patterns are defined
 
 ✅ **Dependencies are identified**
-- [ ] External dependencies are listed
-- [ ] Internal dependencies are mapped
-- [ ] Blocking factors are acknowledged
+- [ ] Vercel AI SDK dependencies are listed
+- [ ] Neon database dependencies are mapped
+- [ ] Vercel Workflow dependencies are acknowledged
 
 ✅ **Scope boundaries are defined**
 - [ ] IN SCOPE items are clearly listed
@@ -139,52 +142,59 @@
 - [ ] Success criteria are measurable
 
 ✅ **Risk areas are acknowledged**
-- [ ] Technical risks are identified
-- [ ] Mitigation strategies are discussed
-- [ ] Timeline constraints are realistic
+- [ ] AI integration risks are identified
+- [ ] Serverless architecture risks are considered
+- [ ] Development timeline constraints are realistic
 
-**Overall Planning Status**:
-**[Ready for Planning]** - เมื่อ checklist ครบทุกข้อ
-**[Not Ready Yet]** - ต้องมีการ discuss เพิ่มเติม
+✅ **Testing Strategy is Defined**
+- [ ] Unit testing approach (Jest)
+- [ ] Integration testing plan
+- [ ] E2E testing framework (Playwright)
+
+**Overall Planning Status:**
+**[Ready for Planning]** - When all checklist items are complete
+**[Not Ready Yet]** - Requires additional discussion
 
 ### 🔗 RELATED ISSUES
-- **Parent Issue**: # (ถ้ามี)
-- **Related Context Issues**: # (ถ้ามี)
-- **Technical Dependencies**: # (ถ้ามี)
+- **Parent Issue**: # (if applicable)
+- **Related Context Issues**: # (if applicable)
+- **Technical Dependencies**: # (if applicable)
 
-**Task Issues Generated from this Context:**
-- [TASK-XXX-X] - [task title] (generated)
-- [TASK-XXX-Y] - [task title] (generated)
-- [เพิ่ม task issues ที่ถูก generate จาก context นี้]
+**Implementation Notes:**
+- Use `/impl [task description]` to implement features from this context
+- Use `/run-test [type]` to run appropriate tests
+- Follow TDD Red-Green-Refactor cycle
+- Ensure TypeScript strict mode compliance
 
 ---
 
 ## 📝 Instructions for Using This Template
 
-### Initial Context Creation (=fcs > [context title])
-1. **Fill basic sections**: CONTEXT OBJECTIVE, เริ่ม DISCUSSION LOG, CURRENT STATUS = Planning
-2. **Add initial requirements**: สิ่งที่คุยกันใน session แรก
-3. **Update SESSION NOTES**: บันทึกสิ่งสำคัญจากการคุย
-4. **Check Planning Readiness**: ดูว่าพร้อม =plan หรือยัง
+### Initial Context Creation
+1. Fill basic sections: CONTEXT OBJECTIVE, start DISCUSSION LOG, set CURRENT STATUS = Planning
+2. Add initial requirements from first discussion
+3. Update SESSION NOTES with key points
+4. Check Planning Readiness
 
-### Context Updates (=fcs > [ISSUE-XXX])
-1. **Add to DISCUSSION LOG**: เพิ่ม session ใหม่พร้อม timestamp
-2. **Update ACCUMULATED CONTEXT**: เพิ่ม requirements/decisions ใหม่
-3. **Modify TECHNICAL ARCHITECTURE**: อัพเดทข้อมูลที่ได้จากการคุย
-4. **Update SESSION NOTES**: บันทึกสิ่งที่คุยใน session ล่าสุด
-5. **Check Planning Readiness**: ประเมินว่าพร้อมสำหรับ =plan หรือไม่
+### Context Updates
+1. Add to DISCUSSION LOG with new session timestamp
+2. Update ACCUMULATED CONTEXT with new requirements/decisions
+3. Modify TECHNICAL ARCHITECTURE based on new insights
+4. Update SESSION NOTES with latest discussion
+5. Assess Planning Readiness
 
-### When Ready for Planning (=plan > [task description])
-- Ensure **Context Phase** = `[Ready for Planning]`
+### When Ready for Implementation
+- Ensure **Context Phase** = `[Implementation Ready]`
 - All **PLANNING READINESS CHECKLIST** items are ✅
-- Use this context to generate atomic tasks following the Task Issue Template in `/docs/TASK-ISSUE-TEMP.md`
+- Use `/impl` command to begin implementation
+- Follow the workflow in `.claude/commands/impl.md`
 
 ### Context Evolution Principles
-- **Incremental**: เพิ่มข้อมูลทีละน้อยตามการ discuss
-- **Transparent**: บันทึกว่าทำไมถึงตัดสินใจแบบนั้น
-- **Flexible**: สามารถปรับ decisions ได้ (พร้อมการอธิบาย)
-- **Living Document**: Context เติบโตไปพร้อมกับความเข้าใจ
+- **Incremental**: Add information gradually through discussions
+- **Transparent**: Document decision rationale
+- **Flexible**: Adjust decisions with explanations
+- **Action-Oriented**: Focus on implementation-ready outcomes
 
 ---
 
-*This template is designed for iterative discussion-based context creation where understanding evolves through multiple sessions.*
+*This template is designed for iterative discussion-based context creation specifically for the MiMiVibe tarot reading application using Next.js, Neon, and Vercel Workflow.*
