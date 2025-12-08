@@ -9,20 +9,45 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.44",
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^7.1.0",
+    "@types/three": "^0.181.0",
+    "@vercel/postgres": "^0.10.0",
+    "ai": "^5.0.108",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.23.25",
+    "lucide-react": "^0.556.0",
     "next": "^16.0.7",
+    "prisma": "^7.1.0",
     "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "react-dom": "^19.2.1",
+    "react-hook-form": "^7.68.0",
+    "tailwind-merge": "^3.4.0",
+    "three": "^0.181.2",
+    "workflow": "^4.0.1-beta.28",
+    "zod": "^4.1.13",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.7",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "jsdom": "^27.3.0",
     "postcss": "^8.5.6",
+    "prettier": "^3.7.4",
     "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   }
 }
