@@ -15,6 +15,8 @@
 ### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
 
 - ❌ **NEVER merge PRs yourself** - Provide PR link and wait for user instructions
+- ✅ **ALLOWED to commit and push to staging branch** - For iterative development
+- ✅ **ALLOWED to create PRs to staging** - After successful implementation and QA
 - ❌ **NEVER work on main branch** - Always use staging or feature branches
 - ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, next.config.ts)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
@@ -283,6 +285,40 @@ import { render, screen } from '@testing-library/react'
   "test": "jest"
 }
 ```
+
+---
+
+## Git Operations for Agents
+
+### ✅ ALLOWED Actions
+- **Commit to staging**: After successful implementation and QA
+- **Push to staging**: To save progress and collaborate
+- **Create PRs**: To staging branch for code review
+
+### Standard Workflow
+```bash
+# After implementation is complete
+git add .
+git commit -m "type(scope): description
+
+- What was changed
+- Why it was changed
+- Tests added/updated
+- QA results: ✓build ✓lint ✓test ✓types"
+
+# Push to staging
+git push origin staging
+
+# Optional: Create PR
+gh pr create --base staging
+```
+
+### Task Completion
+1. **Full Implementation**: Complete all requested features
+2. **Testing Included**: Provide tests for new code
+3. **QA Verified**: Ensure build/lint/tests pass
+4. **Committed**: Push changes to staging branch
+5. **Optional PR**: Create PR if requested or for complex changes
 
 ---
 

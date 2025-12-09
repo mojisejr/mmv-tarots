@@ -15,6 +15,8 @@
 ### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
 
 - ❌ **NEVER merge PRs yourself** - Provide PR link and wait for user instructions
+- ✅ **ALLOWED to commit and push to staging branch** - For iterative development
+- ✅ **ALLOWED to create PRs to staging** - After successful implementation and QA
 - ❌ **NEVER work on main branch** - Always use staging or feature branches
 - ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, next.config.ts)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
@@ -318,6 +320,39 @@ lib/
 1. Check if testing framework is configured
 2. Execute appropriate npm script
 3. Report test results and coverage
+
+---
+
+## Git Operations Policy
+
+### ✅ ALLOWED Actions
+- **Commit to staging branch**: For iterative development
+- **Push to staging branch**: To save progress
+- **Create PRs to staging**: For code review and tracking
+
+### ❌ FORBIDDEN Actions
+- **Push to main branch**: Direct pushes not allowed
+- **Merge PRs to main**: Requires user approval
+- **Force push**: Only use `--force-with-lease` when absolutely necessary
+
+### Standard Git Workflow
+```bash
+# After completing implementation and QA
+git add .
+git commit -m "feat(scope): description
+
+- Changes made
+- Tests added/updated
+- QA checks passed (build, lint, test, types)
+
+Closes #123"
+
+# Push to staging
+git push origin staging
+
+# Optional: Create PR for review
+gh pr create --base staging --title "Feature Title" --body "Description of changes"
+```
 
 ---
 
