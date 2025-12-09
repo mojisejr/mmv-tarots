@@ -6,3 +6,5 @@ export type { GlassCardProps } from '../card';
 
 export { FormattedText } from '../formatted-text';
 export type { FormattedTextProps } from '../formatted-text';
+
+export { QuestionInput } from './question-input';
