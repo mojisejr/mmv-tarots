@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Menu, User } from 'lucide-react';
 
 export interface NavigationProps {
@@ -23,12 +24,37 @@ export function Navigation({
   onProfileClick,
   onBackClick,
 }: NavigationProps) {
+  const [scrolled, setScrolled] = useState(false);
   const isHomePage = currentPage === 'home';
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
+
+  const navClasses = `
+    fixed top-0 left-0 right-0 z-50
+    w-full h-16 px-3 sm:px-6
+    flex justify-between items-center
+    backdrop-blur-xl border-b transition-all duration-300
+    navbar-enter
+    ${scrolled
+      ? 'bg-black/40 border-white/20 shadow-2xl'
+      : 'bg-black/20 border-white/10 shadow-lg'
+    }
+  `;
 
   return (
     <nav
       data-testid="navbar"
-      className="relative z-50 w-full h-20 px-6 flex justify-between items-center flex-shrink-0 bg-white/10 backdrop-blur-2xl border border-white/20"
+      className={navClasses}
       role="navigation"
       aria-label="Main navigation"
     >
@@ -37,7 +63,7 @@ export function Navigation({
         onClick={isHomePage ? onMenuClick : onBackClick}
         aria-label={isHomePage ? 'Open menu' : 'Go back'}
         data-testid={isHomePage ? 'menu-button' : 'back-button'}
-        className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+        className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
       >
         {isHomePage ? (
           <Menu className="w-6 h-6 text-white" />
@@ -67,7 +93,7 @@ export function Navigation({
           onClick={onProfileClick}
           aria-label="User profile"
           data-testid="profile-button"
-          className="relative p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20"
+          className="relative p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
         >
           <User className="w-6 h-6 text-white" />
           <span
