@@ -80,17 +80,19 @@ export default function Home() {
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-6xl mx-auto space-y-8">
 
+
           {/* Hero Section with Mimi Avatar */}
           <section className="text-center space-y-6 py-12">
+            <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mx-auto flex items-center justify-center">
+              <MimiAvatar />
+            </div>
             <h1 className="text-5xl md:text-7xl font-serif text-white leading-tight tracking-tight drop-shadow-lg animate-fade-in-up">
               What guidance
               <br />
               do you seek?
             </h1>
 
-            <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mx-auto flex items-center justify-center">
-              <MimiAvatar />
-            </div>
+
           </section>
 
           {/* Question Input Demo */}

@@ -54,10 +54,15 @@ describe('MimiAvatar', () => {
     expect(particles).toBeInTheDocument();
   });
 
-  it('should have fade-in animation class', () => {
+  it('should have fade-in animation', () => {
     render(<MimiAvatar />);
 
-    const wrapper = screen.getByTestId('canvas-mimi-avatar').parentElement;
-    expect(wrapper).toHaveClass('animate-fade-in');
+    const wrapper = screen.getByTestId('mimi-avatar-wrapper');
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper).toHaveAttribute('style');
+    // Check that opacity and animation are set
+    expect(wrapper?.style.opacity).toBe('0');
+    expect(wrapper?.style.animation).toContain('fade-in');
+    expect(wrapper?.style.animation).toContain('forwards');
   });
 });

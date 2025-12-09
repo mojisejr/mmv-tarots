@@ -91,7 +91,14 @@ function ParticlesMesh() {
 // Main MimiAvatar Component
 export const MimiAvatar = () => {
   return (
-    <div className="w-full h-full animate-fade-in" style={{ opacity: 0, animationFillMode: 'forwards', animationDelay: '0.2s' }}>
+    <div
+      className="w-full h-full"
+      style={{
+        opacity: 0,
+        animation: 'fade-in 1s ease-out 0.2s forwards'
+      }}
+      data-testid="mimi-avatar-wrapper"
+    >
       <Canvas
         gl={{
           alpha: true,
