@@ -46,7 +46,7 @@ const mockCards: TarotCard[] = [
 export default function Home() {
   const [question, setQuestion] = useState('');
   const [isLoggedIn] = useState(true); // Simulate logged in state
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage] = useState('home');
 
   const handleQuestionSubmit = (value: string) => {
     console.log('Question submitted:', value);
@@ -80,7 +80,6 @@ export default function Home() {
       <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
         <div className="max-w-6xl mx-auto space-y-8 pb-20">
 
-
           {/* Hero Section with Mimi Avatar */}
           <section className="text-center space-y-6 py-12">
             <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mx-auto flex items-center justify-center">
@@ -91,8 +90,6 @@ export default function Home() {
               <br />
               do you seek?
             </h1>
-
-
           </section>
 
           {/* Question Input Demo */}
@@ -108,88 +105,7 @@ export default function Home() {
                 placeholder="What would you like to know about your future?"
               />
             </GlassCard>
-          </section>
-
-          {/* Tarot Cards Gallery */}
-          <section className="py-12">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-serif text-white mb-4">
-                Sample Tarot Reading
-              </h2>
-              <p className="text-white/70">
-                Interactive tarot cards with 3D hover effects
-              </p>
-            </div>
-
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-8 px-4 pb-6 pt-2 no-scrollbar items-start">
-              {mockCards.map((card, idx) => (
-                <div key={idx} className="snap-center flex flex-col items-center flex-shrink-0">
-                  <TarotCardVisual card={card} delay={idx * 150} />
-                </div>
-              ))}
-              <div className="w-4 flex-shrink-0"></div>
-            </div>
-          </section>
-
-          {/* Component Features */}
-          <section className="grid md:grid-cols-2 gap-8 py-12">
-            <GlassCard>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Phase 1: Liquid Background
-              </h3>
-              <p className="text-white/70 mb-4">
-                Mystical liquid background with floating gradient orbs and noise texture
-              </p>
-              <ul className="space-y-2 text-white/60">
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[var(--primary)] rounded-full"></span>
-                  Animated gradient orbs
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full"></span>
-                  Noise texture overlay
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[var(--success)] rounded-full"></span>
-                  Smooth floating animations
-                </li>
-              </ul>
-            </GlassCard>
-
-            <GlassCard>
-              <h3 className="text-xl font-semibold text-white mb-4">
-                Phase 2: Core Components
-              </h3>
-              <p className="text-white/70 mb-4">
-                Essential UI components with glassmorphism design
-              </p>
-              <ul className="space-y-2 text-white/60">
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[var(--primary)] rounded-full"></span>
-                  Navigation with conditional buttons
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[var(--accent)] rounded-full"></span>
-                  Auto-resizing question input
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-2 h-2 bg-[var(--success)] rounded-full"></span>
-                  Interactive tarot cards
-                </li>
-              </ul>
-            </GlassCard>
-          </section>
-
-          {/* Test Results Badge */}
-          <section className="text-center py-8">
-            <GlassCard className="inline-flex items-center gap-3 px-6 py-3">
-              <span className="text-2xl">✨</span>
-              <div className="text-left">
-                <p className="font-semibold text-white">167 Tests Passing</p>
-                <p className="text-sm text-white/60">100% Test Coverage</p>
-              </div>
-            </GlassCard>
-          </section>
+          </section> 
         </div>
       </div>
     </div>
