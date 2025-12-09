@@ -32,11 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
-        style={{
-          backgroundColor: 'var(--background)',
-          color: 'var(--foreground)',
-        }}
+        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased bg-[#2a2a2e] text-white`}
       >
         {children}
       </body>
