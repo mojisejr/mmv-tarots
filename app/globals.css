@@ -5,15 +5,21 @@
   --color-background: #2a2a2e;
   --color-foreground: #ffffff;
   --color-muted-foreground: #a0a0a0;
+  --color-primary: #F27669;
+  --color-accent: #FCBD74;
+  --color-success: #06C755;
 }
 
 /* Base styles */
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family: 'Montserrat', system-ui, sans-serif;
-  overflow: hidden;
+@layer base {
+  body {
+    background-color: #2a2a2e; /* Fallback for var(--color-background) */
+    color: #ffffff; /* Fallback for var(--color-foreground) */
+    font-family: 'Montserrat', system-ui, sans-serif;
+    overflow: hidden;
+  }
 }
+
 
 /* Hide Scrollbar */
 .no-scrollbar::-webkit-scrollbar {
