@@ -77,8 +77,8 @@ export default function Home() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
+        <div className="max-w-6xl mx-auto space-y-8 pb-20">
 
 
           {/* Hero Section with Mimi Avatar */}

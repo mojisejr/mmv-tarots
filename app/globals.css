@@ -16,7 +16,6 @@
     background-color: #2a2a2e; /* Fallback for var(--color-background) */
     color: #ffffff; /* Fallback for var(--color-foreground) */
     font-family: 'Montserrat', system-ui, sans-serif;
-    overflow: hidden;
   }
 }
 
