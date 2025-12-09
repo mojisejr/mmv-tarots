@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Montserrat, Merriweather, Ubuntu_Mono } from "next/font/google";
 import "./globals.css";
 import { LiquidBackground } from "@/components/background/liquid-background";
+import { NavigationProvider } from "@/lib/providers/navigation-provider";
+import { MainNavigation } from "@/components/layout/main-navigation";
 
 const fontSans = Montserrat({
   variable: "--font-sans",
@@ -36,7 +38,10 @@ export default function RootLayout({
         className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased bg-[#2a2a2e] text-white`}
       >
         <LiquidBackground />
-        {children}
+        <NavigationProvider>
+          <MainNavigation />
+          <main className="flex-1">{children}</main>
+        </NavigationProvider>
       </body>
     </html>
   );

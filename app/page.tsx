@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Navigation,
   QuestionInput,
   MimiAvatar,
   GlassCard,
@@ -10,39 +9,14 @@ import {
 
 export default function Home() {
   const [question, setQuestion] = useState('');
-  const [isLoggedIn] = useState(true); // Simulate logged in state
-  const [currentPage] = useState('home');
 
   const handleQuestionSubmit = (value: string) => {
     console.log('Question submitted:', value);
     // In a real app, this would trigger the tarot reading flow
   };
 
-  const handleMenuClick = () => {
-    console.log('Menu clicked');
-  };
-
-  const handleProfileClick = () => {
-    console.log('Profile clicked');
-  };
-
-  const handleBackClick = () => {
-    console.log('Back clicked');
-  };
-
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Navigation Bar */}
-      <Navigation
-        currentPage={currentPage}
-        isLoggedIn={isLoggedIn}
-        onMenuClick={handleMenuClick}
-        onProfileClick={handleProfileClick}
-        onBackClick={handleBackClick}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 overflow-y-auto no-scrollbar">
+    <div className="p-4 md:p-6 overflow-y-auto no-scrollbar">
         <div className="max-w-6xl mx-auto space-y-8 pb-20">
 
           {/* Hero Section with Mimi Avatar */}
@@ -72,7 +46,6 @@ export default function Home() {
             </GlassCard>
           </section> 
         </div>
-      </div>
     </div>
   );
 }
