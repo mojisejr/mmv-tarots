@@ -42,12 +42,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased bg-[#2a2a2e] text-white`}
+        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased bg-[#2a2a2e] text-white safe-top`}
       >
         <LiquidBackground />
         <NavigationProvider>
           <MainNavigation />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pt-16">{children}</main>
         </NavigationProvider>
       </body>
     </html>
