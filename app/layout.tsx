@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Merriweather, Ubuntu_Mono } from "next/font/google";
 import "./globals.css";
+import { LiquidBackground } from "@/components/background/liquid-background";
 
 const fontSans = Montserrat({
   variable: "--font-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body
         className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased bg-[#2a2a2e] text-white`}
       >
+        <LiquidBackground />
         {children}
       </body>
     </html>
