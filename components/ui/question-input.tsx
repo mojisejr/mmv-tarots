@@ -10,6 +10,7 @@ export interface QuestionInputProps {
   placeholder?: string;
   minCharacters?: number;
   maxRows?: number;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 const MIN_TEXTAREA_HEIGHT = 44; // pixels
@@ -31,9 +32,11 @@ export function QuestionInput({
   placeholder = DEFAULT_PLACEHOLDER,
   minCharacters = MIN_CHARACTERS,
   maxRows = 4,
+  textareaRef: externalTextareaRef,
 }: QuestionInputProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = externalTextareaRef || internalTextareaRef;
 
   // Auto-resize textarea based on content
   const resizeTextarea = useCallback(() => {
@@ -114,6 +117,8 @@ export function QuestionInput({
           onBlur={handleBlur}
           placeholder={placeholder}
           rows={1}
+          autoFocus
+          data-testid="question-textarea"
           className="w-full bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none resize-none py-4 pr-16 font-sans text-xl leading-relaxed tracking-wide"
           style={{
             minHeight: `${MIN_TEXTAREA_HEIGHT}px`,
