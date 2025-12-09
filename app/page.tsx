@@ -1,12 +1,70 @@
-export default function Home() {
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import {
+  QuestionInput,
+  MimiAvatar,
+  GlassCard,
+} from '@/components';
+
+function Home() {
+  const [question, setQuestion] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto focus on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
+
+  const handleQuestionSubmit = (value: string) => {
+    console.log('Question submitted:', value);
+    // In a real app, this would trigger the tarot reading flow
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <h1 className="text-4xl font-bold">Welcome to Next.js!</h1>
-        <p className="text-lg">
-          Get started by editing <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">app/page.tsx</code>
-        </p>
-      </main>
-    </div>
+    <>
+      {/* Main Content */}
+      <div
+        data-testid="main-content"
+        className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 overflow-y-auto no-scrollbar pb-20 sm:pb-24 md:pb-28"
+      >
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Hero Section with Mimi Avatar */}
+          <section className="text-center space-y-6 py-12">
+            <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mx-auto flex items-center justify-center">
+              <MimiAvatar />
+            </div>
+            <h1 className="text-5xl md:text-7xl font-serif text-white leading-tight tracking-tight drop-shadow-lg animate-fade-in-up">
+              What guidance
+              <br />
+              do you seek?
+            </h1>
+          </section>
+        </div>
+      </div>
+
+      {/* Fixed Bottom Input */}
+      <div
+        data-testid="bottom-input-container"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-none backdrop-blur-xl  shadow-2xl transition-all duration-300"
+      >
+        <div
+          data-testid="input-wrapper"
+          className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 max-w-4xl mx-auto"
+        >
+          <QuestionInput
+            value={question}
+            onChange={setQuestion}
+            onSubmit={handleQuestionSubmit}
+            placeholder="What would you like to know about your future?"
+            textareaRef={textareaRef}
+          />
+        </div>
+      </div>
+    </>
   );
 }
+
+export default Home;

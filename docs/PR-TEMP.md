@@ -1,11 +1,11 @@
-## 📋 TDD-First Pull Request Template
+# 📋 TDD-First Pull Request Template for Next.js
 
 ### 🎯 **TDD Compliance Validation**
 
 #### 🔴 **RED Phase - Tests Written First**
 - [ ] **Test files created BEFORE implementation files**
 - [ ] **Tests FAIL initially** (validated during development)
-- [ ] **Test file locations**: Following project patterns (`__tests__/`, `.test.`, `_test.rs`, etc.)
+- [ ] **Test file locations**: Following Next.js patterns (`__tests__/`, `.test.ts/.test.tsx`)
 - [ ] **Meaningful tests**: Tests validate actual behavior, not just pass trivially
 - [ ] **Edge case coverage**: Tests cover error conditions and boundary cases
 
@@ -18,15 +18,15 @@
 #### 🔵 **REFACTOR Phase - Safe Improvement**
 - [ ] **Code quality improvements**: Applied while maintaining test coverage
 - [ ] **Tests still PASS**: All tests continue passing after refactoring
-- [ ] **Type checking**: Zero type errors (`[typecheck command]`)
-- [ ] **Lint compliance**: Zero lint violations (`[lint command]`)
+- [ ] **Type checking**: Zero type errors (`npx tsc --noEmit`)
+- [ ] **Lint compliance**: Zero lint violations (`npm run lint`)
 
 ### 🏗️ **Build & Test Validation**
-- [ ] **Build validation**: `[build command]` → 100% PASS
-- [ ] **Unit tests**: `[test command]` → 100% PASS
-- [ ] **Type checking**: `[typecheck command]` → 100% PASS
-- [ ] **Lint validation**: `[lint command]` → 100% PASS
-- [ ] **Code formatting**: `[format command]` → Consistent style
+- [ ] **Build validation**: `npm run build` → 100% PASS
+- [ ] **Unit tests**: `npm test` → 100% PASS
+- [ ] **Type checking**: `npx tsc --noEmit` → 100% PASS
+- [ ] **Lint validation**: `npm run lint` → 100% PASS
+- [ ] **Code formatting**: Consistent style (Prettier/ESLint)
 - [ ] **Test coverage**: Minimum 80% for critical paths
 
 ### 📝 **Description**
@@ -50,7 +50,7 @@ Example format:
 
 ### 🔗 **Related Issue**
 - **Issue**: # <!-- Link to the GitHub issue this PR addresses -->
-- **Type**: `[TASK]` <!-- Should be a task issue created via /plan or /plan2 -->
+- **Type**: `[TASK]` <!-- Should be a task issue created via planning -->
 
 ### 🤖 **Agent Learning Context**
 #### **Approach Decision**
@@ -81,31 +81,34 @@ Link to knowledge issues created from learnings:
 - [ ] **Edge cases tested**: Error conditions handled properly
 - [ ] **Mobile responsive**: Works correctly on mobile devices
 - [ ] **Accessibility**: WCAG 2.1 AA compliance checked
+- [ ] **Next.js specific**: App Router patterns working correctly
 
 #### **Automated Testing**
 - [ ] **Unit tests**: All new functions and utilities tested
 - [ ] **Component tests**: React components render and interact correctly
-- [ ] **Integration tests**: API routes and database operations tested
-- [ ] **E2E tests**: Critical user journeys verified (if applicable)
+- [ ] **API tests**: API routes and serverless functions tested
+- [ ] **Integration tests**: Database operations tested (if applicable)
 
 ### 📊 **Performance Impact**
 - [ ] **Bundle size**: No significant increase in bundle size
 - [ ] **Performance**: No performance regressions introduced
-- [ ] **Database queries**: Optimized with proper indexes
+- [ ] **Database queries**: Optimized with proper indexes (Neon)
 - [ ] **API response times**: Within target (< 200ms)
+- [ ] **Serverless cold starts**: Acceptable startup times
 
 ### 🔒 **Security Considerations**
 - [ ] **Input validation**: All user inputs validated and sanitized
 - [ ] **Database security**: Parameterized queries, no injection risks
-- [ ] **Authentication**: Proper access controls implemented
-- [ ] **Data exposure**: No sensitive data leaked in responses
+- [ ] **Environment variables**: No sensitive data in code
+- [ ] **API security**: Proper authentication/authorization if applicable
+- [ ] **AI Gateway**: Proper usage through Vercel AI Gateway (if applicable)
 
-### 🔄 **Workflow Integration**
-- **Task Issue**: # <!-- Link to /plan or /plan2 output -->
-- **Context Issues**: <!-- Links to /fcs discussions if applicable -->
-- **Knowledge Entries**: <!-- /kupdate links from implementation learnings -->
-
----
+### 🔄 **Next.js & Vercel Integration**
+- [ ] **App Router**: Proper usage of Next.js 13+ App Router patterns
+- [ ] **Server Components**: Correctly implemented where applicable
+- [ ] **API Routes**: Following `app/api/*/route.ts` pattern
+- [ ] **Vercel Deployment**: No deployment blockers
+- [ ] **Environment Variables**: Properly configured for Vercel
 
 <details>
 <summary>📸 <strong>Screenshots/Videos (Optional)</strong></summary>
@@ -120,19 +123,19 @@ Link to knowledge issues created from learnings:
 </details>
 
 <details>
-<summary>📊 <strong>Performance & Deployment (Optional)</strong></summary>
+<summary>🤖 <strong>AI/Workflow Integration (Optional)</strong></summary>
 
-### 📊 **Performance Impact**
-- [ ] **Bundle size**: No significant increase in bundle size
-- [ ] **Performance**: No performance regressions introduced
-- [ ] **Database queries**: Optimized with proper indexes
-- [ ] **API response times**: Within target (< 200ms)
+### Vercel Workflow (if applicable)
+- [ ] **Workflow triggers**: Correctly configured
+- [ ] **Job tracking**: Proper job ID handling
+- [ ] **Error propagation**: Errors bubble up correctly
+- [ ] **Async processing**: Long-running tasks handled properly
 
-### 🚀 **Deployment Notes**
-- [ ] **Database migrations**: Required migrations included
-- [ ] **Environment variables**: New variables documented in `.env.example`
-- [ ] **Dependencies**: New dependencies properly justified and documented
-- [ ] **Breaking changes**: None expected (or clearly documented)
+### AI Integration (if applicable)
+- [ ] **Model usage**: Correct models selected (Gemini flash/pro)
+- [ ] **Rate limiting**: Proper limits implemented
+- [ ] **Cost control**: AI Gateway usage optimized
+- [ ] **Error handling**: Graceful AI service failures
 
 </details>
 
@@ -147,11 +150,10 @@ Link to knowledge issues created from learnings:
 #### **TDD Compliance Verified**
 ```bash
 # All commands executed successfully:
-[build command]        # ✅ Build validation: 100% PASS
-[test command]         # ✅ Test validation: 100% PASS
-[lint command]         # ✅ Lint validation: 100% PASS
-[typecheck command]    # ✅ Type validation: 100% PASS
-[format command]       # ✅ Format validation: Consistent
+npm run build        # ✅ Build validation: 100% PASS
+npm test            # ✅ Test validation: 100% PASS
+npm run lint         # ✅ Lint validation: 100% PASS
+npx tsc --noEmit    # ✅ Type validation: 100% PASS
 ```
 
 ### 📋 **Review Focus Areas**
@@ -162,11 +164,17 @@ Link to knowledge issues created from learnings:
 - [ ] **Proper refactoring**: Code improvements maintain test coverage
 - [ ] **Test quality**: Tests properly validate functionality and edge cases
 
-#### **Code Quality Review**
-- [ ] **Language-specific patterns**: All best practices followed
-- [ ] **Lint compliance**: Zero violations, proper formatting
-- [ ] **Error handling**: Comprehensive error handling implemented
-- [ ] **Documentation**: Code changes properly documented
+#### **Next.js Code Quality Review**
+- [ ] **App Router patterns**: Proper usage of Next.js App Router
+- [ ] **TypeScript compliance**: Strict mode, comprehensive typing
+- [ ] **Server/Client components**: Correct separation of concerns
+- [ ] **API Routes**: Proper Next.js API route patterns
+
+#### **Performance & Security Review**
+- [ ] **Bundle optimization**: No unnecessary imports or large bundles
+- [ ] **Security best practices**: Input validation, no hardcoded secrets
+- [ ] **Database efficiency**: Optimized queries, proper indexes
+- [ ] **Serverless optimization**: Cold start times, memory usage
 
 #### **Agent Context Review**
 - [ ] **Decision rationale**: Clear reasoning for approach chosen
@@ -198,9 +206,10 @@ This PR follows strict Test-Driven Development methodology with:
 
 **Review Priority**:
 1. TDD methodology compliance and test quality
-2. Agent context completeness for future reference
-3. Security and code quality standards
+2. Next.js App Router pattern adherence
+3. Agent context completeness for future reference
+4. Security and performance standards
 
 ---
 
-*Generated with [PROJECT_NAME] TDD-First Workflow Template*
+*Generated with MiMiVibe Next.js TDD-First Workflow Template*

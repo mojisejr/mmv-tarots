@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MimiVibe - Cosmic Tarot Reader</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Montserrat:wght@300;400;500;600;700&family=Ubuntu+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Custom Styles & Theme -->
+    <style>
+        :root {
+          --primary: #F27669; /* Salmon/Coral */
+          --accent: #FCBD74;  /* Golden Orange */
+          --foreground: #ffffff;
+          --muted-foreground: #a0a0a0;
+          --font-sans: 'Montserrat', sans-serif;
+          --font-serif: 'Merriweather', serif;
+          --font-mono: 'Ubuntu Mono', monospace;
+        }
+
+        body {
+            background-color: #2a2a2e;
+            color: var(--foreground);
+            font-family: var(--font-sans);
+            overflow: hidden; /* Prevent body scroll, handle in containers */
+        }
+
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Animations */
+        @keyframes float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(20px, -20px) scale(1.05); }
+        }
+        @keyframes float-delayed {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.1; transform: scale(1); }
+          50% { opacity: 0.15; transform: scale(1.1); }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        .animate-float-slow { animation: float-slow 15s ease-in-out infinite; }
+        .animate-float-delayed { animation: float-delayed 18s ease-in-out infinite; }
+        .animate-pulse-slow { animation: pulse-slow 10s ease-in-out infinite; }
+
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in-down {
+          from { opacity: 0; transform: translateY(-30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .animate-fade-in-down { animation: fade-in-down 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .animate-fade-in { animation: fade-in 1s ease-out forwards; }
+        .perspective-1000 { perspective: 1000px; }
+
+        /* Liquid Noise Texture */
+        .liquid-noise {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // --- Inline Icon Components (Replacing External Lucide React) ---
+        // This fixes the 'forwardRef' undefined error by removing the external dependency entirely.
+        
+        const createIcon = (paths) => ({ className, ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className={className} 
+                {...props}
+            >
+                {paths}
+            </svg>
+        );
+
+        const Sparkles = createIcon(<><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 9h4"/><path d="M3 5h4"/></>);
+        const Moon = createIcon(<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>);
+        const Star = createIcon(<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>);
+        const History = createIcon(<><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/><path d="M3 3v9h9"/><path d="M12 7v5l4 2"/></>);
+        const Search = createIcon(<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>);
+        const ArrowRight = createIcon(<><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>);
+        const ArrowUp = createIcon(<><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></>);
+        const Loader2 = createIcon(<path d="M21 12a9 9 0 1 1-6.219-8.56"/>);
+        const Copy = createIcon(<><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>);
+        const CheckCircle2 = createIcon(<><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></>);
+        const RefreshCw = createIcon(<><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></>);
+        const Zap = createIcon(<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>);
+        const Menu = createIcon(<><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></>);
+        const ChevronRight = createIcon(<path d="m9 18 6-6-6-6"/>);
+        const ChevronLeft = createIcon(<path d="m15 18-6-6 6-6"/>);
+        const LogIn = createIcon(<><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></>);
+        const Heart = createIcon(<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>);
+        const Sword = createIcon(<><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/></>);
+        const Sun = createIcon(<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></>);
+        const AlertCircle = createIcon(<><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></>);
+        const MessageCircle = createIcon(<path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>);
+        const User = createIcon(<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>);
+        const Coins = createIcon(<><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></>);
+        const Gift = createIcon(<><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></>);
+        const CreditCard = createIcon(<><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></>);
+        const LogOut = createIcon(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></>);
+        const Share2 = createIcon(<><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></>);
+        const Gem = createIcon(<path d="M6 3h12l4 6-10 13L2 9Z"/>);
+
+        // --- Mock Data ---
+
+        const WAITING_STEPS = [
+            { id: 'filter', label: 'Cleaning energy...', icon: <Sparkles className="w-5 h-5" /> },
+            { id: 'analyzer', label: 'Sensing aura...', icon: <Zap className="w-5 h-5" /> },
+            { id: 'selector', label: 'Shuffling...', icon: <RefreshCw className="w-5 h-5" /> },
+            { id: 'reader', label: 'Interpreting...', icon: <Moon className="w-5 h-5" /> },
+        ];
+
+        const FUN_FACTS = [
+            "Did you know? The Death card rarely means physical death. It signifies transformation.",
+            "Tarot originated in northern Italy in the 15th century.",
+            "The Fool is the only card that is unnumbered (or Zero), representing infinite potential.",
+            "Mimi connects with the cosmic energy, please be patient...",
+        ];
+
+        const PACKAGES = [
+            { id: 1, price: 99, stars: 10, highlight: false },
+            { id: 2, price: 189, stars: 20, highlight: true }, // Recommended
+            { id: 3, price: 399, stars: 40, highlight: false },
+        ];
+
+        const MOCK_RESULT = {
+            job_id: "job-1234-5678-abcd",
+            status: "COMPLETED",
+            data: {
+                header: "สวัสดีจ้าหนู... แม่หมอสัมผัสได้ถึงความกังวลใจในเรื่องความสัมพันธ์นะ กอดๆ นะคะ 💖",
+                reading_metadata: {
+                mood: "Anxious/Hopeful",
+                topic: "Love & Relationship",
+                dominant_element: "Fire"
+                },
+                cards_reading: [
+                {
+                    position: 1,
+                    id: "swords_3",
+                    name_en: "Three of Swords",
+                    name_th: "ไพ่ 3 ดาบ",
+                    image_url: "/assets/cards/swords/3.jpg",
+                    keywords: ["ความเจ็บปวด", "แผลใจ", "รักสามเส้า"],
+                    orientation: "upright",
+                    interpretation: "ไพ่ใบแรกเปิดมาเจอความเจ็บปวดเลย เหมือนหนูเพิ่งผ่านเรื่องที่ทำให้ร้องไห้หนักๆ มา หรือมีคำพูดแทงใจดำที่ยังฝังใจอยู่"
+                },
+                {
+                    position: 2,
+                    id: "major_06",
+                    name_en: "The Lovers",
+                    name_th: "ไพ่คู่รัก",
+                    image_url: "/assets/cards/major/06.jpg",
+                    keywords: ["ทางเลือก", "ความรัก", "ความลังเล"],
+                    orientation: "upright",
+                    interpretation: "แต่ในความเจ็บปวด ลึกๆ แล้วถ่านไฟเก่ายังคุกรุ่นนะ ไพ่ใบนี้บอกว่าทั้งคู่ยังมีเยื่อใยต่อกัน หรือกำลังยืนอยู่บนทางแยกที่ต้องตัดสินใจว่าจะไปต่อหรือพอแค่นี้"
+                },
+                {
+                    position: 3,
+                    id: "major_19",
+                    name_en: "The Sun",
+                    name_th: "ไพ่พระอาทิตย์",
+                    image_url: "/assets/cards/major/19.jpg",
+                    keywords: ["ความสำเร็จ", "ฟ้าหลังฝน", "ความสดใส"],
+                    orientation: "upright",
+                    interpretation: "สุดท้ายแล้ว ไม่ว่าจะเลือกทางไหน ฟ้าจะสว่างสดใสแน่นอนจ้ะ ไพ่พระอาทิตย์ขึ้นปิดท้าย แปลว่าความเศร้าจะหายไป ความชัดเจนและความสุขกำลังรอหนูอยู่ข้างหน้า"
+                }
+                ],
+                reading: "แม่หมอฟันธงว่า **'มีโอกาสสูงที่เขาจะติดต่อกลับมา'** ค่ะ เพราะไพ่ The Lovers ประกบกับ The Sun พลังงานด้านบวกมันชัดมาก แต่ไพ่ 3 ดาบเตือนว่าช่วงแรกอาจจะต้องเคลียร์ใจกันเรื่องแผลเก่าให้จบก่อน อย่าเพิ่งรีบร้อนนะ ให้เวลาเยียวยาทุกอย่าง แล้วฟ้าหลังฝนจะสวยงามมากจ้ะ",
+                suggestions: [
+                "ช่วงนี้งดดราม่าหน้า Wall หรือโพสต์เพลงเศร้าไปก่อนนะ ทำตัวให้สดใสเหมือนไพ่ The Sun เข้าไว้",
+                "ถ้าเขาทักมา ให้คุยด้วยเหตุผล อย่าใช้อารมณ์ขุดเรื่องเก่า",
+                "หาเวลาไปทำบุญ หรือทำกิจกรรมกลางแจ้งเพื่อรับพลังงานบวก"
+                ],
+                next_questions: [
+                "เขาจะทักมาภายในเดือนนี้ไหม?",
+                "ถ้ากลับมาแล้ว จะดีกว่าเดิมหรือเปล่า?",
+                "มีใครคนอื่นเข้ามาแทรกกลางไหม?"
+                ],
+                final_summary: "เขายังรักและคิดถึงหนูอยู่ แต่อย่าเพิ่งใจร้อน รอจังหวะอีกนิด ความสุขรออยู่แน่นอนค่ะ!",
+                disclaimer: "ดวงชะตาเป็นเพียงแนวทาง โปรดใช้วิจารณญาณในการตัดสินใจนะคะ"
+            }
+        };
+
+        // --- Three.js Components ---
+
+        const MimiAvatar = () => {
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                let scene, camera, renderer, animationId;
+                let coreMesh, shellMesh, particlesMesh;
+                
+                const initThree = () => {
+                if (window.THREE) {
+                    setupScene(window.THREE);
+                }
+                };
+
+                const setupScene = (THREE) => {
+                if (!containerRef.current) return;
+
+                const width = containerRef.current.clientWidth;
+                const height = containerRef.current.clientHeight;
+                
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                camera.position.z = 5;
+
+                renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                containerRef.current.appendChild(renderer.domElement);
+
+                const coreGeometry = new THREE.IcosahedronGeometry(1.2, 0);
+                const coreMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xF27669, 
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+                scene.add(coreMesh);
+
+                const shellGeometry = new THREE.IcosahedronGeometry(1.8, 1);
+                const shellMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xFCBD74,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.2
+                });
+                shellMesh = new THREE.Mesh(shellGeometry, shellMaterial);
+                scene.add(shellMesh);
+
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particleCount = 200;
+                const posArray = new Float32Array(particleCount * 3);
+                for(let i = 0; i < particleCount * 3; i++) {
+                    posArray[i] = (Math.random() - 0.5) * 8; 
+                }
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                const particlesMaterial = new THREE.PointsMaterial({
+                    size: 0.03,
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+                scene.add(particlesMesh);
+
+                const animate = () => {
+                    animationId = requestAnimationFrame(animate);
+                    const time = Date.now() * 0.001;
+
+                    if (coreMesh) {
+                    coreMesh.rotation.y += 0.005;
+                    coreMesh.rotation.x += 0.002;
+                    const scale = 1 + Math.sin(time * 2) * 0.05;
+                    coreMesh.scale.set(scale, scale, scale);
+                    }
+
+                    if (shellMesh) {
+                    shellMesh.rotation.y -= 0.003;
+                    shellMesh.rotation.x -= 0.001;
+                    }
+
+                    if (particlesMesh) {
+                    particlesMesh.rotation.y += 0.001;
+                    particlesMesh.position.y = Math.sin(time * 0.5) * 0.2;
+                    }
+
+                    renderer.render(scene, camera);
+                };
+
+                animate();
+
+                const handleResize = () => {
+                    if (!containerRef.current) return;
+                    const newWidth = containerRef.current.clientWidth;
+                    const newHeight = containerRef.current.clientHeight;
+                    camera.aspect = newWidth / newHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(newWidth, newHeight);
+                };
+
+                window.addEventListener('resize', handleResize);
+                
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    cancelAnimationFrame(animationId);
+                    if (renderer && containerRef.current) {
+                    containerRef.current.removeChild(renderer.domElement);
+                    renderer.dispose();
+                    }
+                };
+                };
+
+                initThree();
+            }, []);
+
+            return <div ref={containerRef} className="w-full h-full animate-fade-in" style={{ opacity: 0, animationFillMode: 'forwards', animationDelay: '0.2s' }} />;
+        };
+
+        const MimiLoadingAvatar = () => {
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                let scene, camera, renderer, animationId;
+                let coreMesh, shellMesh, particlesMesh;
+                
+                const initThree = () => {
+                if (window.THREE) {
+                    setupScene(window.THREE);
+                }
+                };
+
+                const setupScene = (THREE) => {
+                if (!containerRef.current) return;
+
+                const width = containerRef.current.clientWidth;
+                const height = containerRef.current.clientHeight;
+                
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+                camera.position.z = 4.5; 
+
+                renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                containerRef.current.appendChild(renderer.domElement);
+
+                const coreGeometry = new THREE.IcosahedronGeometry(1.2, 0);
+                const coreMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xF27669, 
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+                scene.add(coreMesh);
+
+                const shellGeometry = new THREE.IcosahedronGeometry(1.6, 1);
+                const shellMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xFCBD74,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                shellMesh = new THREE.Mesh(shellGeometry, shellMaterial);
+                scene.add(shellMesh);
+
+                const animate = () => {
+                    animationId = requestAnimationFrame(animate);
+                    const time = Date.now() * 0.001;
+
+                    if (coreMesh) {
+                    coreMesh.rotation.y += 0.03; 
+                    coreMesh.rotation.x += 0.015;
+                    const scale = 1 + Math.sin(time * 5) * 0.08;
+                    coreMesh.scale.set(scale, scale, scale);
+                    }
+
+                    if (shellMesh) {
+                    shellMesh.rotation.y -= 0.02;
+                    shellMesh.rotation.z -= 0.01;
+                    }
+
+                    renderer.render(scene, camera);
+                };
+
+                animate();
+
+                const handleResize = () => {
+                    if (!containerRef.current) return;
+                    const newWidth = containerRef.current.clientWidth;
+                    const newHeight = containerRef.current.clientHeight;
+                    camera.aspect = newWidth / newHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(newWidth, newHeight);
+                };
+
+                window.addEventListener('resize', handleResize);
+                
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    cancelAnimationFrame(animationId);
+                    if (renderer && containerRef.current) {
+                    containerRef.current.removeChild(renderer.domElement);
+                    renderer.dispose();
+                    }
+                };
+                };
+
+                initThree();
+            }, []);
+
+            return <div ref={containerRef} className="w-full h-full animate-fade-in" />;
+        };
+
+        // --- UI Components ---
+
+        const LiquidBackground = () => (
+            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-[#2a2a2e]"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[70vw] h-[70vw] bg-[var(--primary)] opacity-20 blur-[120px] rounded-full animate-float-slow"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-[var(--accent)] opacity-15 blur-[100px] rounded-full animate-float-delayed"></div>
+                <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] bg-purple-500 opacity-10 blur-[90px] rounded-full animate-pulse-slow"></div>
+                <div className="absolute inset-0 opacity-[0.03] liquid-noise"></div>
+            </div>
+        );
+
+        const GlassCard = ({ children, className = '' }) => (
+            <div className={`relative backdrop-blur-xl bg-white/5 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] rounded-[1.5rem] p-6 text-[var(--foreground)] ${className}`}>
+                <div className="absolute inset-0 rounded-[1.5rem] border border-white/5 pointer-events-none"></div>
+                {children}
+            </div>
+        );
+
+        const GlassButton = ({ children, onClick, variant = 'primary', className = '', disabled = false }) => {
+            const baseStyle = "relative overflow-hidden px-6 py-3.5 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-sans touch-manipulation group";
+            
+            const variants = {
+                primary: "bg-[var(--primary)]/90 text-white shadow-[0_0_20px_rgba(242,118,105,0.4)] hover:shadow-[0_0_30px_rgba(242,118,105,0.6)] border border-white/10 hover:bg-[var(--primary)]",
+                outline: "bg-white/5 border border-white/10 text-[var(--foreground)] hover:bg-white/10 hover:border-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]",
+                ghost: "bg-transparent text-[var(--muted-foreground)] hover:text-white hover:bg-white/5",
+                icon: "p-3.5 rounded-full aspect-square bg-white/5 hover:bg-white/10 text-[var(--foreground)] border border-white/5",
+                line: "bg-[#06C755] hover:bg-[#05b34c] text-white border border-[#06C755]/50 shadow-[0_4px_15px_rgba(6,199,85,0.3)] hover:shadow-[0_6px_25px_rgba(6,199,85,0.5)]",
+            };
+            
+            return (
+                <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`} disabled={disabled}>
+                <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent z-0 pointer-events-none"></div>
+                <span className="relative z-10 flex items-center gap-2">{children}</span>
+                </button>
+            );
+        };
+
+        const FormattedText = ({ text }) => {
+            const parts = text.split(/(\*\*.*?\*\*)/g);
+            return (
+                <span>
+                {parts.map((part, index) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                    return <span key={index} className="text-[var(--primary)] font-bold">{part.slice(2, -2)}</span>;
+                    }
+                    return part;
+                })}
+                </span>
+            );
+        };
+
+        const TarotCardVisual = ({ card, delay }) => {
+            const getIcon = (id) => {
+                if (id.includes('swords')) return <Sword className="w-10 h-10 text-[var(--foreground)]/60" />;
+                if (id.includes('Lovers')) return <Heart className="w-10 h-10 text-[var(--primary)] drop-shadow-[0_0_10px_rgba(242,118,105,0.8)]" />;
+                if (id.includes('Sun')) return <Sun className="w-10 h-10 text-[var(--accent)] drop-shadow-[0_0_10px_rgba(252,189,116,0.8)]" />;
+                return <Sparkles className="w-10 h-10 text-white/50" />;
+            };
+
+            return (
+                <div 
+                    className="relative group perspective-1000 w-[260px] flex-shrink-0 mx-auto animate-fade-in-up"
+                    style={{ animationDelay: `${delay}ms` }}
+                >
+                    <div className="relative transform transition-transform duration-700 hover:scale-[1.02]">
+                    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-3xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col items-center justify-center p-6 text-center overflow-hidden aspect-[2/3]">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[var(--primary)]/20 blur-[40px] rounded-full"></div>
+
+                        <div className="relative z-10 text-[10px] text-white/60 mb-4 uppercase tracking-[0.2em] font-sans font-bold bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                            {card.position}
+                        </div>
+                        
+                        <div className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center mb-4 border border-white/10 shadow-lg backdrop-blur-sm group-hover:scale-110 transition-transform duration-500">
+                            {getIcon(card.id)}
+                        </div>
+                        
+                        <h3 className="relative z-10 font-serif text-xl text-white font-bold leading-tight mb-1 drop-shadow-md">{card.name_th}</h3>
+                        <p className="relative z-10 text-xs text-white/50 font-sans italic mb-4">{card.name_en}</p>
+
+                        <div className="relative z-10 flex flex-wrap justify-center gap-1.5">
+                            {card.keywords.map((kw, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded-md bg-white/10 border border-white/5 text-[10px] text-white/80">
+                                    {kw}
+                                </span>
+                            ))}
+                        </div>
+                        
+                        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-[var(--primary)]/10 to-transparent pointer-events-none"></div>
+                    </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Pages ---
+
+        const HomePage = ({ onStartReading, isLoggedIn, onLogin }) => {
+            const [question, setQuestion] = useState('');
+            const [isFocused, setIsFocused] = useState(false);
+            const textareaRef = useRef(null);
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (question.length >= 5) onStartReading(question);
+                }
+            };
+
+            useEffect(() => {
+                if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+                }
+            }, [question]);
+
+            return (
+                <div className="flex flex-col h-full relative overflow-hidden">
+                <div 
+                    className={`flex-1 flex flex-col items-center justify-center p-6 transition-all duration-700 ease-in-out ${
+                        isFocused ? '-translate-y-16 scale-90 opacity-80' : ''
+                    }`}
+                    style={{ paddingBottom: '160px' }}
+                >
+                    <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mb-8 flex items-center justify-center transition-all duration-700">
+                        <div className="absolute inset-0 z-0">
+                        <MimiAvatar />
+                        </div>
+                    </div>
+
+                    <h1 className="text-4xl md:text-6xl font-serif text-white text-center leading-tight tracking-tight drop-shadow-lg animate-fade-in-up delay-100 px-4 z-10">
+                    What guidance <br/> do you seek?
+                    </h1>
+
+                    {!isLoggedIn && (
+                        <div className="mt-8 w-full max-w-sm animate-fade-in-up delay-200 z-50">
+                            <GlassCard className="w-full flex flex-col items-center text-center !rounded-[2rem] border-white/20 bg-white/10">
+                                <p className="text-white/80 mb-6 font-sans text-sm tracking-wide">
+                                Sign in to connect with your spirit guide.
+                                </p>
+                                <GlassButton variant="line" onClick={onLogin} className="w-full py-4 text-base font-bold !rounded-xl">
+                                    <LogIn className="w-5 h-5 mr-2" />
+                                    Log in with LINE
+                                </GlassButton>
+                            </GlassCard>
+                        </div>
+                    )}
+                </div>
+
+                {isLoggedIn && (
+                    <div className="w-full fixed bottom-0 left-0 right-0 p-4 pb-8 z-50">
+                        <div className="max-w-3xl mx-auto">
+                            <div className="animate-fade-in px-2">
+                                <div className={`relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] p-2 pl-6 transition-all duration-300 hover:bg-white/15 hover:border-white/30 ${isFocused ? 'bg-white/20 border-white/40 shadow-xl' : ''}`}>
+                                    <textarea
+                                        ref={textareaRef}
+                                        value={question}
+                                        onChange={(e) => setQuestion(e.target.value)}
+                                        onKeyDown={handleKeyDown}
+                                        onFocus={() => setIsFocused(true)}
+                                        onBlur={() => setIsFocused(false)}
+                                        placeholder="Ask Mimi..."
+                                        rows={1}
+                                        className="w-full bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none resize-none py-4 pr-16 max-h-32 font-sans text-xl leading-relaxed tracking-wide"
+                                    />
+                                    
+                                    <div className="absolute right-2 bottom-2">
+                                        <button
+                                            onClick={() => onStartReading(question)}
+                                            disabled={question.length < 5}
+                                            className={`p-3 rounded-full transition-all duration-300 flex items-center justify-center shadow-lg ${
+                                                question.length >= 5
+                                                ? 'bg-[var(--primary)] text-white scale-100 hover:scale-110 hover:shadow-[0_0_20px_var(--primary)]'
+                                                : 'bg-white/10 text-white/30 cursor-not-allowed scale-95'
+                                            }`}
+                                        >
+                                            <ArrowUp className="w-6 h-6" strokeWidth={3} />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <p className="text-center text-[11px] text-white/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300" style={{ opacity: isFocused ? 0 : 1 }}>
+                                    Mimi meditates on your energy (~1 min)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                </div>
+            );
+        };
+
+        const WaitingRoom = ({ jobId, onComplete }) => {
+            const [currentStepIndex, setCurrentStepIndex] = useState(0);
+            const [quoteIndex, setQuoteIndex] = useState(0);
+
+            useEffect(() => {
+                const stepInterval = setInterval(() => {
+                setCurrentStepIndex(prev => {
+                    if (prev < WAITING_STEPS.length - 1) return prev + 1;
+                    return prev;
+                });
+                }, 3500); 
+
+                const quoteInterval = setInterval(() => {
+                setQuoteIndex(prev => (prev + 1) % FUN_FACTS.length);
+                }, 5000);
+
+                const completeTimeout = setTimeout(() => {
+                onComplete();
+                }, 15000); 
+
+                return () => {
+                clearInterval(stepInterval);
+                clearInterval(quoteInterval);
+                clearTimeout(completeTimeout);
+                };
+            }, [onComplete]);
+
+            const copyJobId = () => {
+                alert(`Copied Ticket ID: ${jobId}`);
+            };
+
+            return (
+                <div className="max-w-xl mx-auto w-full px-4 h-full flex flex-col justify-center pb-20">
+                <GlassCard className="text-center p-0 overflow-hidden !bg-white/5 !border-white/10">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
+                    <div 
+                        className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] transition-all duration-1000 ease-linear shadow-[0_0_10px_var(--primary)]"
+                        style={{ width: `${((currentStepIndex + 1) / WAITING_STEPS.length) * 100}%` }}
+                    ></div>
+                    </div>
+
+                    <div className="pt-12 pb-8 px-6">
+                    <div className="relative w-48 h-48 mx-auto mb-4 flex items-center justify-center">
+                        <div className="absolute inset-0 z-0">
+                            <MimiLoadingAvatar />
+                        </div>
+                        <div className="absolute inset-0 bg-[var(--primary)] opacity-30 blur-[60px] rounded-full animate-pulse"></div>
+                    </div>
+
+                    <h2 className="text-2xl font-serif text-white mb-3 drop-shadow-md">Connecting...</h2>
+                    <div 
+                        className="flex items-center justify-center gap-2 text-xs text-white/60 mb-10 bg-white/5 hover:bg-white/10 py-2 px-5 rounded-full w-fit mx-auto cursor-pointer transition-colors font-mono border border-white/10" 
+                        onClick={copyJobId}
+                    >
+                        <span>#{jobId}</span>
+                        <Copy className="w-3 h-3" />
+                    </div>
+
+                    <div className="space-y-4 text-left w-full max-w-xs mx-auto font-sans">
+                        {WAITING_STEPS.map((step, index) => (
+                        <div 
+                            key={step.id} 
+                            className={`flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 border ${
+                            index === currentStepIndex 
+                                ? 'bg-white/10 border-white/20 text-white scale-105 shadow-lg backdrop-blur-sm' 
+                                : index < currentStepIndex 
+                                ? 'border-transparent text-white/40' 
+                                : 'border-transparent text-white/10'
+                            }`}
+                        >
+                            <div className={`p-2 rounded-full ${index <= currentStepIndex ? 'bg-white/10 text-[var(--primary)]' : 'bg-white/5'}`}>
+                            {index < currentStepIndex ? <CheckCircle2 className="w-4 h-4" /> : step.icon}
+                            </div>
+                            <span className="font-medium text-sm tracking-wide">{step.label}</span>
+                        </div>
+                        ))}
+                    </div>
+                    </div>
+
+                    <div className="bg-white/5 p-5 border-t border-white/5 mt-4 min-h-[90px] flex items-center justify-center backdrop-blur-sm">
+                    <p className="text-sm text-white/70 italic animate-fade-in font-serif px-4 leading-relaxed">
+                        "{FUN_FACTS[quoteIndex]}"
+                    </p>
+                    </div>
+                </GlassCard>
+                
+                <p className="text-center text-[10px] text-white/30 mt-8 font-sans uppercase tracking-widest">
+                    You can close this window.
+                </p>
+                </div>
+            );
+        };
+
+        const ResultPage = ({ result, onReset }) => {
+            const scrollRef = useRef(null);
+            const [activeCardIndex, setActiveCardIndex] = useState(0);
+
+            const { data } = result;
+
+            useEffect(() => {
+                if (scrollRef.current) {
+                    const cardWidth = 260 + 24; 
+                    scrollRef.current.scrollLeft = cardWidth * 1 - (window.innerWidth / 2) + (cardWidth / 2);
+                }
+            }, []);
+
+            const handleScroll = () => {
+                if(scrollRef.current) {
+                    const scrollLeft = scrollRef.current.scrollLeft;
+                    const cardWidth = 284;
+                    const index = Math.round(scrollLeft / cardWidth);
+                    const safeIndex = Math.max(0, Math.min(index, data.cards_reading.length - 1));
+                    setActiveCardIndex(safeIndex);
+                }
+            }
+
+            return (
+                <div className="flex flex-col h-full w-full overflow-hidden pt-6">
+                
+                <div className="text-center mb-6 px-4 animate-fade-in-down flex-shrink-0">
+                    <h2 className="text-2xl md:text-3xl font-serif text-white mb-2 leading-tight drop-shadow-md">
+                        {data.header}
+                    </h2>
+                    <div className="flex justify-center gap-2 mt-2">
+                        <span className="text-[10px] uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded text-white/60">
+                            Mood: {data.reading_metadata.mood}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="w-full flex-shrink-0 mb-4 relative">
+                    <div 
+                        ref={scrollRef}
+                        onScroll={handleScroll}
+                        className="flex overflow-x-auto snap-x snap-mandatory gap-6 px-10 pb-6 pt-2 no-scrollbar items-start"
+                        style={{ scrollBehavior: 'smooth' }}
+                    >
+                        {data.cards_reading.map((card, idx) => (
+                        <div key={idx} className="snap-center flex flex-col items-center flex-shrink-0 transition-transform duration-300">
+                            <TarotCardVisual card={card} delay={idx * 150} />
+                        </div>
+                        ))}
+                        <div className="w-4 flex-shrink-0"></div>
+                    </div>
+                    
+                    <div className="px-6 text-center h-16 flex items-center justify-center animate-fade-in">
+                        <p className="text-sm text-white/70 font-sans italic">
+                            "{data.cards_reading[activeCardIndex]?.interpretation}"
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-4 pb-28 mx-auto max-w-2xl w-full">
+                    
+                    <GlassCard className="animate-fade-in-up mb-4 border-white/20 bg-white/10" style={{ animationDelay: '400ms' }}>
+                        <h3 className="text-lg font-serif text-white mb-4 flex items-center gap-3 border-b border-white/10 pb-3">
+                        <Sparkles className="w-5 h-5 text-[var(--accent)]" />
+                        คำทำนาย
+                        </h3>
+                        <p className="text-white/90 leading-relaxed text-lg font-sans font-light">
+                            <FormattedText text={data.reading} />
+                        </p>
+                    </GlassCard>
+
+                    <GlassCard className="animate-fade-in-up mb-4 border-white/10 bg-white/5" style={{ animationDelay: '600ms' }}>
+                        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-wide opacity-80">
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
+                        ข้อแนะนำ
+                        </h3>
+                        <ul className="space-y-3">
+                            {data.suggestions.map((suggestion, idx) => (
+                                <li key={idx} className="flex items-start gap-3 text-sm text-white/80 font-sans">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-white/40 mt-1.5 flex-shrink-0"></div>
+                                    {suggestion}
+                                </li>
+                            ))}
+                        </ul>
+                    </GlassCard>
+
+                    <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+                        <h3 className="text-xs font-bold text-white/50 mb-3 uppercase tracking-widest pl-2">
+                            ถามต่อเลยมั้ย?
+                        </h3>
+                        <div className="flex flex-col gap-2">
+                            {data.next_questions.map((q, idx) => (
+                                <GlassButton key={idx} variant="outline" className="justify-start text-sm py-3 !rounded-xl !bg-white/5 hover:!bg-white/10 text-left h-auto whitespace-normal">
+                                    <MessageCircle className="w-4 h-4 mr-1 opacity-50 flex-shrink-0" />
+                                    {q}
+                                </GlassButton>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="text-center mb-8 px-4 py-6 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl">
+                        <p className="text-xl font-serif text-[var(--accent)] italic">
+                            "{data.final_summary}"
+                        </p>
+                    </div>
+
+                    <p className="text-center text-[10px] text-white/30 mb-8">
+                        {data.disclaimer}
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4 pb-4">
+                    <GlassButton variant="outline" onClick={onReset} className="text-sm">
+                        <History className="w-4 h-4" /> Save
+                    </GlassButton>
+                    <GlassButton onClick={onReset} className="text-sm">
+                        New Reading
+                    </GlassButton>
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const PackageSelectionPage = ({ onBuyPackage }) => {
+            return (
+                <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+                    <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Top Up Stars</h2>
+                    
+                    <div className="grid gap-4 overflow-y-auto pb-4">
+                        {PACKAGES.map((pkg) => (
+                            <div 
+                                key={pkg.id} 
+                                className={`relative group p-6 rounded-[1.5rem] backdrop-blur-xl border transition-all duration-300 flex items-center justify-between ${
+                                    pkg.highlight 
+                                    ? 'bg-gradient-to-br from-[var(--primary)]/20 to-[var(--accent)]/10 border-[var(--primary)]/50 shadow-[0_0_20px_rgba(242,118,105,0.2)]' 
+                                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                }`}
+                            >
+                                {pkg.highlight && (
+                                    <div className="absolute -top-3 left-6 px-3 py-1 bg-[var(--primary)] text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
+                                        Best Value
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border border-white/10 ${pkg.highlight ? 'bg-[var(--primary)]/20 text-[var(--primary)]' : 'bg-white/5 text-white/60'}`}>
+                                        <Star className="w-6 h-6 fill-current" />
+                                    </div>
+                                    <div>
+                                        <div className="text-2xl font-bold text-white font-serif">{pkg.stars} Stars</div>
+                                        <div className="text-xs text-white/50">{pkg.stars} Questions</div>
+                                    </div>
+                                </div>
+
+                                <GlassButton 
+                                    onClick={() => onBuyPackage(pkg)} 
+                                    className={`!rounded-xl px-5 py-2 text-sm ${pkg.highlight ? '!bg-[var(--primary)] text-white' : ''}`}
+                                >
+                                    ฿{pkg.price}
+                                </GlassButton>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        <p className="text-xs text-white/40 mb-2">Secure payment via PromptPay / Credit Card</p>
+                        <div className="flex justify-center gap-4 opacity-30">
+                            <CreditCard className="w-6 h-6" />
+                            <div className="w-6 h-6 border rounded flex items-center justify-center text-[8px] font-bold">QR</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ProfilePage = ({ user, onTopUp, onExchange, onLogout, onShareRef }) => {
+            return (
+                <div className="max-w-md mx-auto pt-6 px-4 h-full flex flex-col pb-24 overflow-y-auto no-scrollbar">
+                <h2 className="text-3xl font-serif text-white mb-6 text-center drop-shadow-md">My Profile</h2>
+
+                <div className="flex flex-col items-center mb-8">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] p-1 shadow-lg mb-3">
+                        <div className="w-full h-full rounded-full bg-[#2a2a2e] flex items-center justify-center overflow-hidden">
+                            <User className="w-10 h-10 text-white/50" />
+                        </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-white">{user.name}</h3>
+                    <p className="text-xs text-[var(--accent)] uppercase tracking-widest font-bold mt-1">Free Spirit</p>
+                </div>
+                
+                <GlassCard className="mb-6 !p-0 overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border-white/20">
+                    <div className="p-6 pb-4 border-b border-white/10">
+                        <h4 className="text-sm font-bold text-white/60 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <CreditCard className="w-4 h-4" /> Wallet
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col">
+                                <span className="text-xs text-white/40 mb-1">Stars (Questions)</span>
+                                <div className="flex items-center gap-2">
+                                    <Star className="w-6 h-6 text-[var(--primary)] fill-current" />
+                                    <span className="text-3xl font-bold text-white font-serif">{user.stars}</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col border-l border-white/10 pl-4">
+                                <span className="text-xs text-white/40 mb-1">Activity Coins</span>
+                                <div className="flex items-center gap-2">
+                                    <Coins className="w-6 h-6 text-yellow-400 fill-current" />
+                                    <span className="text-3xl font-bold text-white font-serif">{user.coins}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-black/20 flex gap-3">
+                        <button 
+                            onClick={onExchange}
+                            disabled={user.coins < 100}
+                            className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            <RefreshCw className="w-3 h-3" /> Exchange (100C = 1⭐)
+                        </button>
+                        <button 
+                            onClick={onTopUp}
+                            className="flex-1 py-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary)]/80 text-white text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+                        >
+                            <Gem className="w-3 h-3" /> Top Up Stars
+                        </button>
+                    </div>
+                </GlassCard>
+
+                <GlassCard className="mb-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-white/10">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-purple-400" /> Referral Program
+                    </h4>
+                    <p className="text-xs text-white/70 mb-4 leading-relaxed">
+                        Invite friends to MimiVibe! They get <span className="text-white font-bold">1 Free Star</span>, 
+                        and you get <span className="text-white font-bold">1 Star + 5 Coins</span> when they join.
+                    </p>
+                    
+                    <div className="flex gap-2">
+                        <div className="flex-1 bg-black/20 rounded-lg px-3 py-2 text-xs font-mono text-white/60 truncate flex items-center">
+                            mimi.vibe/ref/8823x
+                        </div>
+                        <GlassButton variant="icon" onClick={onShareRef} className="!rounded-lg !p-2">
+                            <Share2 className="w-4 h-4" />
+                        </GlassButton>
+                    </div>
+                </GlassCard>
+
+                <div className="space-y-2">
+                    <GlassButton variant="ghost" className="w-full justify-start text-sm !font-normal">
+                        <History className="w-4 h-4 mr-3 opacity-70" /> Reading History
+                    </GlassButton>
+                    <GlassButton variant="ghost" onClick={onLogout} className="w-full justify-start text-sm !font-normal text-red-300 hover:text-red-200">
+                        <LogOut className="w-4 h-4 mr-3 opacity-70" /> Log Out
+                    </GlassButton>
+                </div>
+
+                <p className="text-center text-[10px] text-white/20 mt-8">Version 1.0.2 (Beta)</p>
+                </div>
+            );
+        };
+
+        const HistoryPage = ({ onCheckStatus }) => {
+            const [inputJobId, setInputJobId] = useState('');
+
+            return (
+                <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+                <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Your Journey</h2>
+                
+                <GlassCard className="mb-8 p-6">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-white/50 mb-3 font-sans">Find Ticket</label>
+                    <div className="flex gap-3">
+                    <input 
+                        type="text" 
+                        value={inputJobId}
+                        onChange={(e) => setInputJobId(e.target.value)}
+                        placeholder="#12345"
+                        className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 font-mono text-lg placeholder-white/20 transition-all"
+                    />
+                    <GlassButton variant="icon" onClick={() => onCheckStatus(inputJobId)} disabled={!inputJobId}>
+                        <Search className="w-5 h-5" />
+                    </GlassButton>
+                    </div>
+                </GlassCard>
+
+                <div className="flex-1 overflow-y-auto -mx-2 px-2">
+                    <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 font-sans px-2">Recent Visions</h3>
+                    <div className="space-y-3 pb-4">
+                        {[
+                            { id: '8823', date: '2m ago', status: 'Completed', query: 'Career path 2024...' },
+                            { id: '8821', date: '1d ago', status: 'Completed', query: 'Love life advice...' },
+                            { id: '8815', date: '3d ago', status: 'Processing', query: 'What is my purpose...' }
+                        ].map((item) => (
+                            <div key={item.id} className="group bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300">
+                                <div className="flex-1 min-w-0 pr-4">
+                                    <div className="text-white font-medium truncate text-base mb-1 font-sans group-hover:text-[var(--primary)] transition-colors">{item.query}</div>
+                                    <div className="text-xs text-white/40 font-mono flex items-center gap-2">
+                                        <span>#{item.id}</span>
+                                        <span className="w-1 h-1 rounded-full bg-white/40"></span>
+                                        <span>{item.date}</span>
+                                    </div>
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/80 group-hover:translate-x-1 transition-all" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState('home'); 
+            const [currentJobId, setCurrentJobId] = useState(null);
+            const [result, setResult] = useState(null);
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            
+            const [user, setUser] = useState({
+                name: "Mimi Seeker",
+                stars: 5,
+                coins: 250
+            });
+
+            const handleLogin = () => {
+                setTimeout(() => {
+                    setIsLoggedIn(true);
+                }, 500);
+            };
+
+            const handleLogout = () => {
+                setIsLoggedIn(false);
+                setCurrentPage('home');
+            };
+
+            const handleBack = () => {
+                switch (currentPage) {
+                    case 'packages':
+                        setCurrentPage('profile');
+                        break;
+                    case 'profile':
+                    case 'history':
+                    case 'reveal':
+                        setCurrentPage('home');
+                        break;
+                    default:
+                        setCurrentPage('home');
+                }
+            };
+
+            const startReading = (question) => {
+                if (user.stars > 0) {
+                    setUser(prev => ({ ...prev, stars: prev.stars - 1 })); 
+                    const newJobId = Math.floor(10000 + Math.random() * 90000).toString();
+                    setCurrentJobId(newJobId);
+                    setCurrentPage('waiting');
+                } else {
+                    alert("Not enough stars! Please top up.");
+                    setCurrentPage('packages');
+                }
+            };
+
+            const handleReadingComplete = () => {
+                setResult(MOCK_RESULT);
+                setCurrentPage('reveal');
+            };
+
+            const checkStatus = (id) => {
+                setCurrentJobId(id);
+                setResult(MOCK_RESULT);
+                setCurrentPage('reveal');
+            };
+
+            const resetApp = () => {
+                setCurrentPage('home');
+                setResult(null);
+                setCurrentJobId(null);
+            };
+
+            const handleBuyPackage = (pkg) => {
+                setTimeout(() => {
+                    setUser(prev => ({ ...prev, stars: prev.stars + pkg.stars }));
+                    alert(`Successfully purchased ${pkg.stars} Stars!`);
+                    setCurrentPage('profile');
+                }, 1000);
+            };
+
+            const handleExchangeCoins = () => {
+                if (user.coins >= 100) {
+                    setUser(prev => ({
+                        ...prev,
+                        coins: prev.coins - 100,
+                        stars: prev.stars + 1
+                    }));
+                }
+            };
+
+            const handleShareRef = () => {
+                alert("Referral link copied to clipboard!");
+            };
+
+            const renderPage = () => {
+                switch (currentPage) {
+                case 'home':
+                    return <HomePage onStartReading={startReading} isLoggedIn={isLoggedIn} onLogin={handleLogin} />;
+                case 'waiting':
+                    return <WaitingRoom jobId={currentJobId} onComplete={handleReadingComplete} />;
+                case 'reveal':
+                    return <ResultPage result={result} onReset={resetApp} />;
+                case 'history':
+                    return <HistoryPage onCheckStatus={checkStatus} />;
+                case 'profile':
+                    return (
+                        <ProfilePage 
+                            user={user} 
+                            onTopUp={() => setCurrentPage('packages')} 
+                            onExchange={handleExchangeCoins}
+                            onLogout={handleLogout}
+                            onShareRef={handleShareRef}
+                        />
+                    );
+                case 'packages':
+                    return <PackageSelectionPage onBuyPackage={handleBuyPackage} />;
+                default:
+                    return <HomePage />;
+                }
+            };
+
+            return (
+                <div className="min-h-[100dvh] text-white font-sans selection:bg-[var(--primary)]/30 overflow-hidden flex flex-col relative">
+                
+                <LiquidBackground />
+
+                <nav className="relative z-50 w-full h-20 px-6 flex justify-between items-center flex-shrink-0">
+                    
+                    {currentPage === 'home' ? (
+                        <GlassButton variant="icon" onClick={() => setCurrentPage('home')}>
+                            <Menu className="w-6 h-6" />
+                        </GlassButton>
+                    ) : (
+                        <GlassButton variant="icon" onClick={handleBack}>
+                            <ChevronLeft className="w-6 h-6" />
+                        </GlassButton>
+                    )}
+                    
+                    <div 
+                        className="font-serif font-bold text-xl cursor-pointer text-white tracking-wide hover:text-[var(--primary)] transition-colors absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2 drop-shadow-md"
+                        onClick={() => setCurrentPage('home')}
+                    >
+                    MimiVibe
+                    </div>
+                    
+                    {isLoggedIn ? (
+                        <GlassButton variant="icon" onClick={() => setCurrentPage('profile')}>
+                            <User className="w-6 h-6" />
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--primary)] rounded-full border border-[#2a2a2e]"></span>
+                        </GlassButton>
+                    ) : (
+                        <GlassButton variant="icon" onClick={() => setCurrentPage('history')}>
+                            <History className="w-6 h-6" />
+                        </GlassButton>
+                    )}
+                </nav>
+
+                <main className="relative z-10 w-full flex-1 flex flex-col overflow-hidden">
+                    {renderPage()}
+                </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

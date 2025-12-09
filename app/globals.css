@@ -1,23 +1,121 @@
 @import "tailwindcss";
 
+/* CSS Variables for theme compatibility */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-background: #2a2a2e;
+  --color-foreground: #ffffff;
+  --color-muted-foreground: #a0a0a0;
+  --color-primary: #F27669;
+  --color-accent: #FCBD74;
+  --color-success: #06C755;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Base styles */
+@layer base {
+  body {
+    background-color: #2a2a2e; /* Fallback for var(--color-background) */
+    color: #ffffff; /* Fallback for var(--color-foreground) */
+    font-family: 'Montserrat', system-ui, sans-serif;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+
+/* Hide Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
+/* Safe Area Utilities for iOS devices */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+
+  .safe-left {
+    padding-left: max(env(safe-area-inset-left), 0px);
+  }
+
+  .safe-right {
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+
+  .safe-inset {
+    padding: max(env(safe-area-inset-top), 0px)
+               max(env(safe-area-inset-right), 0px)
+               max(env(safe-area-inset-bottom), 0px)
+               max(env(safe-area-inset-left), 0px);
+  }
+}
+
+/* Liquid Noise Texture */
+.liquid-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Animations for liquid background */
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -20px) scale(1.05); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.15; transform: scale(1.1); }
+}
+
+/* Navigation animations */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.navbar-enter {
+  animation: slideDown 0.5s ease-out;
+}
+
+/* Hover effects for navigation buttons */
+.nav-button-hover {
+  transition: all 0.2s ease;
+}
+
+.nav-button-hover:hover {
+  transform: scale(1.1);
+}
+
+.nav-button-hover:active {
+  transform: scale(0.95);
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Text balance utility */
 @layer utilities {
   .text-balance {
     text-wrap: balance;

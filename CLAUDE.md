@@ -1,11 +1,12 @@
 ## Project Overview
 
-**Project Name**: [PROJECT_NAME] (Workflow Template)
+**Project Name**: MiMiVibe - Tarot Reading Application
 
-**Repository**: [REPOSITORY_URL]
-**Author**: [AUTHOR_NAME] <[EMAIL]>
+**Repository**: https://github.com/mojisejr/mmv-tarots
 
-**Description**: Generic, reusable agent workflow and implementation template. Use this repository to document mandatory agent safety rules, workflow commands, templates, and the implementation checklist used by automated agents and developers. Replace placeholders with project-specific metadata when adapting this template.
+**Author**: mojisejr
+
+**Description**: Serverless tarot reading application built with Next.js, featuring AI-powered tarot readings through Vercel Workflow orchestration. The application uses a "fire-and-forget" architecture to handle long-running AI processing without requiring users to keep their browsers open.
 
 ---
 
@@ -14,12 +15,14 @@
 ### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
 
 - ❌ **NEVER merge PRs yourself** - Provide PR link and wait for user instructions
-- ❌ **NEVER work on main/staging branches** - Always use feature branches
-- ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, lib/database/)
+- ✅ **ALLOWED to commit and push to staging branch** - For iterative development
+- ✅ **ALLOWED to create PRs to staging** - After successful implementation and QA
+- ❌ **NEVER work on main branch** - Always use staging or feature branches
+- ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, next.config.ts)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
 - ❌ **NEVER skip 100% validation** (build, lint, test) - Must pass completely
 - ❌ **NEVER use git push --force** - Only use --force-with-lease when absolutely necessary
-- ❌ **NEVER implement without task issue** - Must use =plan command first
+- ❌ **NEVER implement without proper testing** - Follow TDD Red-Green-Refactor cycle
 
 ### 📁 MANDATORY TEMPORARY FILE MANAGEMENT (CRITICAL)
 
@@ -57,19 +60,9 @@ rm -rf .tmp/*
 rm .tmp/temp-file.md
 ```
 
-**4. GitHub Issue Content Creation**:
-```bash
-# ALWAYS use .tmp folder for issue content drafts
-echo "Issue content" > .tmp/issue-content.md
-# Create GitHub issue using .tmp file
-gh issue create --title "Title" --body-file .tmp/issue-content.md
-# ALWAYS clean up immediately
-rm .tmp/issue-content.md
-```
-
 #### 🔍 AUTOMATIC VERIFICATION
 
-All commands MUST:
+All operations MUST:
 1. Check `.tmp/` folder exists before operation
 2. Create temporary files ONLY in `.tmp/` folder
 3. Clean up `.tmp/` folder immediately after use
@@ -78,12 +71,11 @@ All commands MUST:
 ### 📋 MANDATORY WORKFLOW RULES
 
 - ✅ **ALWAYS** sync staging branch before any implementation: `git checkout staging && git pull origin staging`
-- ✅ **ALWAYS** verify task issue exists: `#[issue-number]` before `=impl`
-- ✅ **ALWAYS** use feature branch naming: `feature/task-[issue-number]-[description]`
-- ✅ **ALWAYS** ensure 100% build success before commit: `[build command]`
-- ✅ **ALWAYS** ensure 100% lint pass before commit: `[lint command]`
-- ✅ **ALWAYS** use template-guided workflow with proper context validation
-- ✅ **ALWAYS** verify code formatting: `[format command]`
+- ✅ **ALWAYS** create feature branch for new work: `git checkout -b feature/[description]`
+- ✅ **ALWAYS** ensure 100% build success before commit: `npm run build`
+- ✅ **ALWAYS** ensure 100% lint pass before commit: `npm run lint`
+- ✅ **ALWAYS** ensure TypeScript compilation: `npx tsc --noEmit`
+- ✅ **ALWAYS** run tests before commit: `npm test`
 - ✅ **ALWAYS** use `.tmp/` folder for temporary files and clean up immediately after use
 
 ---
@@ -123,318 +115,111 @@ All commands MUST:
 
 ## 🌐 Response Language Policy
 
-### Automatic Language Matching (MANDATORY)
+### Thai-Only Responses (MANDATORY)
 
-- **If user asks in Thai** → Respond in Thai (ยกเว้น technical terms)
-- **If user asks in English** → Respond in English
-- **Mixed language** → Follow the primary language of the question
-- **Technical terms** → Always use English (Rust, Cargo, PostgreSQL, etc.)
+- **ALL responses MUST be in Thai language** - ไม่ว่าผู้ใช้จะถามเป็นภาษาใด
+- **User asks in English** → Respond in Thai
+- **User asks in Thai** → Respond in Thai
+- **User asks in any language** → Respond in Thai
+- **Technical terms** → Keep English terms in parentheses (Next.js, TypeScript, Neon, etc.)
 
-### Examples
+### ตัวอย่าง / Examples
 
-**User (Thai)**: "ทำไม queue ถึง fail ?"
-**Agent (Thai)**: "จากการวิเคราะห์ queue system ใน `src/queue/` พบว่า..."
+**User (English)**: "Why is the AI pipeline failing?"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
 
-**User (English)**: "Why is the queue failing?"
-**Agent (English)**: "After analyzing the queue system in `src/queue/`, I found..."
+**User (Thai)**: "ทำไม AI pipeline ถึง fail ?"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
 
-**User (Mixed)**: "explain ว่า database connection pool ทำงานยังไง"
-**Agent (Thai)**: "Connection pool ใน database ทำงานแบบ... (code examples use English)"
-
----
-
-## 📋 Workflow System
-
-### Template Integration
-
-**Context Issue Template** - `/docs/ISSUE-TEMP.md`:
-
-- Used for: `=fcs > [topic-name]` or `=fcs > [CONTEXT]`
-- **ALWAYS creates GitHub Issue** - Never creates local .md files
-- Creates living document for iterative discussion
-- Contains: DISCUSSION LOG, ACCUMULATED CONTEXT, PLANNING READINESS CHECKLIST
-
-**Task Issue Template** - `/docs/TASK-ISSUE-TEMP.md`:
-
-- Used for: `=plan > [task description]`
-- **ALWAYS creates GitHub Issue** - Never creates local .md files
-- Creates atomic tasks based on current mode (MANUAL/COPILOT)
-- Contains: EXECUTION MODE field, 100% validation requirements
-
-**Knowledge Issue Template** - `/docs/KNOWLEDGE-TEMP.md`:
-
-- Used for: `=kupdate [category] "[topic]"`
-- **ALWAYS creates GitHub Issue** - Never creates local .md files
-- Creates structured knowledge entries with AI honest feedback
-- Contains: Problem → Solution → Lessons Learned → Links
-
-### Mode-Based Execution System
-
-**Default Mode**: MANUAL (agent implementation)
-
-**Mode Commands**:
-
-```bash
-/mode manual     # Tasks assigned to agent (Claude)
-/mode copilot     # Tasks assigned to @copilot
-/mode status      # Show current execution mode
-```
-
-**Mode-Specific Behavior**:
-
-- **MANUAL Mode**: `/plan` creates tasks assigned to agent, `/impl` triggers agent implementation using code editing tools
-- **COPILOT Mode**: `/plan` creates tasks assigned to @copilot, `/impl` triggers copilot implementation
-
-### Core Commands
-
-**✅ NEW: Claude Code Slash Commands Implemented!**
-All workflow commands are now available as proper Claude Code slash commands (markdown files in `.claude/commands/`).
-
-```bash
-# Project Setup
-/init                          # Initialize workflow template for current project (IMPORTANT: Run first!)
-
-# Mode Management
-/mode [manual|copilot|status]  # Set or show execution mode
-
-# Analysis & Planning
-/pck [issue-number]            # Plan check - analyze task before impl
-/aud [question]                # Audit - analyze codebase and answer
-
-# Context Management
-/fcs [topic-name]              # Create new Context GitHub Issue
-/fcs list                      # Show all active Context Issues
-
-# Task Management
-/plan [task description]       # Create detailed Task GitHub Issue using docs/TASK-ISSUE-TEMP.md
-/plan2 [task description]      # Create rapid Task GitHub Issue with complexity validation
-/impl [issue-number]           # Implementation workflow for specific GitHub issue
-/impl [issue-number] [msg]     # Implementation with additional context
-/pr [feedback]                 # Create Pull Request from feature branch (to staging)
-
-# Knowledge Management
-/khub                          # 🔍 Read Knowledge Hub (MANDATORY first step)
-/kupdate [category] "[topic]"  # Create Knowledge GitHub Issue (CHECK existing numbers!)
-/klink [knowledge-issue-number] # Link knowledge entry to Knowledge Hub
-/ksync                         # Synchronize Knowledge Hub with all entries
-/ksearch "[query]"             # Search across all knowledge entries
-/krecent                       # Show last 5 knowledge updates
-/kcategory [category]          # Show knowledge for specific category
-
-# Other Commands
-/rrr [message]                 # Create daily retrospective GitHub Issue
-
-# Legacy = Commands (still supported for backward compatibility)
-=fcs > [topic-name]           # Create new Context GitHub Issue
-=plan > [task description]    # Create Task GitHub Issue
-=impl > [issue-number]        # Implementation workflow
-=khub                         # Read Knowledge Hub
-# ... (all other = commands still work)
-```
-
-### Claude Code Slash Command Features
-
-- **Proper Implementation**: Markdown files in `.claude/commands/` directory
-- **Claude Integration**: Processed and executed by Claude Code
-- **Rich Documentation**: Each command includes comprehensive usage, examples, and implementation details
-- **Error Handling**: Clear error messages and helpful suggestions
-- **Validation**: Automatic checking of prerequisites and dependencies
-- **Help System**: All commands support help via detailed documentation
-
-### Command Structure
-
-All slash commands follow this structure:
-- **Usage**: Clear syntax and parameter description
-- **Examples**: Practical usage scenarios
-- **Implementation**: Step-by-step execution details
-- **Integration**: How commands work together
-- **Error Handling**: Common issues and solutions
-- **Files**: Related files and dependencies
-
-### Template-Driven Workflow Process
-
-**🚀 Phase 0: Project Initialization** (MANDATORY for new projects)
-- `/init` → Automatically integrate workflow template into current project
-- Analyzes PRD.md (if available) or existing codebase
-- Updates all template configurations with project-specific settings
-- Sets up Git workflow and environment validation
-
-1. **Phase 1**: `/fcs [topic]` → Create initial context **GitHub Issue** (NEVER .md file)
-2. **Phase 2**: `/fcs [topic]` → Update context **GitHub Issue** iteratively
-3. **Phase 3**: Context reaches `[Ready for Planning]` status → Ready for planning
-4. **Phase 4**: `/plan [task]` OR `/plan2 [task]` → Create atomic **GitHub Issues** (NEVER .md files)
-   - `/plan`: Detailed planning with comprehensive analysis
-   - `/plan2`: Rapid planning with complexity validation
-5. **Phase 5**: `/impl [issue-number]` → Implement specific GitHub issue based on mode
-
-**💡 Enhanced Workflow with Claude Code Slash Commands:**
-- **Step 0**: Always run `/init` first when cloning template to new project
-- Use `/mode [manual|copilot]` to set execution mode
-- Commands processed by Claude Code with intelligent execution
-- Rich documentation and help built into each command
-- Comprehensive error handling and validation
-- All workflows maintain the same template-driven approach
-- Legacy `=` commands remain supported for backward compatibility
-
-### Project Integration with /init
-
-The `/init` command automatically handles project integration for both new and existing projects:
-
-**New Projects (with PRD.md)**:
-- Parses PRD.md for project requirements and technology stack
-- Auto-configures workflow commands based on specified technologies
-- Sets up project structure documentation from requirements
-
-**Existing Projects**:
-- Analyzes codebase to detect language, framework, and dependencies
-- Auto-configures appropriate build/test/lint commands
-- Updates template placeholders with detected project information
-
-**Automatic Configuration**:
-- Updates `CLAUDE.md` with project-specific settings
-- Configures command placeholders (`[build command]`, `[test command]`, etc.)
-- Sets up staging branch workflow
-- Initializes context tracking for the project
-- Validates development environment setup
-
-**Supported Technologies**:
-- **Node.js/TypeScript**: npm/yarn, React, Next.js, Express, Fastify
-- **Rust**: Cargo, Actix-web, Rocket, Axum, Tokio
-- **Python**: pip/poetry, FastAPI, Django, Flask, pytest
-- **Go**: go modules, standard build tools
-- **Custom**: Manual configuration options available
-
-### Implementation Workflow (MANDATORY)
-
-**Pre-Implementation Checklist**:
-
-1. **Staging Sync**: `git checkout staging && git pull origin staging`
-2. **Task Verification**: Confirm Task **GitHub Issue** `#[issue-number]` exists and is [TASK] type
-3. **Context Status**: Verify Context **GitHub Issue** is `[Ready for Planning]` or `[Implementation Ready]`
-4. **Environment Check**: `git status` - working directory must be clean
-
-**Implementation Steps**:
-
-1. **Create Feature Branch**: `git checkout -b feature/task-[issue-number]-[description]`
-
-2. **🔴 Red Phase (Tests First)** ⚠️ MANDATORY:
-   ```bash
-   # Write tests BEFORE code implementation
-   [test command]  # Must FAIL (no implementation yet)
-   ```
-
-3. **🟢 Green Phase (Minimal Implementation)**:
-   ```bash
-   # Write minimal code to make tests pass
-   [test command]  # Must PASS
-   [build command] # Must pass
-   ```
-
-4. **🔵 Refactor Phase (Code Quality)**:
-   ```bash
-   # Improve code while keeping tests passing
-   [lint command]   # Must pass
-   [format command] # Must pass
-   ```
-
-5. **Final Validation** (100% required):
-   - **Build**: `[build command]` (zero errors/warnings)
-   - **Lint**: `[lint command]` (zero violations)
-   - **Format**: `[format command]` (consistent)
-   - **Tests**: `[test command]` (zero failures)
-   - **Type Check**: `[typecheck command]` (pass)
-
-6. **Commit & Push**:
-   ```bash
-   git add .
-   git commit -m "feat: [description] - Address #[issue-number] 🤖"
-   git push -u origin feature/task-[issue-number]-[description]
-   ```
-
-**Post-Implementation**:
-- **MANUAL**: User uses `/pr` to create pull request
-- **COPILOT**: Agent creates PR automatically
-
-### Enhanced Pull Request Process
-
-**Template Integration**:
-- If `docs/PR-TEMP.md` exists: `/pr` automatically fills template with TDD compliance, validation results, and agent context
-- If no template: `/pr` uses default structured format with multi-language support
-
-**Agent Context Preservation**:
-- **Approach Decision**: Why specific implementation was chosen
-- **Alternatives Considered**: Other approaches evaluated and rejected
-- **Knowledge Capture**: Links to `/kupdate` entries for learnings
-- **Workflow Integration**: Connections to `/plan` tasks and `/fcs` discussions
-
-**Multi-Language Validation**:
-Commands automatically detected from project configuration:
-- `[build command]` → Build validation
-- `[lint command]` → Lint validation
-- `[format command]` → Format validation
-- `[typecheck command]` → Type checking
-- `[test command]` → Test validation
+**User (Japanese)**: "AIパイプラインが失敗するのはなぜですか？"
+**Agent (Thai)**: "จากการวิเคราะห์ AI pipeline ใน `app/workflows/` พบว่า..."
 
 ---
 
-## 🧠 Knowledge Management System
+## 🏗️ Technical Architecture
 
-### Knowledge Workflow Integration
+### Core Stack
+**Language**: TypeScript • **Framework**: Next.js (App Router) • **Database**: Neon (PostgreSQL) • **AI**: Vercel AI Gateway + AI SDK • **Orchestration**: Vercel Workflow • **Deploy**: Vercel
 
-**Knowledge Capture Points**:
+### Project Structure
 
-- **After Implementation**: When `=impl` completes successfully, use `=kupdate` to document learnings **(auto-prompts for hub linking)**
-- **After Context Discussion**: When `=fcs` reaches key decisions, use `=kupdate` to capture insights **(auto-prompts for hub linking)**
-- **After Chat Discoveries**: When breakthrough solutions are found, use `=kupdate` to preserve knowledge **(auto-prompts for hub linking)**
-
-**Enhanced Knowledge Workflow**:
-
-1. **🔍 Pre-Creation Check**: `=khub` → Read Knowledge Hub #102 FIRST to check existing KNOW-[CATEGORY]-XXX numbers
-2. **Verify**: Check category section for existing numbers to avoid duplicates (e.g., KNOW-DEVICE-001, KNOW-DEVICE-002)
-3. **Create**: `=kupdate [category] "[topic]"` → Creates knowledge issue with next available number
-4. **Prompt**: System asks "Link to Knowledge Hub #102? (y/n)"
-5. **Link**: If "y" → Automatically runs `=klink`
-6. **Sync**: Use `=ksync` to ensure hub is fully synchronized
-7. **Discover**: All knowledge accessible through `=khub` navigation
-
-### Knowledge Categories
-
-`device` • `database` • `architecture` • `debug` • `workflow` • `frontend` • `backend`
-
-### Knowledge ID System
-
-**Format**: `KNOW-[CATEGORY]-[NUMBER]` (e.g., `KNOW-DEVICE-001`)
-
-### 🔍 Duplicate Prevention (CRITICAL)
-
-**Workflow**: `/khub` → Check existing numbers → `/kupdate` → Auto-link
-
-❌ **Wrong**: Skip `/khub` → Create duplicate ID
-✅ **Right**: `/khub` → Verify → Create correct next number
-
-### Auto-Label Creation
-
-**Auto-creates**: `knowledge-[category]` labels + generates `KNOW-[CATEGORY]-[NUMBER]` IDs
-
-### Knowledge Hub Integration
-
-**Automated Commands**:
-- **`/klink [issue-number]`** - Auto-links knowledge to hub
-- **`/ksync`** - Syncs hub with all knowledge entries
-- **`/kupdate`** - Creates issue + prompts for auto-linking
-
-**Benefits**: Auto-linking ✅ • Consistent formatting ✅ • Centralized discovery ✅
-
-### Knowledge Search & Retrieval
-
-**Search Commands**:
-```bash
-/ksearch "query"    • /kcategory device    • /krecent
-/khub               • /ksync                • /klink [number]
+```
+mmv-tarots/
+├── README.md                   # Project overview and quick start
+├── docs/
+│   └── PRD.md                  # Product Requirements Document
+├── app/                        # Next.js App Router
+│   ├── api/                    # API routes
+│   │   └── predict/            # Tarot prediction endpoints
+│   ├── workflows/              # Vercel Workflow definitions
+│   │   └── tarot.ts           # AI pipeline workflow
+│   ├── layout.tsx             # Root layout
+│   ├── page.tsx               # Home page
+│   └── globals.css            # Global styles
+├── components/                 # React components
+├── lib/                       # Utilities and configurations
+├── public/                    # Static assets
+│   └── cards/                 # Tarot card images
+├── .env.example               # Environment variables template
+├── package.json               # Dependencies and scripts
+├── next.config.ts             # Next.js configuration
+├── tsconfig.json              # TypeScript configuration
+└── tailwind.config.ts         # Tailwind CSS configuration
 ```
 
-**Knowledge Entry Structure**:
-- **Problem** → **Solution** → **Lessons** → **Avoid** → **References**
+### Database Schema
+
+```sql
+CREATE TABLE predictions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_identifier TEXT,
+  question TEXT NOT NULL,
+  job_id TEXT,
+  status TEXT DEFAULT 'PENDING',
+  analysis_result JSONB,
+  selected_cards JSONB,
+  final_reading JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+```
+
+### Git Branch Strategy
+
+```
+main              ←─ DEVELOPER (manual merge)
+  │                └─ Production-ready code
+staging ←───────   ←─ FEATURE BRANCHES (PRs)
+  │                └─ Integration testing
+feature/*         ←─ Development work
+```
+
+### Key Features
+
+- **AI Tarot Readings**: 4-step Agent Pipeline (Gatekeeper → Analyst → Dealer → Mystic)
+- **Async Processing**: Vercel Workflow handles long-running AI tasks
+- **Fire-and-Forget**: Submit question, get job ID, check results later
+- **Serverless Architecture**: Fully scalable with Vercel and Neon
+- **Type-Safe**: Full TypeScript implementation
+
+### Development Commands
+
+```bash
+npm run dev           # Development server (http://localhost:3000)
+npm run build         # Production build
+npm run start         # Start production server
+npm run lint          # ESLint checks
+npx tsc --noEmit      # TypeScript type checking
+npm test              # Run tests (when configured)
+```
+
+### Performance Metrics
+
+- **API Response Time**: < 200ms (p95)
+- **AI Processing**: 1-2 minutes (async via Vercel Workflow)
+- **Concurrent Users**: 100+ (serverless scaling)
+- **Database**: Neon PostgreSQL with auto-scaling
+- **Monthly Cost**: ~$50-100 (Vercel + Neon + AI Gateway)
 
 ---
 
@@ -442,129 +227,43 @@ Commands automatically detected from project configuration:
 
 ### 🔴🟢🔵 Red-Green-Refactor Cycle (MANDATORY)
 
-The Red-Green-Refactor cycle is the core of Test-Driven Development workflow:
-
 #### 🔴 Red Phase (Tests First)
-- **Write failing tests** for the functionality you want to implement
-- Tests document the expected behavior before code exists
-- Run tests: `[test command]` → tests FAIL (because code doesn't exist yet)
+- **Write failing tests** for functionality
+- Tests document expected behavior before code exists
+- Run: `npm test` → tests FAIL (no implementation yet)
 
 #### 🟢 Green Phase (Minimal Implementation)
-- **Write minimal code** to make the failing tests pass
-- Don't implement extra features yet
-- Focus only on passing the tests you wrote
-- Run tests: `[test command]` → tests PASS
+- **Write minimal code** to make tests pass
+- Don't implement extra features
+- Run: `npm test` → tests PASS
 
 #### 🔵 Refactor Phase (Improve Code)
-- **Refactor the code** for clarity, performance, and maintainability
-- Keep tests passing while improving code quality
-- Run tests: `[test command]` → tests still PASS
-- Run linter: `[lint command]` → zero warnings/errors
-- Run formatter: `[format command]` → consistent style
+- **Refactor for clarity and maintainability**
+- Keep tests passing while improving
+- Run: `npm test` → tests still PASS
+- Run: `npm run lint` → zero warnings
+- Run: `npx tsc --noEmit` → no type errors
 
-### TDD Workflow Examples
-
-```bash
-# Node.js: npm test → fail → implement → pass → build → lint
-# Python: pytest → fail → implement → pass → build → lint
-# Rust: cargo test → fail → implement → pass → build → clippy
-# Go: go test → fail → implement → pass → build → lint
-```
-
-### TDD Integration
-
-**Mandatory Requirements**:
-- ✅ Tests BEFORE code (Red Phase)
-- ✅ Tests PASS after implementation (Green Phase)
-- ✅ Refactor while tests pass (Refactor Phase)
-- ✅ Red-Green-Refactor cycle for ALL implementations
-
-**Benefits**: Higher quality ✅ • Better design ✅ • Regression prevention ✅ • Living docs ✅
-
----
-
-## 🏗️ Technical Architecture
-
-### Core Stack
-**Language**: [PRIMARY_LANGUAGE] • **Framework**: [WEB_FRAMEWORK] • **Database**: [DATABASE] • **Auth**: [AUTH_METHOD] • **Deploy**: [DEPLOYMENT_PLATFORM]
-
-### Project Structure
-
-```
-[project-name]/
-├── README.md                   # Project overview and quick start
-├── docs/                       # Workflow and templates (issue/task templates)
-├── src/                        # Source code (language-dependent)
-│   ├── main.*                  # Server or application entry point
-│   ├── config.*                # Configuration management
-│   ├── handlers/               # Request handlers / API endpoints
-│   ├── services/               # Business logic and integrations
-│   ├── models/                 # Data structures and types
-   └── db/                     # Database helpers and migrations
-├── migrations/                 # Database migrations (if applicable)
-└── .env.example                # Environment variables template
-```
-
-### Database Schema (example)
-
-```
-# Sample core tables (adapt to project needs)
-users (id, external_id, name, email, avatar, created_at)
-events (id, user_id, type, payload, created_at)
-payments (id, user_id, provider_id, amount, status, created_at)
-```
-
-### Git Branch Strategy (Staging-First Workflow)
-
-```
-main              ←─ DEVELOPER (manual merge)
-  │                └─ Production-ready code
-staging ←───────   ←─ FEATURE BRANCHES (auto PR)
-  │                └─ Integration testing
-feature/task-XXX   ←─ Development work
-```
-
-**Developer Responsibilities:**
-- Review and merge `staging → main` when ready
-- Ensure all tests pass before merging to main
-- Handle conflicts and resolve issues
-- Maintain code quality standards
-
-**Automated Workflow:**
-- Feature branches always PR to `staging`
-- Automated tests run on staging PR
-- CI/CD validates all requirements
-- Never auto-merge to main
-
-### Key Features
-
-- **Tarot Readings**: Question submission → AI processing (1 combined agent) → Result storage
-- **Credit System**: Stars (paid currency) + Coins (earned currency), exchangeable 100:1
-- **User Authentication**: LINE LIFF OAuth with JWT tokens
-- **Payment Processing**: Stripe integration with webhook handling
-- **Referral System**: Generate referral codes, earn coins per signup
-- **AI Engine**: Single optimized GPT-4o Mini call (combines analysis + interpretation)
-- **Queue System**: Upstash Redis for async reading processing
-- **Real-time Status**: Check reading processing status via polling or WebSocket
-
-### Development Commands
+### Testing Framework (To Be Set Up)
 
 ```bash
-cargo run              # Development server (default: http://localhost:8080)
-cargo build --release  # Production build (creates optimized binary)
-cargo test             # Run all tests
-cargo clippy           # Lint checks
-cargo fmt              # Code formatting
+# Install testing dependencies
+npm install -D jest @testing-library/react @testing-library/jest-dom
+npm install -D @types/jest jest-environment-jsdom ts-jest
 ```
 
-### Performance Metrics
+### Test Organization
 
-- **API Response Time**: Target < 200ms (p95)
-- **Reading Generation**: 1-2 seconds (single optimized AI call)
-- **Concurrent Connections**: 5,000+ (Actix-web capable)
-- **Memory Usage**: ~3-5MB per request (Rust efficiency)
-- **Startup Time**: ~10ms
-- **Monthly Cost**: ~$50-75 (Render + Supabase + Upstash)
+```
+app/
+├── api/
+│   └── __tests__/          # API route tests
+├── __tests__/              # Page/layout tests
+components/
+└── __tests__/              # Component tests
+lib/
+└── __tests__/              # Utility tests
+```
 
 ---
 
@@ -572,78 +271,97 @@ cargo fmt              # Code formatting
 
 ### Code Quality Requirements
 
-- **Rust**: Edition 2021, strict type system (eliminates entire classes of bugs)
-- **Cargo Check**: Zero compiler warnings (enforced)
-- **Clippy Lints**: Zero warnings (`cargo clippy`)
-- **Formatting**: `cargo fmt` auto-formatting, consistent across project
+- **TypeScript**: Strict mode enabled (eliminates entire classes of bugs)
+- **ESLint**: Zero warnings (enforced)
 - **Build**: 100% success rate before commit
-- **Tests**: Unit tests for critical paths (payments, auth)
-- **Async Safety**: No panics, proper error handling in all async contexts
+- **Tests**: Unit tests for critical paths (API, utilities)
+- **React**: Follow Next.js App Router best practices
 
 ### API Quality Standards
 
 - **Response Times**: p95 < 200ms for all endpoints
-- **Error Handling**: Always return structured JSON errors with status codes
-- **Rate Limiting**: Enforce per-user limits via Redis
-- **Input Validation**: Validate all user inputs before processing
-- **JWT Security**: 7-day token expiration, secure secret management
-- **HTTPS Only**: Enforce in production, automatic via Render
-
-### Performance Standards
-
-- **Startup Time**: API ready within 10ms
-- **Database Queries**: < 50ms per query (with indexes)
-- **Redis Operations**: < 10ms per operation
-- **AI Processing**: 1-2 seconds per reading (queue-based async)
-- **Concurrent Users**: Handle 100+ concurrent connections
-- **Memory Usage**: < 10MB base memory + ~1MB per concurrent request
+- **Error Handling**: Structured JSON errors with proper status codes
+- **Input Validation**: Validate all user inputs
+- **Environment Variables**: Use Vercel-managed secrets
+- **HTTPS Only**: Automatic in production
 
 ### Security Standards
 
-- **Secrets Management**: Use .env, never commit sensitive data
-- **Database Access**: All queries use parameterized statements (SQLx)
-- **Authentication**: JWT tokens with proper expiration
-- **CORS**: Configured for frontend domain only
-- **Rate Limiting**: Per-user limits on sensitive endpoints
-- **Webhook Verification**: Verify Stripe webhook signatures
-- **Error Messages**: Never expose sensitive system details
-
-### Template-Guided Quality
-
-- **Context Issues**: Complete PLANNING READINESS CHECKLIST ✅ (Always GitHub Issues)
-- **Task Issues**: 100% build/lint/test requirements mandatory (Always GitHub Issues)
-- **Mode Execution**: Follow mode-specific behavior exactly
-- **Template Consistency**: All issues follow template structures
-- **File Policy**: NEVER create local .md files for issues - ALWAYS use GitHub Issues
+- **Secrets Management**: Use Vercel Environment Variables
+- **Database Access**: Use connection pooling with Neon
+- **Input Validation**: Comprehensive validation for all inputs
+- **AI Gateway**: Use Vercel AI Gateway for model access control
+- **Rate Limiting**: Implement per-user limits
 
 ---
 
-## 📚 Reference Materials
+## 📋 Available Commands
 
-### Templates
+### Implementation Commands
 
-- `/docs/ISSUE-TEMP.md` - Context Issue Template for iterative discussions
-- `/docs/TASK-ISSUE-TEMP.md` - Atomic Task Template for implementation
-- `/docs/KNOWLEDGE-TEMP.md` - Knowledge Issue Template for structured learning
+```bash
+/impl [task description]        # Implementation workflow with TDD
+/run-test [type]               # Run tests (api, component, unit, e2e)
+```
 
-### Performance Metrics
+### Command Execution Flow
 
-- **Target**: API response time < 200ms (p95)
-- **Goal**: 99.9% uptime for Tarot reading service
-- **Reliability**: 99.99% accurate reading delivery
-- **Database**: PostgreSQL via Supabase with automatic scaling
-- **Queue**: Upstash Redis with serverless scaling
-- **Cost**: ~$50-75/month for full stack at scale
+**When using /impl:**
+1. Check current branch (must be staging)
+2. Create feature branch
+3. Phase 0: Analysis & Planning
+4. Phase 1: RED - Write failing tests
+5. Phase 2: GREEN - Minimal implementation
+6. Phase 3: REFACTOR - Improve code quality
+7. Phase 4: QA - Build + Lint + Type check + Tests
+8. Commit with conventional format
 
-### Security Notes
-
-- **Input Validation**: Comprehensive validation for all user inputs
-- **Authentication**: LINE LIFF OAuth + JWT with 7-day expiration
-- **Data Protection**: Encrypted connections, secure token storage
-- **Access Control**: Role-based access (user, admin levels)
-- **Payment Security**: Stripe webhook verification, idempotent operations
-- **Audit Trail**: Complete logs for readings and transactions
+**When using /run-test:**
+1. Check if testing framework is configured
+2. Execute appropriate npm script
+3. Report test results and coverage
 
 ---
 
-_This document focuses on agent-critical information for efficient workflow execution and safe development practices._
+## Git Operations Policy
+
+### ✅ ALLOWED Actions
+- **Commit to staging branch**: For iterative development
+- **Push to staging branch**: To save progress
+- **Create PRs to staging**: For code review and tracking
+
+### ❌ FORBIDDEN Actions
+- **Push to main branch**: Direct pushes not allowed
+- **Merge PRs to main**: Requires user approval
+- **Force push**: Only use `--force-with-lease` when absolutely necessary
+
+### Standard Git Workflow
+```bash
+# After completing implementation and QA
+git add .
+git commit -m "feat(scope): description
+
+- Changes made
+- Tests added/updated
+- QA checks passed (build, lint, test, types)
+
+Closes #123"
+
+# Push to staging
+git push origin staging
+
+# Optional: Create PR for review
+gh pr create --base staging --title "Feature Title" --body "Description of changes"
+```
+
+---
+
+## 📚 Key Documentation
+
+- **PRD**: `docs/PRD.md` - Complete product requirements
+- **Implementation Guide**: `.claude/commands/impl.md`
+- **Testing Guide**: `.claude/commands/run-test.md`
+
+---
+
+_This document focuses on agent-critical information for efficient Next.js development workflow execution and safe development practices._
