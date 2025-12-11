@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,15 +8,15 @@ datasource db {
 }
 
 model Card {
-  id           Int      @id @default(autoincrement())
-  cardId       Int      @unique @map("card_id") // Fixed index 0-77
-  name         String   // "the_fool", "the_magician", etc.
-  displayName  String   @map("display_name") // "The Fool", "The Magician", etc.
-  arcana       String   // "Major Arcana", "Wands", "Cups", "Pentacles", "Swords"
-  shortMeaning String?  @map("short_meaning")
-  longMeaning  String?  @map("long_meaning")
-  keywords     Json     // Array of keywords: ["beginning", "innocence"]
-  imageUrl     String?  @map("image_url") // Supabase storage URL
+  id           Int     @id @default(autoincrement())
+  cardId       Int     @unique @map("card_id")
+  name         String
+  displayName  String  @map("display_name")
+  arcana       String
+  shortMeaning String? @map("short_meaning")
+  longMeaning  String? @map("long_meaning")
+  keywords     Json
+  imageUrl     String? @map("image_url")
 
   @@map("cards")
 }
@@ -36,5 +33,9 @@ model Prediction {
   createdAt        DateTime @default(now()) @map("created_at")
   completedAt      DateTime? @map("completed_at")
 
+  @@index([userIdentifier])
+  @@index([jobId])
+  @@index([status])
+  @@index([createdAt])
   @@map("predictions")
 }
