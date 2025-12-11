@@ -10,6 +10,8 @@ import { mysticAgent } from '@/lib/ai/agents/mystic'
 export interface StartWorkflowParams {
   jobId: string
   question: string
+  userIdentifier?: string
+  userId?: string | null
 }
 
 async function updatePredictionStatus(
@@ -17,15 +19,21 @@ async function updatePredictionStatus(
   updates: {
     status: 'PROCESSING' | 'COMPLETED' | 'FAILED'
     analysisResult?: any
-    selectedCards?: number[]
+    selectedCards?: any
     finalReading?: any
     completedAt?: Date
   }
 ): Promise<void> {
   try {
     await db.prediction.updateMany({
-      where: { jobId },
-      data: updates
+      where: { jobId: jobId },
+      data: {
+        status: updates.status,
+        analysisResult: updates.analysisResult,
+        selectedCards: updates.selectedCards,
+        finalReading: updates.finalReading,
+        completedAt: updates.completedAt
+      }
     })
   } catch (error) {
     console.error('Failed to update prediction status:', error)
