@@ -8,7 +8,16 @@
     "start": "next start",
     "lint": "npx eslint \"**/*.{js,mjs,cjs}\" --max-warnings=0",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:api": "vitest run tests/api",
+    "test:component": "vitest run tests/components",
+    "test:e2e": "vitest run tests/e2e",
+    "test:db": "vitest run app/__tests__/database.test.ts",
+    "test:ai": "vitest run --exclude=tests/e2e",
+    "test:real-ai": "NODE_ENV=test vitest run --run tests/e2e",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.44",

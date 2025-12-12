@@ -9,7 +9,8 @@ import { db } from '@/lib/db'
 vi.mock('@/lib/db', () => ({
   db: {
     prediction: {
-      update: vi.fn()
+      update: vi.fn(),
+      updateMany: vi.fn()
     }
   }
 }))
@@ -45,7 +46,7 @@ describe('Tarot Workflow Integration', () => {
         question: 'What does my future hold?'
       }
 
-      mockDb.prediction.update.mockResolvedValue({})
+      mockDb.prediction.updateMany.mockResolvedValue({})
 
       await startTarotWorkflow(params)
 
@@ -216,7 +217,7 @@ describe('Tarot Workflow Integration', () => {
         .mockResolvedValueOnce({ text: JSON.stringify({ approved: true }) })
         .mockResolvedValueOnce({ text: JSON.stringify(mockAnalysis) })
 
-      mockDb.prediction.update.mockResolvedValue({})
+      mockDb.prediction.updateMany.mockResolvedValue({})
 
       await startTarotWorkflow(params)
 
@@ -242,7 +243,7 @@ describe('Tarot Workflow Integration', () => {
         .mockResolvedValueOnce({ text: JSON.stringify({ mood: 'ambitious' }) })
         .mockResolvedValueOnce({ text: JSON.stringify({ selectedCards: mockCards }) })
 
-      mockDb.prediction.update.mockResolvedValue({})
+      mockDb.prediction.updateMany.mockResolvedValue({})
 
       await startTarotWorkflow(params)
 
@@ -277,7 +278,7 @@ describe('Tarot Workflow Integration', () => {
         .mockResolvedValueOnce({ text: JSON.stringify({ selectedCards: [19, 17] }) })
         .mockResolvedValueOnce({ text: JSON.stringify(mockFinalReading) })
 
-      mockDb.prediction.update.mockResolvedValue({})
+      mockDb.prediction.updateMany.mockResolvedValue({})
 
       await startTarotWorkflow(params)
 
@@ -303,7 +304,7 @@ describe('Tarot Workflow Integration', () => {
       // Mock persistent AI failure
       mockGenerateText.mockRejectedValue(new Error('AI service unavailable'))
 
-      mockDb.prediction.update.mockResolvedValue({})
+      mockDb.prediction.updateMany.mockResolvedValue({})
 
       await startTarotWorkflow(params)
 
@@ -328,7 +329,7 @@ describe('Tarot Workflow Integration', () => {
         text: 'Invalid JSON response'
       })
 
-      mockDb.prediction.update.mockResolvedValue({})
+      mockDb.prediction.updateMany.mockResolvedValue({})
 
       await expect(startTarotWorkflow(params)).rejects.toThrow()
 
