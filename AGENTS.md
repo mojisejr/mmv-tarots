@@ -20,6 +20,7 @@
 - ❌ **NEVER work on main branch** - Always use staging or feature branches
 - ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, next.config.ts)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
+- ❌ **NEVER write sensitive data in GitHub issues, PRs, or commit files** - Use placeholders like [REDACTED] or [API_KEY]
 - ❌ **NEVER skip 100% validation** (build, lint, test) - Must pass completely
 - ❌ **NEVER use git push --force** - Only use --force-with-lease when absolutely necessary
 - ❌ **NEVER implement without proper testing** - Follow TDD Red-Green-Refactor cycle

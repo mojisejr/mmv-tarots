@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Card {
+  id           Int     @id @default(autoincrement())
+  cardId       Int     @unique @map("card_id")
+  name         String
+  displayName  String  @map("display_name")
+  arcana       String
+  shortMeaning String? @map("short_meaning")
+  longMeaning  String? @map("long_meaning")
+  keywords     Json
+  imageUrl     String? @map("image_url")
+
+  @@map("cards")
+}
+
+model Prediction {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userIdentifier   String?  @map("user_identifier")
+  question         String
+  jobId            String?  @map("job_id")
+  status           String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  analysisResult   Json?    @map("analysis_result")
+  selectedCards    Json?    @map("selected_cards") // Array of card IDs: [0, 15, 32]
+  finalReading     Json?    @map("final_reading")
+  createdAt        DateTime @default(now()) @map("created_at")
+  completedAt      DateTime? @map("completed_at")
+
+  @@index([userIdentifier])
+  @@index([jobId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("predictions")
+}
