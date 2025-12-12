@@ -76,6 +76,14 @@ export async function GET(
       createdAt: prediction.createdAt.toISOString()
     }
 
+    // Add error information if status is FAILED
+    if (prediction.status === 'FAILED') {
+      response.error = {
+        code: 'PREDICTION_FAILED',
+        message: 'Tarot reading processing failed'
+      }
+    }
+
     // Add completedAt if present
     if (prediction.completedAt) {
       response.completedAt = prediction.completedAt.toISOString()

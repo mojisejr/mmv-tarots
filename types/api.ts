@@ -46,6 +46,10 @@ export interface GetPredictResponse {
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
   question: string
   result?: PredictionResult
+  error?: {
+    code: string
+    message: string
+  }
   createdAt: string
   completedAt?: string
 }

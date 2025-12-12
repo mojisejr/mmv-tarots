@@ -1,9 +1,11 @@
 // API Route for POST /api/predict
-// Phase 3: Simple synchronous workflow for immediate curl testing
+// Phase 3: Asynchronous Vercel Workflow integration
 
 import { NextRequest } from 'next/server'
-import { runSimpleTarotWorkflow } from '../../../lib/workflows/simple-tarot'
+import { startTarotWorkflow } from '../../../app/workflows/tarot'
 import { validatePostPredictRequest } from '../../../lib/validations'
+import { generateJobId } from '../../../lib/job-id'
+import { db } from '../../../lib/db'
 import {
   ApiError,
   ERROR_CODES,
@@ -13,7 +15,7 @@ import type { PostPredictRequest, PostPredictResponse } from '../../../types/api
 
 /**
  * POST /api/predict
- * Submit a tarot prediction request and receive immediate results
+ * Submit a tarot prediction request and trigger asynchronous workflow
  */
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -47,24 +49,57 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const validBody = body as PostPredictRequest
 
-    // Run simple synchronous workflow
-    const result = await runSimpleTarotWorkflow({
-      question: validBody.question,
-      userIdentifier: validBody.userIdentifier || undefined
-    })
+    // Generate unique job ID
+    const jobId = generateJobId()
 
-    if (!result.success) {
+    // Create prediction record in database
+    try {
+      await db.prediction.create({
+        data: {
+          jobId,
+          userIdentifier: validBody.userIdentifier || null,
+          question: validBody.question,
+          status: 'PENDING'
+        }
+      })
+    } catch (dbError) {
+      console.error('Failed to create prediction record:', dbError)
       throw new ApiError({
-        code: ERROR_CODES.WORKFLOW_ERROR,
-        message: result.error || 'Failed to generate tarot reading'
+        code: ERROR_CODES.DATABASE_ERROR,
+        message: 'Failed to create prediction record'
       })
     }
 
-    // Return success response with completed status
+    // Trigger asynchronous Vercel Workflow
+    try {
+      await startTarotWorkflow({
+        jobId,
+        question: validBody.question,
+        userIdentifier: validBody.userIdentifier
+      })
+    } catch (workflowError) {
+      console.error('Failed to start workflow:', workflowError)
+
+      // Mark job as failed in database
+      await db.prediction.updateMany({
+        where: { jobId },
+        data: {
+          status: 'FAILED',
+          completedAt: new Date()
+        }
+      })
+
+      throw new ApiError({
+        code: ERROR_CODES.WORKFLOW_ERROR,
+        message: 'Failed to start tarot reading workflow'
+      })
+    }
+
+    // Return success response with PENDING status
     const response: PostPredictResponse = {
-      jobId: result.jobId,
-      status: 'COMPLETED',
-      message: `Tarot reading completed. Job ID: ${result.jobId}`
+      jobId,
+      status: 'PENDING',
+      message: `Processing your tarot reading. Job ID: ${jobId}`
     }
 
     return new Response(JSON.stringify(response), {
