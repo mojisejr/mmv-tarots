@@ -4,9 +4,7 @@
 import { db } from '@/lib/db'
 import { gatekeeperAgent } from '@/lib/ai/agents/gatekeeper'
 import { analystAgent } from '@/lib/ai/agents/analyst'
-import { dealerAgent } from '@/lib/ai/agents/dealer'
 import type { AnalystResponse } from '@/lib/ai/agents/analyst'
-import type { GuardianResponse } from '@/lib/ai/agents/guardian'
 import { mysticAgent } from '@/lib/ai/agents/mystic'
 
 export interface StartWorkflowParams {
@@ -14,18 +12,6 @@ export interface StartWorkflowParams {
   question: string
   userIdentifier?: string
   userId?: string | null
-}
-
-// Compatibility adapter for old 4-agent workflow
-function analystToGuardian(analyst: AnalystResponse): GuardianResponse {
-  return {
-    approved: true,
-    reason: null,
-    mood: analyst.mood as GuardianResponse['mood'],
-    topic: analyst.topic as GuardianResponse['topic'],
-    period: analyst.period as GuardianResponse['period'],
-    context: analyst.context
-  }
 }
 
 async function updatePredictionStatus(
@@ -110,23 +96,19 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
       analysisResult
     })
 
-    // Step 4: Dealer Agent - Select cards
-    console.log('Running dealer agent...')
-    const dealerResult = await retryOperation(() => dealerAgent(question, analystToGuardian(analysisResult)))
-
-    // Save selected cards
-    await updatePredictionStatus(jobId, {
-      status: 'PROCESSING',
-      selectedCards: dealerResult.selectedCards
-    })
-
-    // Step 5: Mystic Agent - Generate reading
+    // Step 4: Mystic Agent - Select cards and generate reading
     console.log('Running mystic agent...')
-    const finalReading = await retryOperation(() =>
-      mysticAgent(question, analystToGuardian(analysisResult), dealerResult.selectedCards)
-    )
+    const finalReading = await retryOperation(() => mysticAgent(question, analysisResult))
 
-    // Step 6: Mark as COMPLETED with final reading
+    // Save selected cards from mystic result
+    if (finalReading.success && finalReading.selectedCards) {
+      await updatePredictionStatus(jobId, {
+        status: 'PROCESSING',
+        selectedCards: finalReading.selectedCards
+      })
+    }
+
+    // Step 5: Mark as COMPLETED with final reading
     await updatePredictionStatus(jobId, {
       status: 'COMPLETED',
       finalReading,

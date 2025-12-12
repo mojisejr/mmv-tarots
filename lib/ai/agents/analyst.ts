@@ -2,7 +2,7 @@
 // Phase 3: GREEN - Context analysis implementation
 
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { google } from '@ai-sdk/google'
 import {
   ANALYST_SYSTEM_PROMPT,
   ANALYST_USER_PROMPT_TEMPLATE
@@ -13,6 +13,7 @@ export interface AnalystResponse {
   topic: string
   period: string
   context: string
+  cardCount: 3 | 5
 }
 
 export async function analystAgent(
@@ -20,7 +21,7 @@ export async function analystAgent(
 ): Promise<AnalystResponse> {
   try {
     const response = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: google(process.env.MODEL_NAME || 'gemini-2.5-flash'),
       system: ANALYST_SYSTEM_PROMPT,
       prompt: ANALYST_USER_PROMPT_TEMPLATE(question),
       temperature: 0.5
@@ -37,6 +38,12 @@ export async function analystAgent(
       }
     }
 
+    // Validate cardCount
+    if (typeof result.cardCount !== 'number' ||
+        ![3, 5].includes(result.cardCount)) {
+      result.cardCount = 3 // default fallback
+    }
+
     return result
   } catch (error) {
     console.error('Analyst agent error:', error)
@@ -46,7 +53,8 @@ export async function analystAgent(
       mood: 'neutral',
       topic: 'general',
       period: 'present',
-      context: 'General question seeking guidance'
+      context: 'General question seeking guidance',
+      cardCount: 3
     }
   }
 }

@@ -2,7 +2,7 @@
 // Phase 3: GREEN - Question validation implementation
 
 import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { google } from '@ai-sdk/google'
 import {
   GATEKEEPER_SYSTEM_PROMPT,
   GATEKEEPER_USER_PROMPT_TEMPLATE
@@ -18,7 +18,7 @@ export async function gatekeeperAgent(
 ): Promise<GatekeeperResponse> {
   try {
     const response = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: google(process.env.MODEL_NAME || 'gemini-2.5-flash'),
       system: GATEKEEPER_SYSTEM_PROMPT,
       prompt: GATEKEEPER_USER_PROMPT_TEMPLATE(question),
       temperature: 0.3

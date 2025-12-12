@@ -56,17 +56,17 @@ export const MYSTIC_USER_PROMPT_TEMPLATE = (
     topic: string;
     period: string;
     context: string;
-    card_count_recommendation: number
+    cardCount: number
   },
   selectedCards: number[],
   cardMetadata: Array<{
     cardId: number;
     name: string;
-    nameTh: string;
+    displayName: string;
     arcana: string;
     keywords: string[];
-    meaningUp: string;
-    meaningRev: string;
+    shortMeaning: string;
+    longMeaning: string;
     imageUrl: string;
   }>
 ) => `
@@ -81,10 +81,10 @@ export const MYSTIC_USER_PROMPT_TEMPLATE = (
 ไพ่ที่ถูกเลือกจาก Dealer Agent: ${selectedCards.join(', ')}
 
 ข้อมูลไพ่จากฐานข้อมูล:
-${cardMetadata.map(card => `- ${card.cardId}: ${card.name} (${card.nameTh}) - ${card.arcana}
+${cardMetadata.map(card => `- ${card.cardId}: ${card.name} (${card.displayName}) - ${card.arcana}
   Keywords: ${Array.isArray(card.keywords) ? card.keywords.join(', ') : card.keywords}
-  Meaning Up: ${card.meaningUp}
-  Meaning Rev: ${card.meaningRev}`).join('\n')}
+  Short Meaning: ${card.shortMeaning || 'N/A'}
+  Long Meaning: ${card.longMeaning || 'N/A'}`).join('\n')}
 
 โปรดสร้างการอ่านไพ่ที่ลึกซึ้งโดย:
 1. พิจารณาบริบทจากการวิเคราะห์ทั้งหมด

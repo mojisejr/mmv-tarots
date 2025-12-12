@@ -1,10 +1,8 @@
 // API Route for POST /api/predict
-// Phase 1: REFACTOR - Clean implementation with proper validation
+// Phase 3: Simple synchronous workflow for immediate curl testing
 
 import { NextRequest } from 'next/server'
-import { db } from '../../../lib/db'
-import { startTarotWorkflow } from '../../workflows/tarot'
-import { generateJobId } from '../../../lib/job-id'
+import { runSimpleTarotWorkflow } from '../../../lib/workflows/simple-tarot'
 import { validatePostPredictRequest } from '../../../lib/validations'
 import {
   ApiError,
@@ -15,7 +13,7 @@ import type { PostPredictRequest, PostPredictResponse } from '../../../types/api
 
 /**
  * POST /api/predict
- * Submit a tarot prediction request and receive a job ID for tracking
+ * Submit a tarot prediction request and receive immediate results
  */
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -31,17 +29,14 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
       body = JSON.parse(text)
     } catch (parseError) {
-      if (parseError instanceof ApiError) {
-        throw parseError
-      }
       throw new ApiError({
-        code: ERROR_CODES.INVALID_JSON,
+        code: ERROR_CODES.INVALID_REQUEST,
         message: 'Invalid JSON in request body'
       })
     }
 
     // Validate request
-    const validationErrors = validatePostPredictRequest(body)
+    const validationErrors = validatePostPredictRequest(body as PostPredictRequest)
     if (validationErrors.length > 0) {
       throw new ApiError({
         code: ERROR_CODES.VALIDATION_ERROR,
@@ -52,46 +47,24 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const validBody = body as PostPredictRequest
 
-    // Generate job ID
-    const jobId = generateJobId()
+    // Run simple synchronous workflow
+    const result = await runSimpleTarotWorkflow({
+      question: validBody.question,
+      userIdentifier: validBody.userIdentifier || undefined
+    })
 
-    // Save to database
-    try {
-      await db.prediction.create({
-        data: {
-          question: validBody.question,
-          userIdentifier: validBody.userIdentifier || null,
-          jobId,
-          status: 'PENDING'
-        }
-      })
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      throw new ApiError({
-        code: ERROR_CODES.DATABASE_ERROR,
-        message: 'Failed to save prediction request'
-      })
-    }
-
-    // Trigger AI workflow
-    try {
-      await startTarotWorkflow({
-        jobId,
-        question: validBody.question
-      })
-    } catch (workflowError) {
-      console.error('Workflow trigger failed:', workflowError)
+    if (!result.success) {
       throw new ApiError({
         code: ERROR_CODES.WORKFLOW_ERROR,
-        message: 'Failed to start AI workflow'
+        message: result.error || 'Failed to generate tarot reading'
       })
     }
 
-    // Return success response
+    // Return success response with completed status
     const response: PostPredictResponse = {
-      jobId,
-      status: 'PENDING',
-      message: `Prediction request received. Job ID: ${jobId}`
+      jobId: result.jobId,
+      status: 'COMPLETED',
+      message: `Tarot reading completed. Job ID: ${result.jobId}`
     }
 
     return new Response(JSON.stringify(response), {
@@ -107,16 +80,22 @@ export async function POST(request: NextRequest): Promise<Response> {
       const status =
         error.code === ERROR_CODES.VALIDATION_ERROR ||
         error.code === ERROR_CODES.INVALID_REQUEST ||
-        error.code === ERROR_CODES.INVALID_JSON ? 400 : 500
+        error.code === ERROR_CODES.INVALID_JSON
+          ? 400
+          : error.code === ERROR_CODES.DATABASE_ERROR ||
+            error.code === ERROR_CODES.WORKFLOW_ERROR
+          ? 500
+          : 500
+
       return createErrorResponse(error, status)
     }
 
-    // Handle unknown errors
+    // Handle unexpected errors
     return createErrorResponse(
-      {
+      new ApiError({
         code: ERROR_CODES.INTERNAL_ERROR,
-        message: 'Failed to process prediction request'
-      },
+        message: 'Internal server error'
+      }),
       500
     )
   }

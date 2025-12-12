@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { dealerAgent } from '@/lib/ai/agents/dealer'
 import { mysticAgent } from '@/lib/ai/agents/mystic'
-import { AnalystResponse } from '@/types/api'
+import type { AnalystResponse } from '@/lib/ai/agents/analyst'
 import { db } from '@/lib/db'
 
 // Mock database
