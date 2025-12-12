@@ -7,22 +7,24 @@ import {
   DEALER_SYSTEM_PROMPT,
   DEALER_USER_PROMPT_TEMPLATE
 } from '../prompts/dealer'
-import { AnalystResponse } from './analyst'
+import { GuardianResponse } from './guardian'
 
 export interface DealerResponse {
   selectedCards: number[]
   reasoning: string
+  theme: string
+  confidence: number
 }
 
 export async function dealerAgent(
   question: string,
-  analysis: AnalystResponse
+  guardianContext: GuardianResponse
 ): Promise<DealerResponse> {
   try {
     const response = await generateText({
       model: openai('gpt-4o-mini'),
       system: DEALER_SYSTEM_PROMPT,
-      prompt: DEALER_USER_PROMPT_TEMPLATE(question, analysis),
+      prompt: DEALER_USER_PROMPT_TEMPLATE(question, guardianContext),
       temperature: 0.7
     })
 
@@ -50,6 +52,14 @@ export async function dealerAgent(
       throw new Error('Missing or invalid reasoning')
     }
 
+    if (typeof result.theme !== 'string') {
+      throw new Error('Missing or invalid theme')
+    }
+
+    if (typeof result.confidence !== 'number' || result.confidence < 0 || result.confidence > 1) {
+      throw new Error('Missing or invalid confidence score')
+    }
+
     return result
   } catch (error) {
     console.error('Dealer agent error:', error)
@@ -60,7 +70,9 @@ export async function dealerAgent(
 
     return {
       selectedCards: shuffled.slice(0, 3),
-      reasoning: 'Randomly selected due to error'
+      reasoning: 'Standard card selection for general guidance',
+      theme: 'general_guidance',
+      confidence: 0.5
     }
   }
 }

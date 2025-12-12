@@ -7,7 +7,7 @@ import {
   MYSTIC_SYSTEM_PROMPT,
   MYSTIC_USER_PROMPT_TEMPLATE
 } from '../prompts/mystic'
-import { AnalystResponse } from './analyst'
+import { GuardianResponse } from './guardian'
 
 export interface CardReading {
   position: number
@@ -56,14 +56,14 @@ const CARD_NAMES: Record<number, { en: string; th: string }> = {
 
 export async function mysticAgent(
   question: string,
-  analysis: AnalystResponse,
+  guardianContext: GuardianResponse,
   selectedCards: number[]
 ): Promise<MysticResponse> {
   try {
     const response = await generateText({
       model: openai('gpt-4o'),
       system: MYSTIC_SYSTEM_PROMPT,
-      prompt: MYSTIC_USER_PROMPT_TEMPLATE(question, analysis, selectedCards),
+      prompt: MYSTIC_USER_PROMPT_TEMPLATE(question, guardianContext, selectedCards),
       temperature: 0.8
     })
 
@@ -98,7 +98,7 @@ export async function mysticAgent(
   } catch (error) {
     console.error('Mystic agent error:', error)
 
-    // Fallback reading
+    // Enhanced fallback reading with context awareness
     const cardReadings: CardReading[] = selectedCards.map((card, index) => ({
       position: index + 1,
       name_en: CARD_NAMES[card]?.en || 'Unknown',
@@ -108,14 +108,39 @@ export async function mysticAgent(
       interpretation: 'ไพ่ใบนี้บ่งบอกถึงการเปลี่ยนแปลง'
     }))
 
+    // Context-aware fallback responses
+    const getContextualFallback = (context: GuardianResponse) => {
+      const { mood, topic } = context
+
+      let header = 'สวัสดีค่ะ มาดูไพ่กัน'
+      let reading = 'จากการสละไพ่ทั้ง 3 ใบ พบว่าอนาคตของคุณมีโอกาสดีๆ เข้ามา'
+      let disclaimer = 'โปรดใช้วิจารณญาณในการตัดสินใจ'
+
+      if (topic === 'love') {
+        header = 'สวัสดีค่ะ มาดูไพ่เรื่องความรักกันค่ะ'
+        reading = 'จากการดูไพ่ทั้ง 3 ใบ พบว่าเรื่องรักของคุณจะดีขึ้น'
+      } else if (topic === 'career') {
+        header = 'สวัสดีครับ มาดูไพ่เรื่องอาชีพกันครับ'
+        reading = 'จากการดูไพ่ทั้ง 3 ใบ พบว่าอาชีพของคุณจะเติบโต'
+      } else if (topic === 'health') {
+        header = 'สวัสดีค่ะ มาดูไพ่เรื่องสุขภาพกันนะคะ'
+        reading = 'จากการดูไพ่ทั้ง 3 ใบ พบว่าสุขภาพของคุณจะดีขึ้น'
+        disclaimer = 'ข้อมูลนี้ไม่ใช่คำแนะนำทางการแพทย์ ควรปรึกษาแพทย์ผู้เชี่ยวชาญ'
+      }
+
+      return { header, reading, disclaimer }
+    }
+
+    const contextualFallback = getContextualFallback(guardianContext)
+
     return {
-      header: 'สวัสดีค่ะ มาดูไพ่กัน',
+      header: contextualFallback.header,
       cards_reading: cardReadings,
-      reading: 'จากการสละไพ่ทั้ง 3 ใบ พบว่าอนาคตของคุณมีโอกาสดีๆ เข้ามา',
+      reading: contextualFallback.reading,
       suggestions: ['มั่นใจในตัวเอง', 'เปิดใจรับสิ่งใหม่'],
       next_questions: ['สิ่งที่คุณต้องการคืออะไร?'],
       final_summary: 'อนาคตสดใสรออยู่ข้างหน้า',
-      disclaimer: 'โปรดใช้วิจารณญาณในการตัดสินใจ'
+      disclaimer: contextualFallback.disclaimer
     }
   }
 }

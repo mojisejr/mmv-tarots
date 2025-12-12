@@ -1,12 +1,9 @@
-// Vercel Workflow for Tarot Reading AI Pipeline
-// Phase 3: GREEN - Full AI agent pipeline implementation
+// 3-Agent Tarot Workflow (Refactored Pipeline)
+// Phase 1: GREEN - Implementation of optimized 3-agent workflow
 
 import { db } from '@/lib/db'
-import { gatekeeperAgent } from '@/lib/ai/agents/gatekeeper'
-import { analystAgent } from '@/lib/ai/agents/analyst'
+import { guardianAgent } from '@/lib/ai/agents/guardian'
 import { dealerAgent } from '@/lib/ai/agents/dealer'
-import type { AnalystResponse } from '@/lib/ai/agents/analyst'
-import type { GuardianResponse } from '@/lib/ai/agents/guardian'
 import { mysticAgent } from '@/lib/ai/agents/mystic'
 
 export interface StartWorkflowParams {
@@ -14,18 +11,6 @@ export interface StartWorkflowParams {
   question: string
   userIdentifier?: string
   userId?: string | null
-}
-
-// Compatibility adapter for old 4-agent workflow
-function analystToGuardian(analyst: AnalystResponse): GuardianResponse {
-  return {
-    approved: true,
-    reason: null,
-    mood: analyst.mood as GuardianResponse['mood'],
-    topic: analyst.topic as GuardianResponse['topic'],
-    period: analyst.period as GuardianResponse['period'],
-    context: analyst.context
-  }
 }
 
 async function updatePredictionStatus(
@@ -78,65 +63,74 @@ async function retryOperation<T>(
   throw new Error('Max retries exceeded')
 }
 
-export async function startTarotWorkflow(params: StartWorkflowParams): Promise<void> {
+export async function startTarotWorkflow3Agent(params: StartWorkflowParams): Promise<void> {
   const { jobId, question } = params
 
-  console.log('Starting tarot workflow for job:', jobId)
+  console.log('Starting 3-agent tarot workflow for job:', jobId)
 
   try {
     // Step 1: Mark as PROCESSING
     await updatePredictionStatus(jobId, { status: 'PROCESSING' })
 
-    // Step 2: Gatekeeper Agent - Validate question
-    console.log('Running gatekeeper agent...')
-    const gatekeeperResult = await retryOperation(() => gatekeeperAgent(question))
+    // Step 2: Guardian Agent - Combined validation and analysis
+    console.log('Running guardian agent...')
+    const guardianResult = await retryOperation(() => guardianAgent(question))
 
-    if (!gatekeeperResult.approved) {
-      console.log('Question rejected by gatekeeper:', gatekeeperResult.reason)
+    if (!guardianResult.approved) {
+      console.log('Question rejected by guardian:', guardianResult.reason)
       await updatePredictionStatus(jobId, {
         status: 'FAILED',
         completedAt: new Date()
       })
-      throw new Error(`Question rejected by gatekeeper: ${gatekeeperResult.reason}`)
+      throw new Error(`Question rejected by guardian: ${guardianResult.reason}`)
     }
 
-    // Step 3: Analyst Agent - Analyze context
-    console.log('Running analyst agent...')
-    const analysisResult = await retryOperation(() => analystAgent(question))
-
-    // Save analysis result
+    // Save Guardian analysis as both analysis and context
     await updatePredictionStatus(jobId, {
       status: 'PROCESSING',
-      analysisResult
+      analysisResult: guardianResult
     })
 
-    // Step 4: Dealer Agent - Select cards
+    // Step 3: Dealer Agent - Enhanced card selection with Guardian context
     console.log('Running dealer agent...')
-    const dealerResult = await retryOperation(() => dealerAgent(question, analystToGuardian(analysisResult)))
+    const dealerResult = await retryOperation(() => dealerAgent(question, guardianResult))
 
-    // Save selected cards
+    // Save selected cards with theme and confidence
     await updatePredictionStatus(jobId, {
       status: 'PROCESSING',
-      selectedCards: dealerResult.selectedCards
+      selectedCards: {
+        cards: dealerResult.selectedCards,
+        theme: dealerResult.theme,
+        confidence: dealerResult.confidence,
+        reasoning: dealerResult.reasoning
+      }
     })
 
-    // Step 5: Mystic Agent - Generate reading
+    // Step 4: Mystic Agent - Enhanced reading generation with Guardian context
     console.log('Running mystic agent...')
     const finalReading = await retryOperation(() =>
-      mysticAgent(question, analystToGuardian(analysisResult), dealerResult.selectedCards)
+      mysticAgent(question, guardianResult, dealerResult.selectedCards)
     )
 
-    // Step 6: Mark as COMPLETED with final reading
+    // Step 5: Mark as COMPLETED with enhanced final reading
     await updatePredictionStatus(jobId, {
       status: 'COMPLETED',
-      finalReading,
+      finalReading: {
+        ...finalReading,
+        guardianContext: guardianResult,
+        dealerContext: {
+          theme: dealerResult.theme,
+          confidence: dealerResult.confidence,
+          reasoning: dealerResult.reasoning
+        }
+      },
       completedAt: new Date()
     })
 
-    console.log('Workflow completed successfully for job:', jobId)
+    console.log('3-agent workflow completed successfully for job:', jobId)
 
   } catch (error) {
-    console.error('Workflow failed for job:', jobId, error)
+    console.error('3-agent workflow failed for job:', jobId, error)
 
     // Mark as FAILED
     await updatePredictionStatus(jobId, {
