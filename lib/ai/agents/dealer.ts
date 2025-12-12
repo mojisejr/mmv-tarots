@@ -1,5 +1,5 @@
 // Dealer Agent
-// Phase 3: GREEN - Card selection implementation
+// Phase 2: GREEN - Database integration for 78-card selection
 
 import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
@@ -7,24 +7,44 @@ import {
   DEALER_SYSTEM_PROMPT,
   DEALER_USER_PROMPT_TEMPLATE
 } from '../prompts/dealer'
-import { GuardianResponse } from './guardian'
+import { AnalystResponse } from '@/types/api'
+import { db } from '@/lib/db'
 
 export interface DealerResponse {
-  selectedCards: number[]
-  reasoning: string
-  theme: string
-  confidence: number
+  success: boolean
+  selectedCards?: number[]
+  reasoning?: string
+  theme?: string
+  confidence?: number
+  error?: string
 }
 
 export async function dealerAgent(
   question: string,
-  guardianContext: GuardianResponse
+  analysis: AnalystResponse
 ): Promise<DealerResponse> {
   try {
+    // Query database for available cards
+    const availableCards = await db.card.findMany({
+      select: {
+        cardId: true,
+        name: true,
+        arcana: true
+      }
+    })
+
+    if (!availableCards || availableCards.length === 0) {
+      return {
+        success: false,
+        error: 'No cards available in database'
+      }
+    }
+
+    // Use AI to select cards based on the available database cards
     const response = await generateText({
       model: openai('gpt-4o-mini'),
       system: DEALER_SYSTEM_PROMPT,
-      prompt: DEALER_USER_PROMPT_TEMPLATE(question, guardianContext),
+      prompt: DEALER_USER_PROMPT_TEMPLATE(question, analysis, availableCards),
       temperature: 0.7
     })
 
@@ -32,22 +52,23 @@ export async function dealerAgent(
     const result = JSON.parse(response.text) as DealerResponse
 
     // Validate response structure
-    if (!Array.isArray(result.selectedCards) || result.selectedCards.length !== 3) {
-      throw new Error('Invalid selectedCards format')
+    if (!Array.isArray(result.selectedCards) || result.selectedCards.length !== analysis.card_count_recommendation) {
+      throw new Error(`Invalid selectedCards format: expected ${analysis.card_count_recommendation} cards`)
     }
 
-    // Validate card values (0-21 for Major Arcana)
+    // Validate card values (0-77 for complete tarot deck)
     for (const card of result.selectedCards) {
-      if (typeof card !== 'number' || card < 0 || card > 21) {
-        throw new Error(`Invalid card value: ${card}`)
+      if (typeof card !== 'number' || card < 0 || card > 77) {
+        throw new Error(`Invalid card value: ${card}. Must be between 0-77.`)
       }
     }
 
     // Check for duplicates
-    if (new Set(result.selectedCards).size !== 3) {
+    if (new Set(result.selectedCards).size !== result.selectedCards.length) {
       throw new Error('Duplicate cards selected')
     }
 
+    // Validate other fields
     if (typeof result.reasoning !== 'string') {
       throw new Error('Missing or invalid reasoning')
     }
@@ -60,19 +81,49 @@ export async function dealerAgent(
       throw new Error('Missing or invalid confidence score')
     }
 
-    return result
+    return {
+      success: true,
+      selectedCards: result.selectedCards,
+      reasoning: result.reasoning,
+      theme: result.theme,
+      confidence: result.confidence
+    }
+
   } catch (error) {
     console.error('Dealer agent error:', error)
 
-    // Fallback: select random cards
-    const cards = Array.from({ length: 22 }, (_, i) => i)
-    const shuffled = cards.sort(() => Math.random() - 0.5)
+    // Fallback: select random cards from database
+    try {
+      const availableCards = await db.card.findMany({
+        select: { cardId: true }
+      })
 
-    return {
-      selectedCards: shuffled.slice(0, 3),
-      reasoning: 'Standard card selection for general guidance',
-      theme: 'general_guidance',
-      confidence: 0.5
+      if (!availableCards || availableCards.length === 0) {
+        return {
+          success: false,
+          error: 'Failed to select cards from database'
+        }
+      }
+
+      // Fisher-Yates shuffle for unique card selection
+      const cardIds = availableCards.map(card => card.cardId)
+      const shuffled = [...cardIds].sort(() => Math.random() - 0.5)
+      const cardCount = analysis.card_count_recommendation || 3
+
+      return {
+        success: true,
+        selectedCards: shuffled.slice(0, cardCount),
+        reasoning: 'Random card selection from database for guidance',
+        theme: 'database_guidance',
+        confidence: 0.5
+      }
+
+    } catch (fallbackError) {
+      console.error('Dealer fallback error:', fallbackError)
+      return {
+        success: false,
+        error: 'Failed to select cards from database'
+      }
     }
   }
 }

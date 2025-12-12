@@ -1,5 +1,5 @@
 // Mystic Agent
-// Phase 3: GREEN - Reading generation implementation
+// Phase 2: GREEN - Database integration for 78-card reading generation
 
 import { generateText } from 'ai'
 import { openai } from '@ai-sdk/openai'
@@ -7,140 +7,204 @@ import {
   MYSTIC_SYSTEM_PROMPT,
   MYSTIC_USER_PROMPT_TEMPLATE
 } from '../prompts/mystic'
-import { GuardianResponse } from './guardian'
+import { AnalystResponse } from '@/types/api'
+import { db } from '@/lib/db'
 
 export interface CardReading {
   position: number
   name_en: string
   name_th: string
   image: string
+  arcana: string
   keywords: string[]
   interpretation: string
 }
 
 export interface MysticResponse {
-  header: string
-  cards_reading: CardReading[]
-  reading: string
-  suggestions: string[]
-  next_questions: string[]
-  final_summary: string
-  disclaimer: string
-}
-
-// Card names mapping
-const CARD_NAMES: Record<number, { en: string; th: string }> = {
-  0: { en: 'The Fool', th: 'ไพ่คนโง่เขลา' },
-  1: { en: 'The Magician', th: 'ไพ่พ่อมด' },
-  2: { en: 'The High Priestess', th: 'ไพ่นางพรหมจารีสูงสุด' },
-  3: { en: 'The Empress', th: 'ไพ่จักรพรรดินี' },
-  4: { en: 'The Emperor', th: 'ไพ่จักรพรรดิ' },
-  5: { en: 'The Hierophant', th: 'ไพียฏิปาสาธิกร' },
-  6: { en: 'The Lovers', th: 'ไพ่คู่รัก' },
-  7: { en: 'The Chariot', th: 'ไพ่รถม้า' },
-  8: { en: 'Strength', th: 'ไพ่ความแข็งแกร่ง' },
-  9: { en: 'The Hermit', th: 'ไพ่ฤาษี' },
-  10: { en: 'Wheel of Fortune', th: 'วงล้อแห่งโชคชะตา' },
-  11: { en: 'Justice', th: 'ไพ่ความยุติธรรม' },
-  12: { en: 'The Hanged Man', th: 'ไพ่คนแขวนคอ' },
-  13: { en: 'Death', th: 'ไพ่ความตาย' },
-  14: { en: 'Temperance', th: 'ไพ่ความพอประมาณ' },
-  15: { en: 'The Devil', th: 'ไพ่ซาตาน' },
-  16: { en: 'The Tower', th: 'ไพ่หอคอย' },
-  17: { en: 'The Star', th: 'ไพ่ดวงดาว' },
-  18: { en: 'The Moon', th: 'ไพ่พระจันทร์' },
-  19: { en: 'The Sun', th: 'ไพ่พระอาทิตย์' },
-  20: { en: 'Judgement', th: 'ไพ่การพิพากษา' },
-  21: { en: 'The World', th: 'ไพ่โลก' }
+  success: boolean
+  reading?: {
+    header: string
+    cards_reading: CardReading[]
+    reading: string
+    suggestions: string[]
+    next_questions: string[]
+    final_summary: string
+    disclaimer: string
+  }
+  error?: string
 }
 
 export async function mysticAgent(
   question: string,
-  guardianContext: GuardianResponse,
+  analysis: AnalystResponse,
   selectedCards: number[]
 ): Promise<MysticResponse> {
   try {
+    // Query database for selected card metadata
+    const cardMetadata = await db.card.findMany({
+      where: {
+        cardId: {
+          in: selectedCards
+        }
+      },
+      select: {
+        cardId: true,
+        name: true,
+        nameTh: true,
+        arcana: true,
+        keywords: true,
+        meaningUp: true,
+        meaningRev: true,
+        imageUrl: true
+      }
+    })
+
+    if (!cardMetadata || cardMetadata.length === 0) {
+      return {
+        success: false,
+        error: 'Card metadata not found in database'
+      }
+    }
+
+    // Use AI to generate reading based on database metadata
     const response = await generateText({
       model: openai('gpt-4o'),
       system: MYSTIC_SYSTEM_PROMPT,
-      prompt: MYSTIC_USER_PROMPT_TEMPLATE(question, guardianContext, selectedCards),
+      prompt: MYSTIC_USER_PROMPT_TEMPLATE(question, analysis, selectedCards, cardMetadata),
       temperature: 0.8
     })
 
     // Parse JSON response
-    const result = JSON.parse(response.text) as MysticResponse
-
-    // Enhance card information with proper names and images
-    result.cards_reading = result.cards_reading.map((card, index) => ({
-      ...card,
-      name_en: CARD_NAMES[selectedCards[index]]?.en || 'Unknown',
-      name_th: CARD_NAMES[selectedCards[index]]?.th || 'ไม่ทราบ',
-      image: `cards/major/${selectedCards[index]}.jpg`
-    }))
+    const result = JSON.parse(response.text) as any
 
     // Validate response structure
-    const requiredFields = [
-      'header', 'cards_reading', 'reading', 'suggestions',
-      'next_questions', 'final_summary', 'disclaimer'
-    ]
-    for (const field of requiredFields) {
-      if (!result[field as keyof MysticResponse]) {
-        throw new Error(`Missing field: ${field}`)
+    if (!result.header || typeof result.header !== 'string') {
+      throw new Error('Missing or invalid header')
+    }
+
+    if (!Array.isArray(result.cards_reading) || result.cards_reading.length !== selectedCards.length) {
+      throw new Error(`Invalid cards_reading format: expected ${selectedCards.length} cards`)
+    }
+
+    if (!result.reading || typeof result.reading !== 'string') {
+      throw new Error('Missing or invalid reading')
+    }
+
+    if (!Array.isArray(result.suggestions)) {
+      throw new Error('Missing or invalid suggestions')
+    }
+
+    if (!Array.isArray(result.next_questions)) {
+      throw new Error('Missing or invalid next_questions')
+    }
+
+    if (!result.final_summary || typeof result.final_summary !== 'string') {
+      throw new Error('Missing or invalid final_summary')
+    }
+
+    if (!result.disclaimer || typeof result.disclaimer !== 'string') {
+      throw new Error('Missing or invalid disclaimer')
+    }
+
+    // Create card readings with database metadata
+    const cardsReading: CardReading[] = selectedCards.map((cardId, index) => {
+      const cardData = cardMetadata.find(card => card.cardId === cardId)
+      if (!cardData) {
+        throw new Error(`Card metadata not found for cardId: ${cardId}`)
+      }
+
+      const aiCardReading = result.cards_reading[index] || {}
+
+      return {
+        position: index + 1,
+        name_en: cardData.name,
+        name_th: cardData.nameTh || cardData.name,
+        image: cardData.imageUrl || `cards/${cardData.arcana.toLowerCase()}/${cardId}.jpg`,
+        arcana: cardData.arcana,
+        keywords: Array.isArray(cardData.keywords) ? cardData.keywords : [String(cardData.keywords)],
+        interpretation: aiCardReading.interpretation || `Interpretation for ${cardData.name}`
+      }
+    })
+
+    return {
+      success: true,
+      reading: {
+        header: result.header,
+        cards_reading: cardsReading,
+        reading: result.reading,
+        suggestions: result.suggestions,
+        next_questions: result.next_questions,
+        final_summary: result.final_summary,
+        disclaimer: result.disclaimer
       }
     }
 
-    // Validate cards_reading has exactly 3 cards
-    if (result.cards_reading.length !== 3) {
-      throw new Error('Invalid cards_reading length')
-    }
-
-    return result
   } catch (error) {
     console.error('Mystic agent error:', error)
 
-    // Enhanced fallback reading with context awareness
-    const cardReadings: CardReading[] = selectedCards.map((card, index) => ({
-      position: index + 1,
-      name_en: CARD_NAMES[card]?.en || 'Unknown',
-      name_th: CARD_NAMES[card]?.th || 'ไม่ทราบ',
-      image: `cards/major/${card}.jpg`,
-      keywords: ['ความหมายทั่วไป'],
-      interpretation: 'ไพ่ใบนี้บ่งบอกถึงการเปลี่ยนแปลง'
-    }))
+    // Fallback: Generate basic reading with database metadata
+    try {
+      const cardMetadata = await db.card.findMany({
+        where: {
+          cardId: {
+            in: selectedCards
+          }
+        },
+        select: {
+          cardId: true,
+          name: true,
+          nameTh: true,
+          arcana: true,
+          keywords: true,
+          imageUrl: true
+        }
+      })
 
-    // Context-aware fallback responses
-    const getContextualFallback = (context: GuardianResponse) => {
-      const { mood, topic } = context
-
-      let header = 'สวัสดีค่ะ มาดูไพ่กัน'
-      let reading = 'จากการสละไพ่ทั้ง 3 ใบ พบว่าอนาคตของคุณมีโอกาสดีๆ เข้ามา'
-      let disclaimer = 'โปรดใช้วิจารณญาณในการตัดสินใจ'
-
-      if (topic === 'love') {
-        header = 'สวัสดีค่ะ มาดูไพ่เรื่องความรักกันค่ะ'
-        reading = 'จากการดูไพ่ทั้ง 3 ใบ พบว่าเรื่องรักของคุณจะดีขึ้น'
-      } else if (topic === 'career') {
-        header = 'สวัสดีครับ มาดูไพ่เรื่องอาชีพกันครับ'
-        reading = 'จากการดูไพ่ทั้ง 3 ใบ พบว่าอาชีพของคุณจะเติบโต'
-      } else if (topic === 'health') {
-        header = 'สวัสดีค่ะ มาดูไพ่เรื่องสุขภาพกันนะคะ'
-        reading = 'จากการดูไพ่ทั้ง 3 ใบ พบว่าสุขภาพของคุณจะดีขึ้น'
-        disclaimer = 'ข้อมูลนี้ไม่ใช่คำแนะนำทางการแพทย์ ควรปรึกษาแพทย์ผู้เชี่ยวชาญ'
+      if (!cardMetadata || cardMetadata.length === 0) {
+        return {
+          success: false,
+          error: 'Failed to generate reading: Card metadata not found in database'
+        }
       }
 
-      return { header, reading, disclaimer }
-    }
+      const cardsReading: CardReading[] = selectedCards.map((cardId, index) => {
+        const cardData = cardMetadata.find(card => card.cardId === cardId)
+        if (!cardData) {
+          throw new Error(`Card metadata not found for cardId: ${cardId}`)
+        }
 
-    const contextualFallback = getContextualFallback(guardianContext)
+        return {
+          position: index + 1,
+          name_en: cardData.name,
+          name_th: cardData.nameTh || cardData.name,
+          image: cardData.imageUrl || `cards/${cardData.arcana.toLowerCase()}/${cardId}.jpg`,
+          arcana: cardData.arcana,
+          keywords: Array.isArray(cardData.keywords) ? cardData.keywords : [String(cardData.keywords)],
+          interpretation: `การอ่านไพ่ ${cardData.nameTh || cardData.name} สำหรับตำแหน่งที่ ${index + 1}`
+        }
+      })
 
-    return {
-      header: contextualFallback.header,
-      cards_reading: cardReadings,
-      reading: contextualFallback.reading,
-      suggestions: ['มั่นใจในตัวเอง', 'เปิดใจรับสิ่งใหม่'],
-      next_questions: ['สิ่งที่คุณต้องการคืออะไร?'],
-      final_summary: 'อนาคตสดใสรออยู่ข้างหน้า',
-      disclaimer: contextualFallback.disclaimer
+      const cardNames = cardsReading.map(card => card.name_th).join(', ')
+
+      return {
+        success: true,
+        reading: {
+          header: 'สวัสดีค่ะ มาดูไพ่กัน',
+          cards_reading: cardsReading,
+          reading: `จากการสลาไพ่ทั้ง ${selectedCards.length} ใบ (${cardNames}) พบว่าอนาคตของคุณมีโอกาสดีๆ เข้ามา ควรใช้วิจารณญาณในการตัดสินใจและเปิดใจรับสิ่งใหม่ๆ`,
+          suggestions: ['มั่นใจในตัวเอง', 'เปิดใจรับสิ่งใหม่', 'ใช้วิจารณญาณ'],
+          next_questions: ['สิ่งที่คุณต้องการคืออะไร?', 'อุปสรรคที่พบคืออะไร?'],
+          final_summary: 'อนาคตสดใสรออยู่ข้างหน้า',
+          disclaimer: 'โปรดใช้วิจารณญาณในการตัดสินใจ การทำนายไพ่เป็นเพียงแนวทางเบื้องต้น'
+        }
+      }
+
+    } catch (fallbackError) {
+      console.error('Mystic fallback error:', fallbackError)
+      return {
+        success: false,
+        error: `Failed to generate reading: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`
+      }
     }
   }
 }
