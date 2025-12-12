@@ -7,6 +7,7 @@ import {
   ANALYST_SYSTEM_PROMPT,
   ANALYST_USER_PROMPT_TEMPLATE
 } from '../prompts/analyst'
+import { parseAIResponse } from '../utils/json-parser'
 
 export interface AnalystResponse {
   mood: string
@@ -27,8 +28,8 @@ export async function analystAgent(
       temperature: 0.5
     })
 
-    // Parse JSON response
-    const result = JSON.parse(response.text) as AnalystResponse
+    // Parse JSON response (handle markdown format from Gemini)
+    const result = parseAIResponse(response.text) as AnalystResponse
 
     // Validate response structure
     const requiredFields = ['mood', 'topic', 'period', 'context']

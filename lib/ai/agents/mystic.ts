@@ -9,6 +9,7 @@ import {
 } from '../prompts/mystic'
 import type { AnalystResponse } from '@/lib/ai/agents/analyst'
 import { db } from '@/lib/db'
+import { parseAIResponse } from '../utils/json-parser'
 
 export interface CardReading {
   position: number
@@ -80,8 +81,8 @@ Select ${analysis.cardCount} cards that best answer this question.`,
       temperature: 0.7
     })
 
-    // Parse card selection
-    const cardSelection = JSON.parse(cardSelectionResponse.text)
+    // Parse card selection (handle markdown format from Gemini)
+    const cardSelection = parseAIResponse(cardSelectionResponse.text)
     const selectedCards = cardSelection.selectedCards
 
     // Validate card selection
@@ -156,8 +157,8 @@ Select ${analysis.cardCount} cards that best answer this question.`,
       temperature: 0.8
     })
 
-    // Parse JSON response
-    const result = JSON.parse(response.text) as any
+    // Parse JSON response (handle markdown format from Gemini)
+    const result = parseAIResponse(response.text) as any
 
     // Validate response structure
     if (!result.header || typeof result.header !== 'string') {

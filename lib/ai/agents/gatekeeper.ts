@@ -7,6 +7,7 @@ import {
   GATEKEEPER_SYSTEM_PROMPT,
   GATEKEEPER_USER_PROMPT_TEMPLATE
 } from '../prompts/gatekeeper'
+import { parseAIResponse } from '../utils/json-parser'
 
 export interface GatekeeperResponse {
   approved: boolean
@@ -24,8 +25,8 @@ export async function gatekeeperAgent(
       temperature: 0.3
     })
 
-    // Parse JSON response
-    const result = JSON.parse(response.text) as GatekeeperResponse
+    // Parse JSON response (handle markdown format from Gemini)
+    const result = parseAIResponse(response.text) as GatekeeperResponse
 
     // Validate response structure
     if (typeof result.approved !== 'boolean' || typeof result.reason !== 'string') {
