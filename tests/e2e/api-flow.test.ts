@@ -60,7 +60,8 @@ describe('E2E API Flow Integration Tests', () => {
       expect(mockStartTarotWorkflow).toHaveBeenCalledTimes(1)
       expect(mockStartTarotWorkflow).toHaveBeenCalledWith({
         jobId: postData.jobId,
-        question: question
+        question: question,
+        userIdentifier: userIdentifier
       })
 
       // Step 2: Check status immediately (should still be PENDING)
