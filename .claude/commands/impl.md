@@ -1,10 +1,30 @@
 # Implementation Workflow Command
 
+## ⚠️ CRITICAL: THIS IS THE ONLY COMMAND THAT ALLOWS CODE IMPLEMENTATION
+
+**NEVER CODE, IMPLEMENT, WRITE, EDIT, OR REFACTOR ANY CODE unless `/impl` command is used**
+
+### When to use `/impl`:
+- ✅ User explicitly types `/impl` before asking for implementation
+- ✅ This is the ONLY scenario where coding is allowed
+
+### When to NOT code (report only):
+- ❌ User asks "Can you implement..." → REPORT ONLY
+- ❌ User asks "Add this feature..." → REPORT ONLY
+- ❌ User asks "Fix this bug..." → REPORT ONLY
+- ❌ User asks "Write code for..." → REPORT ONLY
+- ❌ Any request WITHOUT `/impl` prefix → REPORT ONLY
+
 ## Usage
 ```
 /impl [task description] [issue-number]
 /impl [issue-number]
 ```
+
+### 🚨 IMMEDIATE STOP RULES:
+- If user does NOT use `/impl` command → **IMMEDIATELY STOP** any coding thoughts
+- If request seems like implementation but NO `/impl` → **PROVIDE ANALYSIS ONLY**
+- Default state: **READ-ONLY MODE** (analyze, report, recommend, but NEVER implement)
 
 ## Implementation Workflow (TDD Red-Green-Refactor)
 
