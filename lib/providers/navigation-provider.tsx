@@ -4,9 +4,11 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface NavigationContextType {
   isLoggedIn: boolean;
-  currentPage: string;
+  currentPage: 'home' | 'submitted' | 'history' | 'result';
+  currentJobId: string | null;
   setIsLoggedIn: (value: boolean) => void;
-  setCurrentPage: (value: string) => void;
+  setCurrentPage: (value: 'home' | 'submitted' | 'history' | 'result') => void;
+  setCurrentJobId: (jobId: string | null) => void;
   handleMenuClick: () => void;
   handleProfileClick: () => void;
   handleBackClick: () => void;
@@ -16,18 +18,25 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'submitted' | 'history' | 'result'>('home');
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
   const handleMenuClick = () => {
     console.log('Menu clicked');
+    // Navigate to home or open menu
   };
 
   const handleProfileClick = () => {
     console.log('Profile clicked');
+    // Navigate to profile
   };
 
   const handleBackClick = () => {
     console.log('Back clicked');
+    // Navigate back based on current page
+    if (currentPage === 'submitted' || currentPage === 'history') {
+      setCurrentPage('home');
+    }
   };
 
   return (
@@ -35,8 +44,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       value={{
         isLoggedIn,
         currentPage,
+        currentJobId,
         setIsLoggedIn,
         setCurrentPage,
+        setCurrentJobId,
         handleMenuClick,
         handleProfileClick,
         handleBackClick,

@@ -1,21 +1,53 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GlassCard } from '../../components/card';
 import { MimiLoadingAvatar } from '../../components/features/avatar/mimi-loading-avatar';
 import { Copy, CheckCircle2 } from '../../components/icons';
 import { WAITING_STEPS, FUN_FACTS } from '../../constants/waiting-steps';
+import { useNavigation } from '../../lib/providers/navigation-provider';
+import { checkJobStatus } from '../../lib/api';
 
-interface SubmittedPageProps {
-  jobId: string;
-  onComplete: () => void;
-}
+function SubmittedPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { setCurrentPage } = useNavigation();
 
-export default function SubmittedPage({ jobId, onComplete }: SubmittedPageProps) {
+  // Get jobId from URL search params
+  const jobId = searchParams?.get('jobId');
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(15);
+  const [showSkipOption, setShowSkipOption] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleComplete = () => {
+    router.push('/history');
+  };
+
+  const skipRedirect = () => {
+    handleComplete();
+  };
+
+  const copyJobId = () => {
+    alert(`Copied Ticket ID: ${jobId}`);
+  };
 
   useEffect(() => {
+    // Set current page in navigation context
+    setCurrentPage('submitted');
+
+    // If no jobId, redirect to home
+    if (!jobId) {
+      setError('No job ID provided');
+      setTimeout(() => {
+        router.push('/');
+      }, 3000);
+      return;
+    }
+
     const stepInterval = setInterval(() => {
       setCurrentStepIndex(prev => {
         if (prev < WAITING_STEPS.length - 1) return prev + 1;
@@ -27,20 +59,62 @@ export default function SubmittedPage({ jobId, onComplete }: SubmittedPageProps)
       setQuoteIndex(prev => (prev + 1) % FUN_FACTS.length);
     }, 5000);
 
-    const completeTimeout = setTimeout(() => {
-      onComplete();
-    }, 15000);
+    const countdownInterval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 5) {
+          setShowSkipOption(true);
+        }
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          handleComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Poll for job status every 5 seconds
+    const statusInterval = setInterval(async () => {
+      try {
+        const status = await checkJobStatus(jobId);
+        if (status.status === 'COMPLETED' || status.status === 'FAILED') {
+          clearInterval(statusInterval);
+          handleComplete();
+        }
+      } catch (err) {
+        console.error('Failed to check job status:', err);
+      }
+    }, 5000);
 
     return () => {
       clearInterval(stepInterval);
       clearInterval(quoteInterval);
-      clearTimeout(completeTimeout);
+      clearInterval(countdownInterval);
+      clearInterval(statusInterval);
     };
-  }, [onComplete]);
+  }, [jobId, router, setCurrentPage]);
 
-  const copyJobId = () => {
-    alert(`Copied Ticket ID: ${jobId}`);
-  };
+  // Show error state if no jobId
+  if (error || !jobId) {
+    return (
+      <div className="max-w-xl mx-auto w-full px-4 h-full flex flex-col justify-center pb-20">
+        <GlassCard className="text-center p-8 !bg-white/5 !border-white/10">
+          <h2 className="text-2xl font-serif text-white mb-3 drop-shadow-md">
+            {error || 'Ticket Not Found'}
+          </h2>
+          <p className="text-white/60 mb-6">
+            {error || 'The ticket ID you provided is invalid or has expired.'}
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full transition-colors"
+          >
+            Go Home
+          </button>
+        </GlassCard>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-xl mx-auto w-full px-4 h-full flex flex-col justify-center pb-20">
@@ -61,6 +135,12 @@ export default function SubmittedPage({ jobId, onComplete }: SubmittedPageProps)
           </div>
 
           <h2 className="text-2xl font-serif text-white mb-3 drop-shadow-md">Connecting...</h2>
+
+          {/* Countdown display */}
+          <div className="text-sm text-white/60 mb-3">
+            Redirecting in {timeLeft} seconds...
+          </div>
+
           <div
             className="flex items-center justify-center gap-2 text-xs text-white/60 mb-10 bg-white/5 hover:bg-white/10 py-2 px-5 rounded-full w-fit mx-auto cursor-pointer transition-colors font-mono border border-white/10"
             onClick={copyJobId}
@@ -68,6 +148,16 @@ export default function SubmittedPage({ jobId, onComplete }: SubmittedPageProps)
             <span>#{jobId}</span>
             <Copy className="w-3 h-3" />
           </div>
+
+          {/* Skip button */}
+          {showSkipOption && (
+            <button
+              onClick={skipRedirect}
+              className="text-white/60 hover:text-white text-sm underline mb-6 transition-colors"
+            >
+              Skip waiting
+            </button>
+          )}
 
           <div className="space-y-4 text-left w-full max-w-xs mx-auto font-sans">
             {WAITING_STEPS.map((step, index) => (
@@ -101,5 +191,13 @@ export default function SubmittedPage({ jobId, onComplete }: SubmittedPageProps)
         You can close this window.
       </p>
     </div>
+  );
+}
+
+export default function SubmittedPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SubmittedPageContent />
+    </Suspense>
   );
 }

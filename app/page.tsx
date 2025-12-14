@@ -1,15 +1,22 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   QuestionInput,
   MimiAvatar,
   GlassCard,
 } from '@/components';
+import { useNavigation } from '@/lib/providers/navigation-provider';
+import { submitQuestion, saveSubmissionState } from '@/lib/api';
 
 function Home() {
   const [question, setQuestion] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
+  const { setCurrentPage, setCurrentJobId } = useNavigation();
 
   // Auto focus on mount
   useEffect(() => {
@@ -18,9 +25,41 @@ function Home() {
     }
   }, []);
 
-  const handleQuestionSubmit = (value: string) => {
-    console.log('Question submitted:', value);
-    // In a real app, this would trigger the tarot reading flow
+  const handleQuestionSubmit = async (value: string) => {
+    // Validate input
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      setError('Please enter a question');
+      return;
+    }
+
+    if (trimmedValue.length > 1000) {
+      setError('Question must be less than 1000 characters');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Submit question to API
+      const response = await submitQuestion(trimmedValue);
+
+      // Save submission state
+      saveSubmissionState(response.jobId);
+
+      // Update navigation state
+      setCurrentJobId(response.jobId);
+      setCurrentPage('submitted');
+
+      // Navigate to submitted page with jobId
+      router.push(`/submitted?jobId=${response.jobId}`);
+    } catch (err) {
+      console.error('Failed to submit question:', err);
+      setError(err instanceof Error ? err.message : 'Failed to submit question. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -54,12 +93,22 @@ function Home() {
           data-testid="input-wrapper"
           className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 max-w-4xl mx-auto"
         >
+          {/* Error display */}
+          {error && (
+            <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 mb-3">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            </div>
+          )}
+
           <QuestionInput
             value={question}
             onChange={setQuestion}
             onSubmit={handleQuestionSubmit}
             placeholder="What would you like to know about your future?"
             textareaRef={textareaRef}
+            disabled={isSubmitting}
           />
         </div>
       </div>

@@ -1,27 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { GlassCard } from '../../components/card';
 import { GlassButton } from '../../components/button';
 import { Search, ChevronRight } from '../../components/icons';
+import { useNavigation } from '../../lib/providers/navigation-provider';
+import { fetchUserPredictions, checkJobStatus } from '../../lib/api';
 
 interface Prediction {
   id: string;
   date: string;
   query: string;
+  status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'pending' | 'processing' | 'completed' | 'failed';
 }
 
-interface HistoryPageProps {
-  predictions?: Prediction[];
-  onCheckStatus: (jobId: string) => void;
-}
-
-export default function HistoryPage({ predictions = [], onCheckStatus }: HistoryPageProps) {
+export default function HistoryPage() {
+  const router = useRouter();
+  const { setCurrentPage } = useNavigation();
   const [inputJobId, setInputJobId] = useState('');
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set current page in navigation context
+    setCurrentPage('history');
+
+    // Fetch user predictions
+    const loadPredictions = async () => {
+      try {
+        // Generate a user ID (in real app, this would come from auth)
+        const userId = `user_${Date.now()}`;
+        const data = await fetchUserPredictions(userId);
+
+        // Transform API data to component format
+        const transformedPredictions = data.predictions.map(p => ({
+          id: p.jobId,
+          date: formatDate(p.createdAt),
+          query: p.question,
+          status: p.status.toLowerCase() as 'pending' | 'processing' | 'completed' | 'failed',
+        }));
+
+        setPredictions(transformedPredictions);
+      } catch (err) {
+        console.error('Failed to load predictions:', err);
+        setError('Failed to load predictions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPredictions();
+  }, [setCurrentPage]);
 
   const handleSearch = () => {
     if (inputJobId.trim()) {
-      onCheckStatus(inputJobId.trim());
+      // Navigate to submitted page with the jobId
+      router.push(`/submitted?jobId=${inputJobId.trim()}`);
     }
   };
 
@@ -32,7 +68,8 @@ export default function HistoryPage({ predictions = [], onCheckStatus }: History
   };
 
   const handlePredictionClick = (predictionId: string) => {
-    onCheckStatus(predictionId);
+    // Navigate to submitted page to check status
+    router.push(`/submitted?jobId=${predictionId}`);
   };
 
   // Filter predictions based on search
@@ -40,6 +77,38 @@ export default function HistoryPage({ predictions = [], onCheckStatus }: History
     prediction.id.toLowerCase().includes(inputJobId.toLowerCase()) ||
     prediction.query.toLowerCase().includes(inputJobId.toLowerCase())
   );
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+        <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Your Journey</h2>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-white/60">Loading your predictions...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+        <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Your Journey</h2>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-300 mb-4">{error}</div>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
@@ -65,11 +134,17 @@ export default function HistoryPage({ predictions = [], onCheckStatus }: History
       <div className="flex-1 overflow-y-auto -mx-2 px-2">
         <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 font-sans px-2">Recent Visions</h3>
         <div className="space-y-3 pb-4">
-          {filteredPredictions.map((item) => (
-            <div
-              key={item.id}
-              className="group bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300"
-              onClick={() => handlePredictionClick(item.id)}
+          {filteredPredictions.length === 0 ? (
+            <div className="text-center text-white/60 py-8">
+              <p>No predictions found</p>
+              <p className="text-sm mt-2">Submit your first question to see it here</p>
+            </div>
+          ) : (
+            filteredPredictions.map((item) => (
+              <div
+                key={item.id}
+                className="group bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300"
+                onClick={() => handlePredictionClick(item.id)}
             >
               <div className="flex-1 min-w-0 pr-4">
                 <div className="text-white font-medium truncate text-base mb-1 font-sans group-hover:text-[var(--primary)] transition-colors">
@@ -82,10 +157,25 @@ export default function HistoryPage({ predictions = [], onCheckStatus }: History
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/80 group-hover:translate-x-1 transition-all" />
-            </div>
-          ))}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+// Helper function to format dates
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
 }

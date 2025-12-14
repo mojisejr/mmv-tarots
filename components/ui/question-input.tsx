@@ -11,6 +11,7 @@ export interface QuestionInputProps {
   minCharacters?: number;
   maxRows?: number;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+  disabled?: boolean;
 }
 
 const MIN_TEXTAREA_HEIGHT = 44; // pixels
@@ -33,6 +34,7 @@ export function QuestionInput({
   minCharacters = MIN_CHARACTERS,
   maxRows = 4,
   textareaRef: externalTextareaRef,
+  disabled = false,
 }: QuestionInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -118,6 +120,7 @@ export function QuestionInput({
           placeholder={placeholder}
           rows={1}
           autoFocus
+          disabled={disabled}
           data-testid="question-textarea"
           className="w-full bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none resize-none py-4 pr-16 font-sans text-xl leading-relaxed tracking-wide"
           style={{
@@ -131,12 +134,12 @@ export function QuestionInput({
         <div className="absolute right-2 bottom-2">
           <button
             onClick={handleSubmit}
-            disabled={!isValid}
-            aria-label={isValid ? 'Submit question' : 'Question too short (minimum 5 characters)'}
+            disabled={!isValid || disabled}
+            aria-label={disabled ? 'Submitting question' : (isValid ? 'Submit question' : 'Question too short (minimum 5 characters)')}
             className={`p-3 rounded-full transition-all duration-300 flex items-center justify-center shadow-lg focus:outline-none focus:ring-2 focus:ring-white/20 ${
-              isValid
-                ? 'bg-[var(--primary)] text-white scale-100 hover:scale-110 hover:shadow-[0_0_20px_var(--primary)]'
-                : 'bg-white/10 text-white/30 cursor-not-allowed scale-95'
+              disabled || !isValid
+                ? 'bg-white/10 text-white/30 cursor-not-allowed scale-95'
+                : 'bg-[var(--primary)] text-white scale-100 hover:scale-110 hover:shadow-[0_0_20px_var(--primary)]'
             }`}
           >
             <ArrowUp className="w-6 h-6" strokeWidth={3} />
