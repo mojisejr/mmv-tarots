@@ -2,6 +2,7 @@
 // Phase 2: GREEN - Minimal implementation to make tests pass
 
 import { z } from 'zod';
+import { StaticUserManager } from './user-manager';
 
 // Schemas for type safety
 const PostPredictRequestSchema = z.object({
@@ -40,9 +41,9 @@ export type GetPredictResponse = z.infer<typeof GetPredictResponseSchema>;
 // API base URL
 const API_BASE = '/api';
 
-// Generate a simple user identifier (in real app, this would come from auth)
-function generateUserIdentifier(): string {
-  return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+// Get user identifier (in real app, this would come from auth)
+function getUserIdentifier(): string {
+  return StaticUserManager.getUserIdentifier();
 }
 
 /**
@@ -51,7 +52,7 @@ function generateUserIdentifier(): string {
 export async function submitQuestion(question: string): Promise<PostPredictResponse> {
   const payload: PostPredictRequest = {
     question: question.trim(),
-    userIdentifier: generateUserIdentifier(),
+    userIdentifier: getUserIdentifier(),
   };
 
   // Validate payload
@@ -94,10 +95,9 @@ export async function checkJobStatus(jobId: string): Promise<GetPredictResponse>
 }
 
 /**
- * Fetch predictions for a user (This endpoint needs to be implemented)
- * For now, returns mock data
+ * Fetch predictions for the current user
  */
-export async function fetchUserPredictions(userId: string): Promise<{
+export async function fetchUserPredictions(): Promise<{
   predictions: Array<{
     id: string;
     jobId: string;
@@ -111,36 +111,27 @@ export async function fetchUserPredictions(userId: string): Promise<{
   page: number;
   totalPages: number;
 }> {
-  // This endpoint doesn't exist yet - would need to be implemented
-  // For now, return mock data to make tests pass
-  const mockPredictions = [
-    {
-      id: 'job-123',
-      jobId: 'job-123',
-      question: 'Will I find love in 2024?',
-      status: 'COMPLETED' as const,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      completedAt: new Date(Date.now() - 3000000).toISOString(),
-      finalReading: {
-        cards: ['The Lovers', 'The Sun'],
-        interpretation: 'Love is on its way...'
-      }
-    },
-    {
-      id: 'job-456',
-      jobId: 'job-456',
-      question: 'Should I change my career?',
-      status: 'PROCESSING' as const,
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    }
-  ];
+  const userId = getUserIdentifier();
 
-  return {
-    predictions: mockPredictions,
-    total: mockPredictions.length,
-    page: 1,
-    totalPages: 1,
-  };
+  const response = await fetch(`${API_BASE}/predictions/user/${encodeURIComponent(userId)}`);
+
+  if (!response.ok) {
+    // If endpoint doesn't exist yet, return empty array
+    if (response.status === 404) {
+      return {
+        predictions: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+      };
+    }
+
+    const errorText = await response.text();
+    throw new Error(`API Error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data;
 }
 
 /**

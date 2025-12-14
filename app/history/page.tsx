@@ -30,9 +30,8 @@ export default function HistoryPage() {
     // Fetch user predictions
     const loadPredictions = async () => {
       try {
-        // Generate a user ID (in real app, this would come from auth)
-        const userId = `user_${Date.now()}`;
-        const data = await fetchUserPredictions(userId);
+        // Fetch predictions for the current user
+        const data = await fetchUserPredictions();
 
         // Transform API data to component format
         const transformedPredictions = data.predictions.map(p => ({
