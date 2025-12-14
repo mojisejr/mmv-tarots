@@ -1,5 +1,5 @@
 // API Route for POST /api/predict
-// Phase 3: Asynchronous Vercel Workflow integration
+// Phase 5: Fire-and-forget Vercel Workflow integration
 
 import { NextRequest } from 'next/server'
 import { startTarotWorkflow } from '../../../app/workflows/tarot'
@@ -70,15 +70,15 @@ export async function POST(request: NextRequest): Promise<Response> {
       })
     }
 
-    // Trigger asynchronous Vercel Workflow
-    try {
-      await startTarotWorkflow({
-        jobId,
-        question: validBody.question,
-        userIdentifier: validBody.userIdentifier
-      })
-    } catch (workflowError) {
-      console.error('Failed to start workflow:', workflowError)
+    // Trigger workflow asynchronously (fire-and-forget)
+    // Don't await - let it run in background
+    startTarotWorkflow({
+      jobId,
+      question: validBody.question,
+      userIdentifier: validBody.userIdentifier
+    }).catch(async (error) => {
+      // Handle errors asynchronously - log and update database
+      console.error('Workflow failed:', error)
 
       // Mark job as failed in database
       await db.prediction.updateMany({
@@ -88,12 +88,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           completedAt: new Date()
         }
       })
-
-      throw new ApiError({
-        code: ERROR_CODES.WORKFLOW_ERROR,
-        message: 'Failed to start tarot reading workflow'
-      })
-    }
+    })
 
     // Return success response with PENDING status
     const response: PostPredictResponse = {

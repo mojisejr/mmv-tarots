@@ -1,5 +1,5 @@
 // Vercel Workflow for Tarot Reading AI Pipeline
-// Phase 3: GREEN - Full AI agent pipeline implementation
+// Phase 4: REFACTOR - Improved implementation for better performance
 
 import { db } from '@/lib/db'
 import { gatekeeperAgent } from '@/lib/ai/agents/gatekeeper'
