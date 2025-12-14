@@ -109,7 +109,7 @@ export function validateCardIds(cards: TarotCardData[]): CardValidationResult {
     const cardId = card.id;
 
     // Check for empty/invalid ID
-    if (isNaN(cardId) || cardId === null || cardId === undefined) {
+    if (typeof cardId === 'string' || cardId === null || cardId === undefined) {
       errors.push({
         type: 'EMPTY_ID',
         cardName: card.displayName,
@@ -119,7 +119,7 @@ export function validateCardIds(cards: TarotCardData[]): CardValidationResult {
     }
 
     // Check for invalid range
-    if (cardId < 0 || cardId > 77) {
+    if (typeof cardId === 'number' && (cardId < 0 || cardId > 77)) {
       errors.push({
         type: 'INVALID_RANGE',
         cardName: card.displayName,
@@ -129,7 +129,7 @@ export function validateCardIds(cards: TarotCardData[]): CardValidationResult {
     }
 
     // Check for duplicates
-    if (foundIds.has(cardId)) {
+    if (typeof cardId === 'number' && foundIds.has(cardId)) {
       if (!duplicateIds.includes(cardId)) {
         duplicateIds.push(cardId);
       }
@@ -139,7 +139,7 @@ export function validateCardIds(cards: TarotCardData[]): CardValidationResult {
         cardId,
         message: `Card "${card.displayName}" has duplicate ID ${cardId}`
       });
-    } else {
+    } else if (typeof cardId === 'number') {
       foundIds.add(cardId);
     }
   });
@@ -174,7 +174,11 @@ export async function getCardById(id: number): Promise<TarotCardData | undefined
  */
 export async function getAllCards(): Promise<TarotCardData[]> {
   const cards = await parseCardCsv();
-  return cards.sort((a, b) => a.id - b.id);
+  return cards.sort((a, b) => {
+    const aId = typeof a.id === 'number' ? a.id : 0;
+    const bId = typeof b.id === 'number' ? b.id : 0;
+    return aId - bId;
+  });
 }
 
 /**
@@ -182,5 +186,9 @@ export async function getAllCards(): Promise<TarotCardData[]> {
  */
 export async function getCardsByArcana(arcana: string): Promise<TarotCardData[]> {
   const cards = await parseCardCsv();
-  return cards.filter(card => card.arcana === arcana).sort((a, b) => a.id - b.id);
+  return cards.filter(card => card.arcana === arcana).sort((a, b) => {
+    const aId = typeof a.id === 'number' ? a.id : 0;
+    const bId = typeof b.id === 'number' ? b.id : 0;
+    return aId - bId;
+  });
 }

@@ -217,3 +217,17 @@ export const Share2 = createIcon(
 export const Gem = createIcon(
   <path d="M6 3h12l4 6-10 13L2 9Z"/>
 );
+
+export const Clock = createIcon(
+  <>
+    <circle cx="12" cy="12" r="10"/>
+    <polyline points="12 6 12 12 16 14"/>
+  </>
+);
+
+export const Eye = createIcon(
+  <>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </>
+);
