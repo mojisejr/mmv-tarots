@@ -40,7 +40,7 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
       role="button"
       tabIndex={0}
       aria-label={`Prediction: ${prediction.question}`}
-      className="group bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300"
+      className="group bg-[#ffffff0d] hover:bg-[#ffffff1a] border border-[#ffffff0d] hover:border-[#ffffff33] rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300"
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

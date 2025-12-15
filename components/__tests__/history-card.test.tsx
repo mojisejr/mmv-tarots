@@ -98,8 +98,16 @@ describe('HistoryCard', () => {
     render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
 
     const card = screen.getByTestId('history-card');
-    expect(card).toHaveClass('hover:bg-white/10');
-    expect(card).toHaveClass('hover:border-white/20');
+    expect(card).toHaveClass('hover:bg-[#ffffff1a]');
+    expect(card).toHaveClass('hover:border-[#ffffff33]');
+  });
+
+  it('has correct glass background effect', () => {
+    render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
+
+    const card = screen.getByTestId('history-card');
+    expect(card).toHaveClass('bg-[#ffffff0d]');
+    expect(card).toHaveClass('border-[#ffffff0d]');
   });
 
   it('has proper accessibility attributes', () => {
