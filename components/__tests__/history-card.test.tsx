@@ -108,6 +108,7 @@ describe('HistoryCard', () => {
     const card = screen.getByTestId('history-card');
     expect(card).toHaveClass('bg-[#ffffff0d]');
     expect(card).toHaveClass('border-[#ffffff0d]');
+    expect(card).toHaveClass('backdrop-blur-xl');
   });
 
   it('has proper accessibility attributes', () => {
