@@ -4,10 +4,18 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { GlassCard } from '../../../components/card';
 import { GlassButton } from '../../../components/button';
-import { TarotCardImage } from '../../../components/features/tarot/tarot-card-image';
 import { ChevronLeft, Loader2, AlertCircle } from '../../../components/icons';
+import {
+  ReadingHeader,
+  CardDetails,
+  SuggestionsList,
+  NextQuestions,
+  FinalSummary,
+  Disclaimer
+} from '../../../components/reading';
 import { checkJobStatus } from '../../../lib/api';
 import { GetPredictResponse } from '../../../lib/api';
+import { mapReadingData } from '../../../lib/reading-utils';
 
 export default function PredictionDetailPage() {
   const router = useRouter();
@@ -135,16 +143,17 @@ export default function PredictionDetailPage() {
     );
   }
 
-  // COMPLETED state
-  const cards = prediction.result?.selectedCards || [];
-  const reading = prediction.result?.reading;
+  // COMPLETED state - Map reading data for new components
+  const mappedData = prediction.result?.reading
+    ? mapReadingData(prediction.result.reading)
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 h-full pb-20">
       {/* Back button */}
       <button
         onClick={handleBack}
-        className="mb-6 flex items-center text-white/60 hover:text-white transition-colors"
+        className="mb-6 flex items-center text-[#ffffff99] hover:text-[#ffffff] transition-colors"
         aria-label="กลับไปหน้าประวัติ"
       >
         <ChevronLeft className="w-4 h-4 mr-2" />
@@ -156,14 +165,14 @@ export default function PredictionDetailPage() {
         {/* Question and metadata */}
         <GlassCard>
           <div className="p-6">
-            <h1 className="text-2xl font-serif text-white mb-4">
+            <h1 className="text-2xl font-serif text-[#ffffff] mb-4">
               {prediction.question}
             </h1>
-            <div className="flex items-center gap-4 text-sm text-white/60">
+            <div className="flex items-center gap-4 text-sm text-[#ffffff99]">
               <span>Job ID: #{jobId}</span>
               {prediction.completedAt && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-white/40"></span>
+                  <span className="w-1 h-1 rounded-full bg-[#ffffff40]"></span>
                   <span>{formatDate(prediction.completedAt)}</span>
                 </>
               )}
@@ -171,62 +180,60 @@ export default function PredictionDetailPage() {
           </div>
         </GlassCard>
 
-        {/* Cards display */}
-        {cards.length > 0 && (
-          <GlassCard>
-            <div className="p-6">
-              <h2 className="text-xl font-serif text-white mb-6">ไพ่ที่ได้รับ</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {cards.map((card: any, index: number) => (
-                  <div key={index} className="text-center">
-                    <div className="mb-3">
-                      <TarotCardImage
-                        card={{
-                          id: card.name || card.displayName || 'unknown',
-                          name: card.name || card.displayName || 'Unknown',
-                          displayName: card.name || card.displayName || 'Unknown Card',
-                          imageUrl: card.image || card.imageUrl,
-                          suit: card.suit || '',
-                          value: card.value || '',
-                          keywords: card.keywords || [],
-                          description: card.description || '',
-                          upright: card.upright || { meaning: '', description: '' },
-                          reversed: card.reversed || { meaning: '', description: '' }
-                        }}
-                        width={150}
-                        height={225}
-                        className="mx-auto"
-                      />
-                    </div>
-                    <h3 className="text-white font-medium mb-1">{card.name}</h3>
-                    <p className="text-xs text-white/60">
-                      {index === 0 && 'อดีต'}
-                      {index === 1 && 'ปัจจุบัน'}
-                      {index === 2 && 'อนาคต'}
-                    </p>
-                  </div>
-                ))}
+        {/* Reading Header */}
+        {mappedData?.header && (
+          <ReadingHeader header={mappedData.header} />
+        )}
+
+        {/* Cards Details - using new component */}
+        {mappedData?.cards && (
+          <div className="space-y-6">
+            <GlassCard>
+              <div className="p-6">
+                <h2 className="text-xl font-serif text-[#ffffff] mb-6">ไพ่ที่ได้รับ</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {mappedData.cards.map((card, index) => (
+                    <CardDetails key={index} card={card} />
+                  ))}
+                </div>
               </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {/* Main Reading Text */}
+        {mappedData?.reading && (
+          <GlassCard className="p-8 bg-gradient-to-br from-[#ffffff0f] to-[#ffffff05]">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-1 h-8 bg-gradient-to-b from-[var(--color-primary)] to-transparent"></div>
+              <h2 className="text-2xl font-serif text-[#ffffff]">คำทำนาย</h2>
+            </div>
+            <div className="prose prose-invert max-w-none">
+              <p className="text-[#ffffffcc] leading-relaxed whitespace-pre-wrap text-lg font-serif">
+                {mappedData.reading}
+              </p>
             </div>
           </GlassCard>
         )}
 
-        {/* Reading text */}
-        {reading && (
-          <GlassCard>
-            <div className="p-6">
-              {reading.title && (
-                <h2 className="text-xl font-serif text-white mb-4">{reading.title}</h2>
-              )}
-              {reading.content && (
-                <div className="prose prose-invert max-w-none">
-                  <p className="text-white/90 leading-relaxed whitespace-pre-wrap">
-                    {reading.content}
-                  </p>
-                </div>
-              )}
-            </div>
-          </GlassCard>
+        {/* Suggestions */}
+        {mappedData?.suggestions && (
+          <SuggestionsList suggestions={mappedData.suggestions} />
+        )}
+
+        {/* Next Questions */}
+        {mappedData?.nextQuestions && (
+          <NextQuestions questions={mappedData.nextQuestions} />
+        )}
+
+        {/* Final Summary */}
+        {mappedData?.finalSummary && (
+          <FinalSummary summary={mappedData.finalSummary} />
+        )}
+
+        {/* Disclaimer */}
+        {mappedData?.disclaimer && (
+          <Disclaimer text={mappedData.disclaimer} />
         )}
       </div>
     </div>
