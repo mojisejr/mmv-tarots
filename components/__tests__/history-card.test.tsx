@@ -40,7 +40,7 @@ describe('HistoryCard', () => {
 
     const question = screen.getByText(mockPrediction.question);
     expect(question).toBeInTheDocument();
-    expect(question).toHaveClass('text-white');
+    expect(question).toHaveClass('text-[#ffffff]');
   });
 
   it('shows correct status indicator with StatusBadge', () => {
@@ -60,11 +60,11 @@ describe('HistoryCard', () => {
     render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
 
     const question = screen.getByText(mockPrediction.question);
-    expect(question).toHaveClass('text-white', 'font-medium', 'truncate', 'text-base', 'mb-1');
+    expect(question).toHaveClass('font-medium', 'truncate', 'text-base', 'mb-1', 'text-[#ffffff]');
 
     const jobId = screen.getByText(`#${mockPrediction.id}`);
     expect(jobId).toBeInTheDocument();
-    expect(jobId.parentElement).toHaveClass('text-xs', 'text-white/60', 'font-mono');
+    expect(jobId.parentElement).toHaveClass('text-xs', 'font-mono', 'text-[#ffffff99]');
   });
 
   it('truncates long questions correctly', () => {
@@ -122,11 +122,11 @@ describe('HistoryCard', () => {
     expect(mockOnClick).toHaveBeenCalledWith(mockPrediction.id);
   });
 
-  it('uses correct Tailwind color classes for hover effects', () => {
+  it('uses correct CSS variables for hover effects', () => {
     render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
 
     const question = screen.getByText(mockPrediction.question);
-    // Check that the question uses the correct Tailwind primary color
-    expect(question).toHaveClass('group-hover:text-primary');
+    // Check that the question uses the correct CSS variable
+    expect(question).toHaveClass('group-hover:text-[var(--color-primary)]');
   });
 });
