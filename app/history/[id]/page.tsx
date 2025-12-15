@@ -182,16 +182,16 @@ export default function PredictionDetailPage() {
                     <div className="mb-3">
                       <TarotCardImage
                         card={{
-                          id: card.name,
-                          name: card.name,
-                          displayName: card.name,
-                          imageUrl: card.image,
-                          suit: '',
-                          value: '',
-                          keywords: [],
-                          description: '',
-                          upright: { meaning: '', description: '' },
-                          reversed: { meaning: '', description: '' }
+                          id: card.name || card.displayName || 'unknown',
+                          name: card.name || card.displayName || 'Unknown',
+                          displayName: card.name || card.displayName || 'Unknown Card',
+                          imageUrl: card.image || card.imageUrl,
+                          suit: card.suit || '',
+                          value: card.value || '',
+                          keywords: card.keywords || [],
+                          description: card.description || '',
+                          upright: card.upright || { meaning: '', description: '' },
+                          reversed: card.reversed || { meaning: '', description: '' }
                         }}
                         width={150}
                         height={225}
