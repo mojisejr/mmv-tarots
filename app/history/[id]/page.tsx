@@ -291,12 +291,12 @@ export default function PredictionDetailPage() {
         )}
 
         {/* Suggestions */}
-        {mappedData?.suggestions && (
+        {mappedData?.suggestions && mappedData.suggestions.length > 0 && (
           <SuggestionsList suggestions={mappedData.suggestions} />
         )}
 
         {/* Next Questions */}
-        {mappedData?.nextQuestions && (
+        {mappedData?.nextQuestions && mappedData.nextQuestions.length > 0 && (
           <NextQuestions questions={mappedData.nextQuestions} />
         )}
 
