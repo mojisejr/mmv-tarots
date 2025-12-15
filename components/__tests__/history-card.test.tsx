@@ -56,26 +56,15 @@ describe('HistoryCard', () => {
     // Time formatting will be tested with the utility function
   });
 
-  it('shows card count when status is COMPLETED', () => {
+  it('shows correct layout structure matching template', () => {
     render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
 
-    expect(screen.getByText('3 ใบ')).toBeInTheDocument();
-    expect(screen.getByTestId('eye-icon')).toBeInTheDocument();
-  });
+    const question = screen.getByText(mockPrediction.question);
+    expect(question).toHaveClass('text-white', 'font-medium', 'truncate', 'text-base', 'mb-1');
 
-  it('shows "View Details" button only for COMPLETED status', () => {
-    render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
-
-    const viewButton = screen.getByText('ดูผลการทำนาย');
-    expect(viewButton).toBeInTheDocument();
-  });
-
-  it('does not show "View Details" button for non-COMPLETED status', () => {
-    const pendingPrediction = { ...mockPrediction, status: 'PENDING', selectedCards: undefined };
-    render(<HistoryCard prediction={pendingPrediction} onClick={mockOnClick} />);
-
-    expect(screen.queryByText('ดูผลการทำนาย')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('eye-icon')).not.toBeInTheDocument();
+    const jobId = screen.getByText(`#${mockPrediction.id}`);
+    expect(jobId).toBeInTheDocument();
+    expect(jobId.parentElement).toHaveClass('text-xs', 'text-white/40', 'font-mono');
   });
 
   it('truncates long questions correctly', () => {
@@ -98,33 +87,7 @@ describe('HistoryCard', () => {
     expect(mockOnClick).toHaveBeenCalledWith(mockPrediction.id);
   });
 
-  it('handles onClick callback when clicking "View Details" button', async () => {
-    const user = userEvent.setup();
-    render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
-
-    const viewButton = screen.getByText('ดูผลการทำนาย');
-    await user.click(viewButton);
-
-    expect(mockOnClick).toHaveBeenCalledWith(mockPrediction.id);
-  });
-
-  it('prevents event propagation when clicking "View Details" button', async () => {
-    const user = userEvent.setup();
-    const cardClickSpy = vi.fn();
-
-    render(
-      <div onClick={cardClickSpy}>
-        <HistoryCard prediction={mockPrediction} onClick={mockOnClick} />
-      </div>
-    );
-
-    const viewButton = screen.getByText('ดูผลการทำนาย');
-    await user.click(viewButton);
-
-    expect(mockOnClick).toHaveBeenCalledWith(mockPrediction.id);
-    expect(cardClickSpy).not.toHaveBeenCalled();
-  });
-
+  
   it('displays chevron icon for navigation', () => {
     render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
 
@@ -157,5 +120,13 @@ describe('HistoryCard', () => {
     await user.keyboard('{Enter}');
 
     expect(mockOnClick).toHaveBeenCalledWith(mockPrediction.id);
+  });
+
+  it('uses correct CSS variables for hover effects', () => {
+    render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
+
+    const question = screen.getByText(mockPrediction.question);
+    // Check that the question uses the correct CSS variable (color-primary, not primary)
+    expect(question).toHaveClass('group-hover:text-[var(--color-primary)]');
   });
 });

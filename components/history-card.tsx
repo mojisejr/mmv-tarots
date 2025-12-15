@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Eye } from './icons';
+import { ChevronRight } from './icons';
 import { StatusBadge } from './status-badge';
 
 interface HistoryCardProps {
@@ -20,11 +20,7 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
     onClick(prediction.id);
   };
 
-  const handleViewDetails = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onClick(prediction.id);
-  };
-
+  
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
@@ -54,31 +50,16 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
       }}
     >
       <div className="flex-1 min-w-0 pr-4">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="text-white font-medium truncate text-base font-sans group-hover:text-[var(--primary)] transition-colors">
-            {prediction.question}
-          </h3>
-          <StatusBadge status={prediction.status as any} />
+        <div className="text-white font-medium truncate text-base mb-1 font-sans group-hover:text-[var(--color-primary)] transition-colors">
+          {prediction.question}
         </div>
-
         <div className="flex items-center justify-between">
           <div className="text-xs text-white/40 font-mono flex items-center gap-2">
             <span>#{prediction.id}</span>
             <span className="w-1 h-1 rounded-full bg-white/40"></span>
             <span>{formatDate(prediction.createdAt)}</span>
           </div>
-
-          {prediction.status === 'COMPLETED' && prediction.selectedCards && (
-            <button
-              onClick={handleViewDetails}
-              className="flex items-center gap-1.5 text-xs text-white/60 hover:text-[var(--primary)] transition-colors font-medium"
-              aria-label="View details"
-            >
-              <Eye data-testid="eye-icon" className="w-3.5 h-3.5" />
-              <span>{prediction.selectedCards.length} ใบ</span>
-              <span className="hidden sm:inline">ดูผลการทำนาย</span>
-            </button>
-          )}
+          <StatusBadge status={prediction.status as any} />
         </div>
       </div>
 
