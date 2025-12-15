@@ -64,7 +64,7 @@ describe('HistoryCard', () => {
 
     const jobId = screen.getByText(`#${mockPrediction.id}`);
     expect(jobId).toBeInTheDocument();
-    expect(jobId.parentElement).toHaveClass('text-xs', 'text-white/40', 'font-mono');
+    expect(jobId.parentElement).toHaveClass('text-xs', 'text-white/60', 'font-mono');
   });
 
   it('truncates long questions correctly', () => {
@@ -122,11 +122,11 @@ describe('HistoryCard', () => {
     expect(mockOnClick).toHaveBeenCalledWith(mockPrediction.id);
   });
 
-  it('uses correct CSS variables for hover effects', () => {
+  it('uses correct Tailwind color classes for hover effects', () => {
     render(<HistoryCard prediction={mockPrediction} onClick={mockOnClick} />);
 
     const question = screen.getByText(mockPrediction.question);
-    // Check that the question uses the correct CSS variable (color-primary, not primary)
-    expect(question).toHaveClass('group-hover:text-[var(--color-primary)]');
+    // Check that the question uses the correct Tailwind primary color
+    expect(question).toHaveClass('group-hover:text-primary');
   });
 });
