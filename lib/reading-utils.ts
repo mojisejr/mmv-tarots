@@ -2,17 +2,17 @@ import type { ReadingResult, MappedReadingData, DetailedCardReading } from '@/ty
 
 export function mapReadingData(reading: ReadingResult): MappedReadingData {
   return {
-    header: reading.header,
-    cards: reading.cards_reading.map(card => ({
+    header: reading.header || '',
+    cards: (reading.cards_reading || []).map(card => ({
       ...card,
       positionName: getPositionName(card.position),
       arcanaColor: getArcanaColor(card.arcana),
     })),
-    reading: reading.reading,
-    suggestions: reading.suggestions,
-    nextQuestions: reading.next_questions,
-    finalSummary: reading.final_summary,
-    disclaimer: reading.disclaimer,
+    reading: reading.reading || '',
+    suggestions: reading.suggestions || [],
+    nextQuestions: reading.next_questions || [],
+    finalSummary: reading.final_summary || '',
+    disclaimer: reading.disclaimer || '',
   };
 }
 

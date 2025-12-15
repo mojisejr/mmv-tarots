@@ -148,6 +148,80 @@ export default function PredictionDetailPage() {
     ? mapReadingData(prediction.result.reading)
     : null;
 
+  // Handle case where reading might exist but be incomplete
+  if (!mappedData?.cards || mappedData.cards.length === 0) {
+    // Fall back to old card display logic if new reading data is not available
+    const cards = prediction.result?.selectedCards || [];
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 h-full pb-20">
+        {/* Back button */}
+        <button
+          onClick={handleBack}
+          className="mb-6 flex items-center text-[#ffffff99] hover:text-[#ffffff] transition-colors"
+          aria-label="กลับไปหน้าประวัติ"
+        >
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          กลับไปหน้าประวัติ
+        </button>
+
+        {/* Main content */}
+        <div className="space-y-6">
+          {/* Question and metadata */}
+          <GlassCard>
+            <div className="p-6">
+              <h1 className="text-2xl font-serif text-[#ffffff] mb-4">
+                {prediction.question}
+              </h1>
+              <div className="flex items-center gap-4 text-sm text-[#ffffff99]">
+                <span>Job ID: #{jobId}</span>
+                {prediction.completedAt && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-[#ffffff40]"></span>
+                    <span>{formatDate(prediction.completedAt)}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Reading Header */}
+          {mappedData?.header && (
+            <ReadingHeader header={mappedData.header} />
+          )}
+
+          {/* Cards Display - Legacy */}
+          {cards.length > 0 && (
+            <GlassCard>
+              <div className="p-6">
+                <h2 className="text-xl font-serif text-[#ffffff] mb-6">ไพ่ที่ได้รับ</h2>
+                <div className="text-center text-[#ffffff99]">
+                  <p>การแสดงข้อมูลไพ่แบบเดิม</p>
+                  <p className="text-sm mt-2">Card IDs: {cards.join(', ')}</p>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+
+          {/* Main Reading Text */}
+          {mappedData?.reading && (
+            <GlassCard className="p-8 bg-gradient-to-br from-[#ffffff0f] to-[#ffffff05]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-1 h-8 bg-gradient-to-b from-[var(--color-primary)] to-transparent"></div>
+                <h2 className="text-2xl font-serif text-[#ffffff]">คำทำนาย</h2>
+              </div>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-[#ffffffcc] leading-relaxed whitespace-pre-wrap text-lg font-serif">
+                  {mappedData.reading}
+                </p>
+              </div>
+            </GlassCard>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 h-full pb-20">
       {/* Back button */}

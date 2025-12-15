@@ -11,13 +11,13 @@ export interface CardReading {
 }
 
 export interface ReadingResult {
-  header: string
-  cards_reading: CardReading[]
-  reading: string
-  suggestions: string[]
-  next_questions: string[]
-  final_summary: string
-  disclaimer: string
+  header?: string
+  cards_reading?: CardReading[]
+  reading?: string
+  suggestions?: string[]
+  next_questions?: string[]
+  final_summary?: string
+  disclaimer?: string
 }
 
 // Enhanced types extending from API types
@@ -38,7 +38,7 @@ export interface MappedReadingData {
 
 // Component Props Interfaces
 export interface ReadingHeaderProps {
-  header: string | null
+  header?: string | null
   className?: string
 }
 
@@ -48,21 +48,21 @@ export interface CardDetailsProps {
 }
 
 export interface SuggestionsListProps {
-  suggestions: string[] | null
+  suggestions?: string[] | null
   className?: string
 }
 
 export interface NextQuestionsProps {
-  questions: string[] | null
+  questions?: string[] | null
   className?: string
 }
 
 export interface FinalSummaryProps {
-  summary: string | null
+  summary?: string | null
   className?: string
 }
 
 export interface DisclaimerProps {
-  text: string | null
+  text?: string | null
   className?: string
 }
