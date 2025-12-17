@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GET } from '@/app/api/predict/[jobId]/route'
-import { createTestRequest } from '@/tests/utils'
+import { createTestRequest } from '../lib/utils'
 import { db } from '@/lib/db'
 import type { GetPredictResponse } from '@/types/api'
 

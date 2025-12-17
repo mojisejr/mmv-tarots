@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { POST } from '@/app/api/predict/route'
 import { GET } from '@/app/api/predict/[jobId]/route'
-import { createTestRequest } from '@/tests/utils'
+import { createTestRequest } from '../lib/utils'
 import { db } from '@/lib/db'
 
 // Mock the workflow module
