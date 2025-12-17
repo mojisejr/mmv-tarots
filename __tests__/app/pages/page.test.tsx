@@ -49,11 +49,11 @@ vi.mock('../../../../components/icons', () => ({
 }));
 
 // Mock API
-vi.mock('../../../../lib/api', () => ({
+vi.mock('../lib/api', () => ({
   checkJobStatus: vi.fn(),
 }));
 
-import { checkJobStatus } from '../../../../lib/api';
+import { checkJobStatus } from '../lib/api';
 
 const mockCheckJobStatus = checkJobStatus as vi.MockedFunction<typeof checkJobStatus>;
 

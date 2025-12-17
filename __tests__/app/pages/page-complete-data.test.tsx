@@ -13,7 +13,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('../../../lib/api', () => ({
+vi.mock('../lib/api', () => ({
   checkJobStatus: vi.fn(),
 }));
 
@@ -76,7 +76,7 @@ vi.mock('../../../components/reading/disclaimer', () => ({
     text ? <div data-testid="disclaimer">{text}</div> : null
 }));
 
-import { checkJobStatus } from '../../../lib/api';
+import { checkJobStatus } from '../lib/api';
 import { GetPredictResponse } from '../../../types/api';
 
 const mockCheckJobStatus = vi.mocked(checkJobStatus);

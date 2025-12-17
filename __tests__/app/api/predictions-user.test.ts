@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GET } from '../predictions/user/[userId]/route';
 
 // Mock dependencies
-vi.mock('../../../../lib/db', () => ({
+vi.mock('../lib/db', () => ({
   db: {
     prediction: {
       findMany: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('../../../../lib/db', () => ({
   },
 }));
 
-vi.mock('../../../../lib/errors', () => ({
+vi.mock('../lib/errors', () => ({
   ApiError: class MockApiError extends Error {
     constructor({ code, message }: any) {
       super(message);
@@ -32,7 +32,7 @@ describe('GET /api/predictions/user/[userId]', () => {
   let mockConsoleError: any;
 
   beforeEach(() => {
-    mockDb = require('../../../../lib/db').db;
+    mockDb = require('../lib/db').db;
     mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 

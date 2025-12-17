@@ -12,19 +12,19 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock navigation provider
-vi.mock('../../lib/providers/navigation-provider', () => ({
+vi.mock('../lib/providers/navigation-provider', () => ({
   useNavigation: () => ({
     setCurrentPage: vi.fn(),
   }),
 }));
 
 // Mock API
-vi.mock('../../lib/api', () => ({
+vi.mock('../lib/api', () => ({
   fetchUserPredictions: vi.fn(),
   checkJobStatus: vi.fn(),
 }));
 
-import { fetchUserPredictions, checkJobStatus } from '../../lib/api';
+import { fetchUserPredictions, checkJobStatus } from '../lib/api';
 
 // Mock components
 vi.mock('../../components/card', () => ({

@@ -11,7 +11,7 @@ vi.mock('@vercel/sdk', () => ({
 }));
 
 // Mock database and AI agents
-vi.mock('../../../lib/db', () => ({
+vi.mock('../lib/db', () => ({
   db: {
     prediction: {
       updateMany: vi.fn(),
@@ -20,15 +20,15 @@ vi.mock('../../../lib/db', () => ({
   },
 }));
 
-vi.mock('../../../lib/ai/agents/gatekeeper', () => ({
+vi.mock('../lib/ai/agents/gatekeeper', () => ({
   gatekeeperAgent: vi.fn(),
 }));
 
-vi.mock('../../../lib/ai/agents/analyst', () => ({
+vi.mock('../lib/ai/agents/analyst', () => ({
   analystAgent: vi.fn(),
 }));
 
-vi.mock('../../../lib/ai/agents/mystic', () => ({
+vi.mock('../lib/ai/agents/mystic', () => ({
   mysticAgent: vi.fn(),
 }));
 
@@ -48,10 +48,10 @@ describe('Tarot Vercel Workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWorkflow = require('@vercel/sdk').workflow;
-    mockDb = require('../../../lib/db').db;
-    mockGatekeeperAgent = require('../../../lib/ai/agents/gatekeeper').gatekeeperAgent;
-    mockAnalystAgent = require('../../../lib/ai/agents/analyst').analystAgent;
-    mockMysticAgent = require('../../../lib/ai/agents/mystic').mysticAgent;
+    mockDb = require('../lib/db').db;
+    mockGatekeeperAgent = require('../lib/ai/agents/gatekeeper').gatekeeperAgent;
+    mockAnalystAgent = require('../lib/ai/agents/analyst').analystAgent;
+    mockMysticAgent = require('../lib/ai/agents/mystic').mysticAgent;
 
     // Default successful mocks
     mockDb.prediction.updateMany.mockResolvedValue({ success: true });

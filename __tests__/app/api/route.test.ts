@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { POST } from '../route';
+import { POST } from '../../../app/api/predict/route';
 import { NextRequest } from 'next/server';
 
 // Mock dependencies
-vi.mock('../../../../lib/db', () => ({
+vi.mock('../lib/db', () => ({
   db: {
     prediction: {
       create: vi.fn(),
@@ -12,15 +12,15 @@ vi.mock('../../../../lib/db', () => ({
   },
 }));
 
-vi.mock('../../../../lib/validations', () => ({
+vi.mock('../lib/validations', () => ({
   validatePostPredictRequest: vi.fn(),
 }));
 
-vi.mock('../../../../lib/job-id', () => ({
+vi.mock('../lib/job-id', () => ({
   generateJobId: vi.fn(),
 }));
 
-vi.mock('../../../../lib/errors', () => ({
+vi.mock('../lib/errors', () => ({
   ApiError: class MockApiError extends Error {
     constructor({ code, message }: any) {
       super(message);
@@ -37,7 +37,7 @@ vi.mock('../../../../lib/errors', () => ({
 }));
 
 // Mock the actual Vercel Workflow trigger
-vi.mock('../../../../app/workflows/tarot', () => ({
+vi.mock('../../../app/workflows/tarot', () => ({
   startTarotWorkflow: vi.fn(),
 }));
 
@@ -55,10 +55,10 @@ describe('POST /api/predict (with Vercel Workflow)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const dbMock = require('../../../../lib/db').db;
-    const validationMock = require('../../../../lib/validations');
-    const jobIdMock = require('../../../../lib/job-id');
-    const workflowMock = require('../../../../app/workflows/tarot');
+    const dbMock = require('../lib/db').db;
+    const validationMock = require('../lib/validations');
+    const jobIdMock = require('../lib/job-id');
+    const workflowMock = require('../../../app/workflows/tarot');
 
     mockDb = dbMock;
     mockValidate = validationMock.validatePostPredictRequest;

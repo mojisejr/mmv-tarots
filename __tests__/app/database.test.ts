@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 
 // Mock database operations
-vi.mock('../../lib/db', () => ({
+vi.mock('../lib/db', () => ({
   db: {
     card: {
       create: vi.fn(),
@@ -28,7 +28,7 @@ vi.mock('../../scripts/import-cards', () => ({
   importCardsFromCSV: vi.fn()
 }));
 
-import { db } from '../../lib/db';
+import { db } from '../lib/db';
 import { importCardsFromCSV } from '../../scripts/import-cards';
 
 describe('Database Operations', () => {
