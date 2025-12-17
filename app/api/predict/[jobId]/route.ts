@@ -105,12 +105,12 @@ export async function GET(
 
       // Add final reading if completed and valid
       if (prediction.status === 'COMPLETED' && prediction.finalReading) {
-        // Sanitize and validate reading data
-        const { sanitizeReading } = await import('../../../../lib/validators/reading-validator');
-        const sanitizedReading = sanitizeReading(prediction.finalReading);
+        // Adapt reading data from AI Agent wrapper format
+        const { adaptReadingData } = await import('../../../../lib/adapters/reading-adapter');
+        const adaptedReading = adaptReadingData(prediction.finalReading);
 
-        if (sanitizedReading) {
-          result.reading = sanitizedReading
+        if (adaptedReading) {
+          result.reading = adaptedReading
         }
       }
 
