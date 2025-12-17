@@ -145,11 +145,57 @@ export default function PredictionDetailPage() {
 
   // COMPLETED state - Map reading data for new components
   const mappedData = prediction.result?.reading
-    ? mapReadingData(prediction.result.reading)
+    ? (() => {
+        try {
+          const result = mapReadingData(prediction.result.reading);
+          if (!result) {
+            console.error('Failed to map reading data - invalid format', {
+              jobId,
+              readingKeys: Object.keys(prediction.result.reading || {}),
+              hasCards: !!prediction.result.reading?.cards_reading
+            });
+          }
+          return result;
+        } catch (error) {
+          console.error('Error mapping reading data:', error, { jobId });
+          return null;
+        }
+      })()
     : null;
 
-  // Handle case where reading might exist but be incomplete
-  if (!mappedData?.cards || mappedData.cards.length === 0) {
+  // Handle case where reading mapping failed or is incomplete
+  if (!mappedData) {
+    // Show error message when reading data cannot be processed
+    return (
+      <div className="max-w-4xl mx-auto px-4 h-full pb-20">
+        {/* Back button */}
+        <button
+          onClick={handleBack}
+          className="mb-6 flex items-center text-[#ffffff99] hover:text-[#ffffff] transition-colors"
+          aria-label="กลับไปหน้าประวัติ"
+        >
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          กลับไปหน้าประวัติ
+        </button>
+
+        {/* Error message */}
+        <GlassCard className="p-8 text-center">
+          <h2 className="text-xl font-serif text-[#ffffff] mb-4">
+            ข้อมูลการทำนายไม่สมบูรณ์
+          </h2>
+          <p className="text-[#ffffff99] mb-4">
+            ไม่สามารถแสดงผลการทำนายได้เนื่องจากข้อมูลมีความเสียหายหรืออยู่ในรูปแบบที่ไม่รองรับ
+          </p>
+          <p className="text-sm text-[#ffffff66]">
+            Job ID: #{jobId}
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
+
+  // Handle case where reading exists but has no cards
+  if (mappedData.cards.length === 0) {
     // Fall back to old card display logic if new reading data is not available
     const cards = prediction.result?.selectedCards || [];
 
