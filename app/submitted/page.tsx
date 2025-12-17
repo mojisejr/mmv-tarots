@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { ErrorBoundary } from '../../components/error-boundary';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlassCard } from '../../components/card';
 import { MimiLoadingAvatar } from '../../components/features/avatar/mimi-loading-avatar';
@@ -24,7 +25,10 @@ function SubmittedPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   const handleComplete = () => {
-    router.push('/history');
+    // Defer navigation to prevent setState during render
+    setTimeout(() => {
+      router.push('/history');
+    }, 0);
   };
 
   const skipRedirect = () => {
@@ -196,8 +200,10 @@ function SubmittedPageContent() {
 
 export default function SubmittedPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SubmittedPageContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div>Loading...</div>}>
+        <SubmittedPageContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

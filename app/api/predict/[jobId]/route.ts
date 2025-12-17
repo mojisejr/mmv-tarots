@@ -103,9 +103,15 @@ export async function GET(
         result.analysis = prediction.analysisResult
       }
 
-      // Add final reading if completed
+      // Add final reading if completed and valid
       if (prediction.status === 'COMPLETED' && prediction.finalReading) {
-        result.reading = prediction.finalReading
+        // Sanitize and validate reading data
+        const { sanitizeReading } = await import('../../../../lib/validators/reading-validator');
+        const sanitizedReading = sanitizeReading(prediction.finalReading);
+
+        if (sanitizedReading) {
+          result.reading = sanitizedReading
+        }
       }
 
       // Only include result if there's data
