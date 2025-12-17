@@ -103,9 +103,15 @@ export async function GET(
         result.analysis = prediction.analysisResult
       }
 
-      // Add final reading if completed
+      // Add final reading if completed and valid
       if (prediction.status === 'COMPLETED' && prediction.finalReading) {
-        result.reading = prediction.finalReading
+        // Adapt reading data from AI Agent wrapper format
+        const { adaptReadingData } = await import('../../../../lib/adapters/reading-adapter');
+        const adaptedReading = adaptReadingData(prediction.finalReading);
+
+        if (adaptedReading) {
+          result.reading = adaptedReading
+        }
       }
 
       // Only include result if there's data

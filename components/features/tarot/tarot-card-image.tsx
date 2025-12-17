@@ -35,7 +35,7 @@ export function TarotCardImage({
 
   // Don't render if no image URL
   if (!card.imageUrl) {
-    return <FallbackIcon cardName={card.displayName} className={className} />;
+    return <FallbackIcon cardName={card.displayName || card.name || 'Unknown'} className={className} />;
   }
 
   return (
@@ -53,11 +53,11 @@ export function TarotCardImage({
       )}
 
       {hasError ? (
-        <FallbackIcon cardName={card.displayName} className={className} />
+        <FallbackIcon cardName={card.displayName || card.name || 'Unknown'} className={className} />
       ) : (
         <Image
           src={card.imageUrl}
-          alt={`${card.displayName} tarot card`}
+          alt={`${card.displayName || card.name || 'Unknown'} tarot card`}
           width={width}
           height={height}
           className={`w-full h-full object-cover rounded-lg transition-opacity duration-300 ${
@@ -79,7 +79,7 @@ export function TarotCardImage({
 }
 
 interface FallbackIconProps {
-  cardName: string;
+  cardName?: string;
   className?: string;
 }
 
@@ -88,6 +88,11 @@ interface FallbackIconProps {
  */
 function FallbackIcon({ cardName, className }: FallbackIconProps) {
   const getIcon = () => {
+    // Safety check
+    if (!cardName || typeof cardName !== 'string') {
+      return <Sparkles className="w-12 h-12 text-white/60" data-testid="fallback-icon" />;
+    }
+
     // Card-specific icon mapping
     if (cardName.includes('Swords') || cardName.includes('ดาบ')) {
       return <Sword className="w-12 h-12 text-white/60" data-testid="fallback-icon" />;

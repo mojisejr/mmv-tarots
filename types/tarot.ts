@@ -14,15 +14,26 @@ export interface TarotCard {
 }
 
 export interface TarotCardData {
-  id: number;
+  id: number | string;
   name: string;
   displayName: string;
-  arcana: string;
-  shortMeaning: string;
-  longMeaning: string;
-  longMeaningRaw: string;
+  arcana?: string;
+  shortMeaning?: string;
+  longMeaning?: string;
+  longMeaningRaw?: string;
   keywords: string[];
-  imageUrl: string;
+  imageUrl?: string;
+  suit?: string;
+  value?: string;
+  description?: string;
+  upright?: {
+    meaning: string;
+    description: string;
+  };
+  reversed?: {
+    meaning: string;
+    description: string;
+  };
 }
 
 export interface TarotReading {

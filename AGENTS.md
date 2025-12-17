@@ -14,16 +14,28 @@
 
 ### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
 
+#### 🚨 CODE IMPLEMENTATION - ABSOLUTELY FORBIDDEN (EXCEPT `/impl`)
+
+- ❌ **NEVER CODE, IMPLEMENT, WRITE, EDIT, OR REFACTOR ANY CODE unless `/impl` command is used**
+- ❌ **NEVER write even a single line of code without `/impl` command**
+- ❌ **NEVER create, modify, or delete any files without `/impl` command**
+- ❌ **NEVER use Write, Edit, NotebookEdit tools without `/impl` command**
+- ❌ **NEVER run implementation commands (npm install, etc.) without `/impl` command**
+- ✅ **ONLY ALLOWED TO CODE**: When user explicitly uses `/impl` command
+- ✅ **DEFAULT STATE**: READ-ONLY MODE (analyze, report, recommend, but NEVER implement)
+
+#### 📋 General Prohibited Actions
+
 - ❌ **NEVER merge PRs yourself** - Provide PR link and wait for user instructions
-- ✅ **ALLOWED to commit and push to staging branch** - For iterative development
-- ✅ **ALLOWED to create PRs to staging** - After successful implementation and QA
+- ✅ **ALLOWED to commit and push to staging branch** - Only after `/impl` implementation
+- ✅ **ALLOWED to create PRs to staging** - After successful `/impl` implementation and QA
 - ❌ **NEVER work on main branch** - Always use staging or feature branches
 - ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, next.config.ts)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
 - ❌ **NEVER write sensitive data in GitHub issues, PRs, or commit files** - Use placeholders like [REDACTED] or [API_KEY]
 - ❌ **NEVER skip 100% validation** (build, lint, test) - Must pass completely
 - ❌ **NEVER use git push --force** - Only use --force-with-lease when absolutely necessary
-- ❌ **NEVER implement without proper testing** - Follow TDD Red-Green-Refactor cycle
+- ❌ **NEVER implement without proper testing** - Follow TDD Red-Green-Refactor cycle (with `/impl`)
 
 ### 📁 MANDATORY TEMPORARY FILE MANAGEMENT (CRITICAL)
 
