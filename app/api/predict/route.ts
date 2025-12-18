@@ -71,23 +71,31 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // Trigger workflow asynchronously (fire-and-forget)
-    // Don't await - let it run in background
-    startTarotWorkflow({
-      jobId,
-      question: validBody.question,
-      userIdentifier: validBody.userIdentifier
-    }).catch(async (error) => {
-      // Handle errors asynchronously - log and update database
-      console.error('Workflow failed:', error)
+    // Use Promise that doesn't block response
+    Promise.resolve().then(async () => {
+      try {
+        await startTarotWorkflow({
+          jobId,
+          question: validBody.question,
+          userIdentifier: validBody.userIdentifier
+        })
+      } catch (error) {
+        // Handle errors asynchronously - log and update database
+        console.error('Workflow failed:', error)
 
-      // Mark job as failed in database
-      await db.prediction.updateMany({
-        where: { jobId },
-        data: {
-          status: 'FAILED',
-          completedAt: new Date()
+        // Mark job as failed in database
+        try {
+          await db.prediction.updateMany({
+            where: { jobId },
+            data: {
+              status: 'FAILED',
+              completedAt: new Date()
+            }
+          })
+        } catch (dbError) {
+          console.error('Failed to update prediction status:', dbError)
         }
-      })
+      }
     })
 
     // Return success response with PENDING status

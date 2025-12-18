@@ -369,11 +369,11 @@ describe('Vector Search', () => {
       const { VectorSearch } = await import('../lib/vector_search')
       const vectorSearch = new VectorSearch(TEST_DB_PATH)
 
-      expect(async () => {
+      await expect(async () => {
         await vectorSearch.insertVector('invalid-1', [1, 2], { type: 'test' })
       }).rejects.toThrow('Invalid vector dimension')
 
-      expect(async () => {
+      await expect(async () => {
         await vectorSearch.similaritySearch([1], 1)
       }).rejects.toThrow('Invalid query vector dimension')
     })
