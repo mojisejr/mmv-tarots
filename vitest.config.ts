@@ -10,6 +10,7 @@ export default defineConfig({
     globals: true,
     include: [
       '__tests__/**/*.{test,spec}.{js,ts,tsx}',
+      '.claude/__tests__/**/*.{test,spec}.{js,ts,tsx}',
     ],
   },
   resolve: {
