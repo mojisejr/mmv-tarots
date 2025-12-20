@@ -21,9 +21,67 @@ model Card {
   @@map("cards")
 }
 
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  points        Int       @default(0)
+  referralCode  String?   @unique @default(cuid())
+  sessions      Session[]
+  accounts      Account[]
+  predictions   Prediction[]
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@map("verification")
+}
+
 model Prediction {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userIdentifier   String?  @map("user_identifier")
+  user             User?    @relation(fields: [userIdentifier], references: [id])
   question         String
   jobId            String?  @map("job_id")
   status           String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED

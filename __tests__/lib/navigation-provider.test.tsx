@@ -1,25 +1,35 @@
 import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { NavigationProvider, useNavigation } from '../providers/navigation-provider';
+import { NavigationProvider, useNavigation } from '@/lib/providers/navigation-provider';
+
+// Mock Better Auth client
+vi.mock('@/lib/auth-client', () => ({
+  useSession: () => ({
+    data: null, // Not logged in by default
+    isLoading: false,
+  }),
+}));
 
 // Test component to consume the context
 function TestComponent() {
   const {
     isLoggedIn,
     currentPage,
-    setIsLoggedIn,
+    user,
     setCurrentPage,
     handleMenuClick,
     handleProfileClick,
     handleBackClick,
+    handleLoginClick,
+    handleLogoutClick,
   } = useNavigation();
 
   return (
     <div>
       <div data-testid="is-logged-in">{isLoggedIn.toString()}</div>
       <div data-testid="current-page">{currentPage}</div>
-      <button onClick={() => setIsLoggedIn(false)}>Set Logged Out</button>
-      <button onClick={() => setCurrentPage('about')}>Set Page</button>
+      <div data-testid="user-id">{user?.id || 'no-user'}</div>
+      <button onClick={() => setCurrentPage('history')}>Set Page</button>
       <button onClick={handleMenuClick} data-testid="menu-btn">
         Menu
       </button>
@@ -28,6 +38,12 @@ function TestComponent() {
       </button>
       <button onClick={handleBackClick} data-testid="back-btn">
         Back
+      </button>
+      <button onClick={handleLoginClick} data-testid="login-btn">
+        Login
+      </button>
+      <button onClick={handleLogoutClick} data-testid="logout-btn">
+        Logout
       </button>
     </div>
   );
@@ -41,22 +57,9 @@ describe('NavigationProvider', () => {
       </NavigationProvider>
     );
 
-    expect(screen.getByTestId('is-logged-in')).toHaveTextContent('true');
-    expect(screen.getByTestId('current-page')).toHaveTextContent('home');
-  });
-
-  it('should update isLoggedIn state', () => {
-    render(
-      <NavigationProvider>
-        <TestComponent />
-      </NavigationProvider>
-    );
-
-    act(() => {
-      screen.getByText('Set Logged Out').click();
-    });
-
     expect(screen.getByTestId('is-logged-in')).toHaveTextContent('false');
+    expect(screen.getByTestId('current-page')).toHaveTextContent('home');
+    expect(screen.getByTestId('user-id')).toHaveTextContent('no-user');
   });
 
   it('should update currentPage state', () => {
@@ -70,7 +73,7 @@ describe('NavigationProvider', () => {
       screen.getByText('Set Page').click();
     });
 
-    expect(screen.getByTestId('current-page')).toHaveTextContent('about');
+    expect(screen.getByTestId('current-page')).toHaveTextContent('history');
   });
 
   it('should handle navigation clicks', () => {

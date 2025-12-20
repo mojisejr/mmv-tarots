@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Navigation } from '../navbar';
+import { Navigation } from '../../../components/layout/navbar';
 import { vi } from 'vitest';
 
 // Mock Next.js router
@@ -15,8 +15,15 @@ describe('Navigation Component', () => {
   const defaultProps = {
     currentPage: 'home',
     isLoggedIn: true,
+    user: {
+      id: 'user-123',
+      name: 'Test User',
+      email: 'test@example.com',
+      image: 'https://example.com/avatar.jpg',
+    },
     onMenuClick: vi.fn(),
     onProfileClick: vi.fn(),
+    onLoginClick: vi.fn(),
   };
 
   beforeEach(() => {
@@ -55,7 +62,15 @@ describe('Navigation Component', () => {
     expect(profileButton).toBeInTheDocument();
   });
 
-  it('should not render User profile button when logged out', () => {
+  it('should render Login button when logged out', () => {
+    expect.assertions(1);
+    render(<Navigation {...defaultProps} isLoggedIn={false} />);
+
+    const loginButton = screen.getByTestId('login-button');
+    expect(loginButton).toBeInTheDocument();
+  });
+
+  it('should not render profile button when logged out', () => {
     expect.assertions(1);
     render(<Navigation {...defaultProps} isLoggedIn={false} />);
 
@@ -85,19 +100,42 @@ describe('Navigation Component', () => {
     expect(mockProfileClick).toHaveBeenCalledTimes(1);
   });
 
-  it('should have glassmorphism styling classes', () => {
+  it('should call onLoginClick when login button is clicked', () => {
     expect.assertions(1);
-    render(<Navigation {...defaultProps} />);
+    const mockLoginClick = vi.fn();
+    render(<Navigation {...defaultProps} isLoggedIn={false} onLoginClick={mockLoginClick} />);
 
-    const nav = screen.getByRole('navigation');
-    expect(nav).toHaveClass('bg-white/10', 'backdrop-blur-2xl', 'border-white/20');
+    const loginButton = screen.getByTestId('login-button');
+    fireEvent.click(loginButton);
+
+    expect(mockLoginClick).toHaveBeenCalledTimes(1);
   });
 
   it('should show online indicator dot when logged in', () => {
     expect.assertions(1);
     render(<Navigation {...defaultProps} isLoggedIn={true} />);
 
-    const onlineDot = document.querySelector('.rounded-full.border');
+    const onlineDot = screen.getByLabelText('Online status indicator');
     expect(onlineDot).toBeInTheDocument();
+  });
+
+  it('should display user avatar when user has image', () => {
+    expect.assertions(1);
+    render(<Navigation {...defaultProps} isLoggedIn={true} />);
+
+    const avatar = screen.getByAltText('Test User');
+    expect(avatar).toBeInTheDocument();
+  });
+
+  it('should display default avatar when user has no image', () => {
+    expect.assertions(1);
+    const propsWithoutImage = {
+      ...defaultProps,
+      user: { ...defaultProps.user, image: null },
+    };
+    render(<Navigation {...propsWithoutImage} isLoggedIn={true} />);
+
+    const profileButton = screen.getByRole('button', { name: /profile/i });
+    expect(profileButton).toBeInTheDocument();
   });
 });
