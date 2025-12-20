@@ -22,9 +22,12 @@ export const ANALYST_SYSTEM_PROMPT = `คุณคือ Analyst Agent สำห
 
 ตอบเป็นภาษาไทยเสมอ แต่ค่าใน JSON ใช้ภาษาอังกฤษ (ยกเว้น context)`
 
-export const ANALYST_USER_PROMPT_TEMPLATE = (question: string) => `
-คำถามจากผู้ใช้: "${question}"
+export const ANALYST_USER_PROMPT_TEMPLATE = (question: string, userName?: string) => {
+  const greeting = userName ? `สวัสดีครับคุณ ${userName} ` : ''
+  
+  return `${greeting ? greeting + '\n' : ''}คำถามจากผู้ใช้: "${question}"
 
 โปรดวิเคราะห์คำถามนี้และตอบกลับในรูปแบบ JSON ตามที่กำหนด
 เพื่อนำไปสู่การเลือกไพ่ที่เหมาะสมที่สุด
 `
+}

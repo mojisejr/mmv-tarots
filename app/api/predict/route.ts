@@ -6,6 +6,7 @@ import { startTarotWorkflow } from '../../../app/workflows/tarot'
 import { validatePostPredictRequest } from '../../../lib/validations'
 import { generateJobId } from '../../../lib/job-id'
 import { db } from '../../../lib/db'
+import { auth } from '../../../lib/auth'
 import {
   ApiError,
   ERROR_CODES,
@@ -19,6 +20,13 @@ import type { PostPredictRequest, PostPredictResponse } from '../../../types/api
  */
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    // Get authenticated session
+    const session = await auth.api.getSession({ headers: request.headers })
+    
+    // Extract userId and userName from session
+    const userId = session?.user?.id || null
+    const userName = session?.user?.name || null
+    
     // Parse request body
     let body: unknown
     try {
@@ -57,7 +65,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       await db.prediction.create({
         data: {
           jobId,
-          userIdentifier: validBody.userIdentifier || null,
+          userIdentifier: userId,
           question: validBody.question,
           status: 'PENDING'
         }
@@ -75,7 +83,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     startTarotWorkflow({
       jobId,
       question: validBody.question,
-      userIdentifier: validBody.userIdentifier
+      userIdentifier: validBody.userIdentifier,
+      userId,
+      userName
     }).catch(async (error) => {
       // Handle errors asynchronously - log and update database
       console.error('Workflow failed:', error)

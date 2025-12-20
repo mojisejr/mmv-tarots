@@ -12,6 +12,7 @@ export interface StartWorkflowParams {
   question: string
   userIdentifier?: string
   userId?: string | null
+  userName?: string | null
 }
 
 async function updatePredictionStatus(
@@ -65,7 +66,7 @@ async function retryOperation<T>(
 }
 
 export async function startTarotWorkflow(params: StartWorkflowParams): Promise<void> {
-  const { jobId, question } = params
+  const { jobId, question, userName } = params
 
   console.log('Starting tarot workflow for job:', jobId)
 
@@ -86,9 +87,9 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
       throw new Error(`Question rejected by gatekeeper: ${gatekeeperResult.reason}`)
     }
 
-    // Step 3: Analyst Agent - Analyze context
+    // Step 3: Analyst Agent - Analyze context with user name
     console.log('Running analyst agent...')
-    const analysisResult = await retryOperation(() => analystAgent(question))
+    const analysisResult = await retryOperation(() => analystAgent(question, userName || undefined))
 
     // Save analysis result
     await updatePredictionStatus(jobId, {
