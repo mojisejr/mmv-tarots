@@ -3,6 +3,10 @@
 
 export interface PostPredictRequest {
   question: string
+  /**
+   * @deprecated Will be removed in future version. Use Better Auth session instead.
+   * For now, this is optional and will be overridden by session.user.id if available.
+   */
   userIdentifier?: string
 }
 
