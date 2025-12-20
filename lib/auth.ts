@@ -23,6 +23,13 @@ export const auth = betterAuth({
       clientId: process.env.LINE_CLIENT_ID || '',
       clientSecret: process.env.LINE_CLIENT_SECRET || '',
       redirectURI: process.env.LINE_REDIRECT_URI || '',
+      mapProfileToUser: (profile) => {
+        return {
+          name: profile.name || 'LINE User',
+          image: profile.picture,
+          email: profile.email || `${profile.sub || 'unknown'}@mimivibe.com`,
+        };
+      },
     },
   },
   

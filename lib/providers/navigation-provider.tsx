@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { useSession } from '@/lib/auth-client';
+import { useSession, signIn, signOut } from '@/lib/auth-client';
 
 interface NavigationContextType {
   isLoggedIn: boolean;
@@ -45,20 +45,28 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleLoginClick = () => {
-    // Redirect to Line Login
-    window.location.href = '/api/auth/signin/line';
+  const handleLoginClick = async () => {
+    // Redirect to Line Login using Better Auth Client
+    try {
+      await signIn.social({
+        provider: 'line',
+        callbackURL: '/', // Redirect back to home after login
+      });
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
   };
 
   const handleLogoutClick = async () => {
-    // Sign out via Better Auth
+    // Sign out via Better Auth Client
     try {
-      await fetch('/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include',
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.reload();
+          },
+        },
       });
-      // Reload page to clear session
-      window.location.reload();
     } catch (error) {
       console.error('Logout failed:', error);
     }
