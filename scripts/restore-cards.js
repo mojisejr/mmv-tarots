@@ -2,8 +2,9 @@ const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
+const prisma = new PrismaClient();
+
 async function main() {
-  const prisma = new PrismaClient();
   const backupPath = path.join(__dirname, '../prisma/cards_backup.json');
   
   if (!fs.existsSync(backupPath)) {

@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
-import { Montserrat, Merriweather, Ubuntu_Mono } from "next/font/google";
 import "./globals.css";
 import { LiquidBackground } from "@/components/background/liquid-background";
 import { NavigationProvider } from "@/lib/providers/navigation-provider";
 import { MainNavigation } from "@/components/layout/main-navigation";
 
-const fontSans = Montserrat({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const fontSerif = Merriweather({
-  variable: "--font-serif",
-  subsets: ["latin"],
-  weight: ["300", "400", "700"],
-});
-
-const fontMono = Ubuntu_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400"],
-});
+// Use fallback system fonts for now
+const fontClasses = "font-sans";
 
 export const metadata: Metadata = {
   title: "MimiVibe - Cosmic Tarot Reader",
@@ -41,8 +26,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&family=Merriweather:wght@300;400;700&family=Ubuntu+Mono:wght@400&display=swap" rel="stylesheet" />
+      </head>
       <body
-        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased bg-[#2a2a2e] text-white safe-top`}
+        className={`${fontClasses} antialiased bg-[#2a2a2e] text-white safe-top`}
+        style={{ fontFamily: 'Montserrat, system-ui, sans-serif' }}
       >
         <LiquidBackground />
         <NavigationProvider>
