@@ -11,18 +11,22 @@ export function MainNavigation() {
   const {
     isLoggedIn,
     currentPage,
+    user,
     handleMenuClick,
     handleProfileClick,
     handleBackClick,
+    handleLoginClick,
   } = useNavigation();
 
   return (
     <Navigation
       currentPage={currentPage}
       isLoggedIn={isLoggedIn}
+      user={user}
       onMenuClick={handleMenuClick}
       onProfileClick={handleProfileClick}
       onBackClick={handleBackClick}
+      onLoginClick={handleLoginClick}
     />
   );
 }
