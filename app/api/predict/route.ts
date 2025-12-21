@@ -23,9 +23,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Get authenticated session
     const session = await auth.api.getSession({ headers: request.headers })
     
+    if (!session?.user?.id) {
+      throw new ApiError({
+        code: ERROR_CODES.UNAUTHORIZED,
+        message: 'Authentication required'
+      })
+    }
+
     // Extract userId and userName from session
-    const userId = session?.user?.id || null
-    const userName = session?.user?.name || null
+    const userId = session.user.id
+    const userName = session.user.name || null
     
     // Parse request body
     let body: unknown
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       await db.prediction.create({
         data: {
           jobId,
-          userIdentifier: userId,
+          userIdentifier: userId, // Always use authenticated user ID
           question: validBody.question,
           status: 'PENDING'
         }
