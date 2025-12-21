@@ -18,13 +18,14 @@ export interface AnalystResponse {
 }
 
 export async function analystAgent(
-  question: string
+  question: string,
+  userName?: string
 ): Promise<AnalystResponse> {
   try {
     const response = await generateText({
       model: google(process.env.MODEL_NAME || 'gemini-2.5-flash'),
       system: ANALYST_SYSTEM_PROMPT,
-      prompt: ANALYST_USER_PROMPT_TEMPLATE(question),
+      prompt: ANALYST_USER_PROMPT_TEMPLATE(question, userName),
       temperature: 0.5
     })
 

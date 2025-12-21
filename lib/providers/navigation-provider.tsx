@@ -1,14 +1,15 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from '@/lib/auth-client';
 
 interface NavigationContextType {
   isLoggedIn: boolean;
-  currentPage: 'home' | 'submitted' | 'history' | 'result';
+  currentPage: 'home' | 'submitted' | 'history' | 'result' | 'profile';
   currentJobId: string | null;
   user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null;
-  setCurrentPage: (value: 'home' | 'submitted' | 'history' | 'result') => void;
+  setCurrentPage: (value: 'home' | 'submitted' | 'history' | 'result' | 'profile') => void;
   setCurrentJobId: (jobId: string | null) => void;
   handleMenuClick: () => void;
   handleProfileClick: () => void;
@@ -20,8 +21,9 @@ interface NavigationContextType {
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const { data: session } = useSession();
-  const [currentPage, setCurrentPage] = useState<'home' | 'submitted' | 'history' | 'result'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'submitted' | 'history' | 'result' | 'profile'>('home');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
   const isLoggedIn = !!session?.user;
@@ -29,19 +31,22 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const handleMenuClick = () => {
     console.log('Menu clicked');
-    // Navigate to home or open menu
+    router.push('/');
   };
 
   const handleProfileClick = () => {
     console.log('Profile clicked');
-    // Navigate to profile
+    router.push('/profile');
   };
 
   const handleBackClick = () => {
     console.log('Back clicked');
     // Navigate back based on current page
-    if (currentPage === 'submitted' || currentPage === 'history') {
+    if (currentPage === 'submitted' || currentPage === 'history' || currentPage === 'profile') {
+      router.push('/');
       setCurrentPage('home');
+    } else {
+      router.back();
     }
   };
 

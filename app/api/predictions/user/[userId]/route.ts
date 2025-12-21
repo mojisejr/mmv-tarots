@@ -3,6 +3,7 @@
 
 import { NextRequest } from 'next/server';
 import { db } from '../../../../../lib/db';
+import { auth } from '../../../../../lib/auth';
 import {
   ApiError,
   ERROR_CODES,
@@ -12,12 +13,23 @@ import {
 /**
  * GET /api/predictions/user/[userId]
  * Fetch all predictions for a specific user
+ * Security: Users can only fetch their own predictions
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ): Promise<Response> {
   try {
+    // Get authenticated session
+    const session = await auth.api.getSession({ headers: request.headers })
+    
+    if (!session?.user?.id) {
+      throw new ApiError({
+        code: ERROR_CODES.INVALID_REQUEST,
+        message: 'Authentication required'
+      });
+    }
+
     // Get userId from route params
     const { userId } = await params;
 
@@ -26,6 +38,14 @@ export async function GET(
       throw new ApiError({
         code: ERROR_CODES.INVALID_REQUEST,
         message: 'User ID is required'
+      });
+    }
+
+    // Security check: Users can only fetch their own predictions
+    if (session.user.id !== userId) {
+      throw new ApiError({
+        code: ERROR_CODES.INVALID_REQUEST,
+        message: 'Unauthorized: You can only access your own predictions'
       });
     }
 

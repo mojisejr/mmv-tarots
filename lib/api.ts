@@ -2,7 +2,6 @@
 // Phase 2: GREEN - Minimal implementation to make tests pass
 
 import { z } from 'zod';
-import { StaticUserManager } from './user-manager';
 
 // Schemas for type safety
 const PostPredictRequestSchema = z.object({
@@ -41,18 +40,12 @@ export type GetPredictResponse = z.infer<typeof GetPredictResponseSchema>;
 // API base URL
 const API_BASE = '/api';
 
-// Get user identifier (in real app, this would come from auth)
-function getUserIdentifier(): string {
-  return StaticUserManager.getUserIdentifier();
-}
-
 /**
  * Submit a tarot question for prediction
  */
 export async function submitQuestion(question: string): Promise<PostPredictResponse> {
   const payload: PostPredictRequest = {
     question: question.trim(),
-    userIdentifier: getUserIdentifier(),
   };
 
   // Validate payload
@@ -111,9 +104,7 @@ export async function fetchUserPredictions(): Promise<{
   page: number;
   totalPages: number;
 }> {
-  const userId = getUserIdentifier();
-
-  const response = await fetch(`${API_BASE}/predictions/user/${encodeURIComponent(userId)}`);
+  const response = await fetch(`${API_BASE}/predictions/me`);
 
   if (!response.ok) {
     // If endpoint doesn't exist yet, return empty array
