@@ -1,5 +1,5 @@
 import { vi, describe, it, expect } from 'vitest';
-import { mapReadingData } from '@/lib/reading-utils';
+import { mapReadingData } from '@/lib/client/reading-utils';
 
 describe('mapReadingData - Empty Objects', () => {
   it('should return null for empty object {}', () => {

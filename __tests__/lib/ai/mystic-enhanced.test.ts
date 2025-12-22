@@ -2,8 +2,8 @@
 // Phase 1: RED - Failing tests for enhanced Mystic with Guardian context
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mysticAgent } from '@/lib/ai/agents/mystic'
-import type { GuardianResponse } from '@/lib/ai/agents/guardian'
+import { mysticAgent } from '@/lib/server/ai/agents/mystic'
+import type { GuardianResponse } from '@/lib/server/ai/agents/guardian'
 
 // Mock AI SDK
 vi.mock('ai', () => ({

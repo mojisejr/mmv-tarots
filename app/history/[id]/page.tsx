@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { GlassCard } from '../../../components/card';
-import { GlassButton } from '../../../components/button';
-import { ChevronLeft, Loader2, AlertCircle } from '../../../components/icons';
+import { GlassCard, GlassButton, ChevronLeft, Loader2, AlertCircle } from '@/components';
 import {
   ReadingHeader,
   CardDetails,
@@ -12,10 +10,10 @@ import {
   NextQuestions,
   FinalSummary,
   Disclaimer
-} from '../../../components/reading';
-import { checkJobStatus } from '../../../lib/api';
-import { GetPredictResponse } from '../../../lib/api';
-import { mapReadingData } from '../../../lib/reading-utils';
+} from '@/components/reading';
+import { checkJobStatus } from '@/lib/client/api';
+import { GetPredictResponse } from '@/lib/client/api';
+import { mapReadingData } from '@/lib/client/reading-utils';
 
 export default function PredictionDetailPage() {
   const router = useRouter();

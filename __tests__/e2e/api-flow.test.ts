@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { POST } from '@/app/api/predict/route'
 import { GET } from '@/app/api/predict/[jobId]/route'
-import { createTestRequest } from '../lib/utils'
-import { db } from '@/lib/db'
+import { createTestRequest } from '@/lib/shared/utils'
+import { db } from '@/lib/server/db'
 
 // Mock the workflow module
 vi.mock('@/app/workflows/tarot', () => ({

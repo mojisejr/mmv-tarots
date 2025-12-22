@@ -2,14 +2,14 @@
 // Phase 2: GREEN - Minimal implementation to make tests pass
 
 import { NextRequest } from 'next/server'
-import { db } from '../../../../lib/db'
-import { isValidJobId } from '../../../../lib/job-id'
+import { PredictionService } from '@/services/prediction-service'
+import { isValidJobId } from '@/lib/server/job-id'
 import {
   ApiError,
   ERROR_CODES,
   createErrorResponse
-} from '../../../../lib/errors'
-import type { GetPredictResponse } from '../../../../types/api'
+} from '@/lib/server/errors'
+import type { GetPredictResponse } from '@/types/api'
 
 /**
  * GET /api/predict/[jobId]
@@ -38,12 +38,10 @@ export async function GET(
       })
     }
 
-    // Fetch prediction from database
+    // Fetch prediction from database using Service
     let prediction
     try {
-      prediction = await db.prediction.findFirst({
-        where: { jobId }
-      })
+      prediction = await PredictionService.getByJobId(jobId)
     } catch (dbError) {
       console.error('Database error:', dbError)
       throw new ApiError({
@@ -106,7 +104,7 @@ export async function GET(
       // Add final reading if completed and valid
       if (prediction.status === 'COMPLETED' && prediction.finalReading) {
         // Adapt reading data from AI Agent wrapper format
-        const { adaptReadingData } = await import('../../../../lib/adapters/reading-adapter');
+        const { adaptReadingData } = await import('@/lib/server/adapters/reading-adapter');
         const adaptedReading = adaptReadingData(prediction.finalReading);
 
         if (adaptedReading) {

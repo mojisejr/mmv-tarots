@@ -2,17 +2,16 @@
 // Phase 5: Fire-and-forget Vercel Workflow integration
 
 import { NextRequest } from 'next/server'
-import { startTarotWorkflow } from '../../../app/workflows/tarot'
-import { validatePostPredictRequest } from '../../../lib/validations'
-import { generateJobId } from '../../../lib/job-id'
-import { db } from '../../../lib/db'
-import { auth } from '../../../lib/auth'
+import { startTarotWorkflow } from '@/services/tarot-service'
+import { PredictionService } from '@/services/prediction-service'
+import { validatePostPredictRequest } from '@/lib/server/validations'
+import { auth } from '@/lib/server/auth'
 import {
   ApiError,
   ERROR_CODES,
   createErrorResponse
-} from '../../../lib/errors'
-import type { PostPredictRequest, PostPredictResponse } from '../../../types/api'
+} from '@/lib/server/errors'
+import type { PostPredictRequest, PostPredictResponse } from '@/types/api'
 
 /**
  * POST /api/predict
@@ -64,19 +63,13 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const validBody = body as PostPredictRequest
 
-    // Generate unique job ID
-    const jobId = generateJobId()
-
-    // Create prediction record in database
+    // Create prediction record in database using Service
+    let prediction;
     try {
-      await db.prediction.create({
-        data: {
-          jobId,
-          userIdentifier: userId, // Always use authenticated user ID
-          question: validBody.question,
-          status: 'PENDING'
-        }
-      })
+      prediction = await PredictionService.createPrediction({
+        userId,
+        question: validBody.question
+      });
     } catch (dbError) {
       console.error('Failed to create prediction record:', dbError)
       throw new ApiError({
@@ -84,6 +77,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         message: 'Failed to create prediction record'
       })
     }
+
+    const jobId = prediction.jobId as string;
 
     // Trigger workflow asynchronously (fire-and-forget)
     // Don't await - let it run in background
@@ -98,13 +93,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.error('Workflow failed:', error)
 
       // Mark job as failed in database
-      await db.prediction.updateMany({
-        where: { jobId },
-        data: {
-          status: 'FAILED',
-          completedAt: new Date()
-        }
-      })
+      await PredictionService.updatePrediction(jobId, {
+        status: 'FAILED',
+        completedAt: new Date()
+      }).catch(err => console.error('Failed to mark job as failed:', err))
     })
 
     // Return success response with PENDING status

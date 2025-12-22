@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { GET } from '@/app/api/predict/[jobId]/route';
 
 // Mock dependencies
-vi.mock('@/lib/db', () => ({
+vi.mock('@/lib/server/db', () => ({
   db: {
     prediction: {
       findUnique: vi.fn(),
@@ -16,7 +16,7 @@ describe('GET /api/predict/[jobId] - Empty Reading', () => {
   });
 
   it('should not include result.reading when finalReading is empty object', async () => {
-    const mockFindUnique = vi.mocked(await import('@/lib/db')).db.prediction.findUnique;
+    const mockFindUnique = vi.mocked(await import('@/lib/server/db')).db.prediction.findUnique;
 
     // Mock prediction with empty finalReading
     mockFindUnique.mockResolvedValue({
@@ -40,7 +40,7 @@ describe('GET /api/predict/[jobId] - Empty Reading', () => {
   });
 
   it('should include result.reading when finalReading has valid data', async () => {
-    const mockFindUnique = vi.mocked(await import('@/lib/db')).db.prediction.findUnique;
+    const mockFindUnique = vi.mocked(await import('@/lib/server/db')).db.prediction.findUnique;
 
     // Mock prediction with valid finalReading
     mockFindUnique.mockResolvedValue({
@@ -67,7 +67,7 @@ describe('GET /api/predict/[jobId] - Empty Reading', () => {
   });
 
   it('should not include result when prediction is not completed', async () => {
-    const mockFindUnique = vi.mocked(await import('@/lib/db')).db.prediction.findUnique;
+    const mockFindUnique = vi.mocked(await import('@/lib/server/db')).db.prediction.findUnique;
 
     // Mock prediction with PENDING status
     mockFindUnique.mockResolvedValue({

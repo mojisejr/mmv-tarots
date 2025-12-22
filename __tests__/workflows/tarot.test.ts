@@ -3,10 +3,10 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { startTarotWorkflow } from '@/app/workflows/tarot'
-import { db } from '@/lib/db'
+import { db } from '@/lib/server/db'
 
 // Mock dependencies
-vi.mock('@/lib/db', () => ({
+vi.mock('@/lib/server/db', () => ({
   db: {
     prediction: {
       update: vi.fn(),

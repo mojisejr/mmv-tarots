@@ -2,13 +2,13 @@
 // Fetches all predictions for a specific user
 
 import { NextRequest } from 'next/server';
-import { db } from '../../../../../lib/db';
-import { auth } from '../../../../../lib/auth';
+import { db } from '@/lib/server/db';
+import { auth } from '@/lib/server/auth';
 import {
   ApiError,
   ERROR_CODES,
   createErrorResponse
-} from '../../../../../lib/errors';
+} from '@/lib/server/errors';
 
 /**
  * GET /api/predictions/user/[userId]

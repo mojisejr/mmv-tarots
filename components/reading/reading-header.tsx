@@ -1,5 +1,5 @@
 import React from 'react';
-import { GlassCard } from '../card';
+import { GlassCard } from '@/components/ui';
 import type { ReadingHeaderProps } from '@/types/reading';
 
 export function ReadingHeader({ header, className = '' }: ReadingHeaderProps) {

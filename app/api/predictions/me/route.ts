@@ -2,13 +2,13 @@
 // Fetches all predictions for the currently authenticated user
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../lib/db';
-import { auth } from '../../../../lib/auth';
+import { PredictionService } from '@/services/prediction-service';
+import { auth } from '@/lib/server/auth';
 import {
   ApiError,
   ERROR_CODES,
   createErrorResponse
-} from '../../../../lib/errors';
+} from '@/lib/server/errors';
 
 /**
  * GET /api/predictions/me
@@ -28,14 +28,10 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const userId = session.user.id;
 
-    // Fetch predictions from database
+    // Fetch predictions from database using Service
     let predictions;
     try {
-      predictions = await db.prediction.findMany({
-        where: { userIdentifier: userId },
-        orderBy: { createdAt: 'desc' },
-        take: 50, // Limit to 50 most recent predictions
-      });
+      predictions = await PredictionService.getByUserId(userId);
     } catch (dbError) {
       console.error('Database error fetching predictions:', dbError);
       throw new ApiError({

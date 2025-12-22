@@ -14,7 +14,7 @@ vi.mock('../../app/workflows/tarot', () => ({
   startTarotWorkflow: vi.fn()
 }))
 
-import { runSimpleTarotWorkflow } from '../../lib/workflows/simple-tarot'
+import { runSimpleTarotWorkflow } from '@/lib/server/workflows/simple-tarot'
 import { startTarotWorkflow } from '../../app/workflows/tarot'
 
 describe('POST /api/predict - Asynchronous Workflow', () => {

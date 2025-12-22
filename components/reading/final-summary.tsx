@@ -1,6 +1,5 @@
 import React from 'react';
-import { GlassCard } from '../card';
-import { Star } from '../icons';
+import { GlassCard, Star } from '@/components/ui';
 import type { FinalSummaryProps } from '@/types/reading';
 
 export function FinalSummary({ summary, className = '' }: FinalSummaryProps) {

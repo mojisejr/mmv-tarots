@@ -1,4 +1,4 @@
-import { Sparkles, Zap, RefreshCw, Moon } from '../components/icons';
+import { Sparkles, Zap, RefreshCw, Moon } from '@/components';
 
 export const WAITING_STEPS = [
   { id: 'filter', label: 'Cleaning energy...', Icon: Sparkles },

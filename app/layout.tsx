@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { LiquidBackground } from "@/components/background/liquid-background";
-import { NavigationProvider } from "@/lib/providers/navigation-provider";
-import { MainNavigation } from "@/components/layout/main-navigation";
+import { LiquidBackground, MainNavigation } from "@/components";
+import { NavigationProvider } from "@/lib/client/providers/navigation-provider";
 
 // Use fallback system fonts for now
 const fontClasses = "font-sans";

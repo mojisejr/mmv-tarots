@@ -1,6 +1,6 @@
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/shared/utils';
 
 const buttonVariants = cva(
   'relative overflow-hidden px-6 py-3.5 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-sans touch-manipulation group',

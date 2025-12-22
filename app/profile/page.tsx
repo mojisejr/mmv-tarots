@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@/lib/auth-client';
-import { GlassCard } from '@/components/card';
-import { GlassButton } from '@/components/button';
-import { HistoryCard } from '@/components/history-card';
-import { useNavigation } from '@/lib/providers/navigation-provider';
-import { fetchUserPredictions } from '@/lib/api';
+import { useSession } from '@/lib/client/auth-client';
+import { GlassCard, GlassButton, HistoryCard } from '@/components';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import { fetchUserPredictions } from '@/lib/client/api';
 import { User, Gift, QrCode, LogOut } from 'lucide-react';
 
 interface Prediction {
@@ -72,7 +70,7 @@ export default function ProfilePage() {
   };
 
   const handleSignOut = async () => {
-    const { signOut } = await import('@/lib/auth-client');
+    const { signOut } = await import('@/lib/client/auth-client');
     await signOut();
     router.push('/');
   };

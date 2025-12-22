@@ -1,14 +1,12 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { ErrorBoundary } from '../../components/error-boundary';
+import { ErrorBoundary, GlassCard, Copy, CheckCircle2 } from '@/components';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { GlassCard } from '../../components/card';
 import { MimiLoadingAvatar } from '../../components/features/avatar/mimi-loading-avatar';
-import { Copy, CheckCircle2 } from '../../components/icons';
 import { WAITING_STEPS, FUN_FACTS } from '../../constants/waiting-steps';
-import { useNavigation } from '../../lib/providers/navigation-provider';
-import { checkJobStatus } from '../../lib/api';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import { checkJobStatus } from '@/lib/client/api';
 
 function SubmittedPageContent() {
   const router = useRouter();

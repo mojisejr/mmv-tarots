@@ -16,7 +16,7 @@ import {
   ContentSecurityPolicy,
   HstsConfig,
   ReferrerPolicy
-} from '../../lib/security/security-headers'
+} from '@/lib/server/security/security-headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 describe('Security Headers System', () => {

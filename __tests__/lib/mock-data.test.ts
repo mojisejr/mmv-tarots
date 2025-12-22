@@ -7,7 +7,7 @@ import {
   generatePartialReading,
   generateErrorScenarios,
   getRandomTarotCards
-} from '../../lib/mock-data'
+} from '@/lib/server/mock-data'
 
 describe('Mock Tarot Data Generator', () => {
   describe('generateMockTarotReading', () => {

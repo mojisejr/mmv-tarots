@@ -6,7 +6,7 @@ import { openai } from '@ai-sdk/openai'
 import {
   GUARDIAN_SYSTEM_PROMPT,
   GUARDIAN_USER_PROMPT_TEMPLATE
-} from '../prompts/guardian'
+} from '@/lib/server/ai/prompts/guardian'
 
 export interface GuardianResponse {
   approved: boolean

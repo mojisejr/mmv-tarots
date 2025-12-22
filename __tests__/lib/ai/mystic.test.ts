@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mysticAgent } from '@/lib/ai/agents/mystic'
-import type { AnalystResponse } from '@/lib/ai/agents/analyst'
-import type { DealerResponse } from '@/lib/ai/agents/dealer'
-import { db } from '@/lib/db'
+import { mysticAgent } from '@/lib/server/ai/agents/mystic'
+import type { AnalystResponse } from '@/lib/server/ai/agents/analyst'
+import type { DealerResponse } from '@/lib/server/ai/agents/dealer'
+import { db } from '@/lib/server/db'
 
 // Mock database
-vi.mock('@/lib/db', () => ({
+vi.mock('@/lib/server/db', () => ({
   db: {
     card: {
       findMany: vi.fn(),

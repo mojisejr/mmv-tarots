@@ -6,8 +6,8 @@ import { google } from '@ai-sdk/google'
 import {
   GATEKEEPER_SYSTEM_PROMPT,
   GATEKEEPER_USER_PROMPT_TEMPLATE
-} from '../prompts/gatekeeper'
-import { parseAIResponse } from '../utils/json-parser'
+} from '@/lib/server/ai/prompts/gatekeeper'
+import { parseAIResponse } from '@/lib/server/ai/utils/json-parser'
 
 export interface GatekeeperResponse {
   approved: boolean
