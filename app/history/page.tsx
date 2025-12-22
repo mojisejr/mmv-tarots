@@ -2,12 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { GlassCard } from '../../components/card';
-import { GlassButton } from '../../components/button';
-import { ChevronRight } from '../../components/icons';
-import { HistoryCard } from '../../components/history-card';
-import { useNavigation } from '../../lib/providers/navigation-provider';
-import { fetchUserPredictions, checkJobStatus } from '../../lib/api';
+import { GlassCard, GlassButton, ChevronRight, HistoryCard } from '@/components';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import { fetchUserPredictions, checkJobStatus } from '@/lib/client/api';
 
 interface Prediction {
   id: string;

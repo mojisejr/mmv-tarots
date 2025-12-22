@@ -1,11 +1,11 @@
 // Vercel Workflow for Tarot Reading AI Pipeline
 // Phase 4: REFACTOR - Improved implementation for better performance
 
-import { db } from '@/lib/db'
-import { gatekeeperAgent } from '@/lib/ai/agents/gatekeeper'
-import { analystAgent } from '@/lib/ai/agents/analyst'
-import type { AnalystResponse } from '@/lib/ai/agents/analyst'
-import { mysticAgent } from '@/lib/ai/agents/mystic'
+import { PredictionService } from './prediction-service'
+import { gatekeeperAgent } from '@/lib/server/ai/agents/gatekeeper'
+import { analystAgent } from '@/lib/server/ai/agents/analyst'
+import type { AnalystResponse } from '@/lib/server/ai/agents/analyst'
+import { mysticAgent } from '@/lib/server/ai/agents/mystic'
 
 export interface StartWorkflowParams {
   jobId: string
@@ -26,16 +26,7 @@ async function updatePredictionStatus(
   }
 ): Promise<void> {
   try {
-    await db.prediction.updateMany({
-      where: { jobId: jobId },
-      data: {
-        status: updates.status,
-        analysisResult: updates.analysisResult,
-        selectedCards: updates.selectedCards,
-        finalReading: updates.finalReading,
-        completedAt: updates.completedAt
-      }
-    })
+    await PredictionService.updatePrediction(jobId, updates)
   } catch (error) {
     console.error('Failed to update prediction status:', error)
     throw error

@@ -2,7 +2,7 @@
 // Phase 1: RED - Failing tests for combined Gatekeeper+Analyst functionality
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { guardianAgent } from '@/lib/ai/agents/guardian'
+import { guardianAgent } from '@/lib/server/ai/agents/guardian'
 
 // Mock AI SDK
 vi.mock('ai', () => ({

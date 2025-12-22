@@ -1,6 +1,5 @@
 import React from 'react';
-import { GlassCard } from '../card';
-import { HelpCircle } from '../icons';
+import { GlassCard, HelpCircle } from '@/components/ui';
 import type { NextQuestionsProps } from '@/types/reading';
 
 export function NextQuestions({ questions, className = '' }: NextQuestionsProps) {

@@ -3,26 +3,26 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { startTarotWorkflow3Agent } from '@/app/workflows/tarot-3-agent'
-import { db } from '@/lib/db'
-import type { GuardianResponse } from '@/lib/ai/agents/guardian'
-import type { DealerResponse } from '@/lib/ai/agents/dealer'
-import type { MysticResponse } from '@/lib/ai/agents/mystic'
+import { db } from '@/lib/server/db'
+import type { GuardianResponse } from '@/lib/server/ai/agents/guardian'
+import type { DealerResponse } from '@/lib/server/ai/agents/dealer'
+import type { MysticResponse } from '@/lib/server/ai/agents/mystic'
 
 // Mock AI agents
-vi.mock('@/lib/ai/agents/guardian', () => ({
+vi.mock('@/lib/server/ai/agents/guardian', () => ({
   guardianAgent: vi.fn()
 }))
 
-vi.mock('@/lib/ai/agents/dealer', () => ({
+vi.mock('@/lib/server/ai/agents/dealer', () => ({
   dealerAgent: vi.fn()
 }))
 
-vi.mock('@/lib/ai/agents/mystic', () => ({
+vi.mock('@/lib/server/ai/agents/mystic', () => ({
   mysticAgent: vi.fn()
 }))
 
 // Mock database
-vi.mock('@/lib/db', () => ({
+vi.mock('@/lib/server/db', () => ({
   db: {
     prediction: {
       updateMany: vi.fn()
@@ -30,10 +30,10 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
-const { guardianAgent } = vi.mocked(await import('@/lib/ai/agents/guardian'))
-const { dealerAgent } = vi.mocked(await import('@/lib/ai/agents/dealer'))
-const { mysticAgent } = vi.mocked(await import('@/lib/ai/agents/mystic'))
-const { db } = vi.mocked(await import('@/lib/db'))
+const { guardianAgent } = vi.mocked(await import('@/lib/server/ai/agents/guardian'))
+const { dealerAgent } = vi.mocked(await import('@/lib/server/ai/agents/dealer'))
+const { mysticAgent } = vi.mocked(await import('@/lib/server/ai/agents/mystic'))
+const { db } = vi.mocked(await import('@/lib/server/db'))
 
 describe('3-Agent Tarot Workflow Integration', () => {
   beforeEach(() => {

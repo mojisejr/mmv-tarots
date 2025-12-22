@@ -12,7 +12,7 @@ import {
   sanitizeJson,
   SanitizationOptions,
   ValidationResult
-} from '../../lib/security/sanitization'
+} from '@/lib/server/security/sanitization'
 
 describe('Input Sanitization System', () => {
   beforeEach(() => {

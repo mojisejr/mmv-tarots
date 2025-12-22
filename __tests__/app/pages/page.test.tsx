@@ -53,7 +53,7 @@ vi.mock('../lib/api', () => ({
   checkJobStatus: vi.fn(),
 }));
 
-import { checkJobStatus } from '../lib/api';
+import { checkJobStatus } from '@/lib/client/api';
 
 const mockCheckJobStatus = checkJobStatus as vi.MockedFunction<typeof checkJobStatus>;
 

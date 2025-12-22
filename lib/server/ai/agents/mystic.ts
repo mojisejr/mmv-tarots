@@ -6,10 +6,10 @@ import { google } from '@ai-sdk/google'
 import {
   MYSTIC_SYSTEM_PROMPT,
   MYSTIC_USER_PROMPT_TEMPLATE
-} from '../prompts/mystic'
-import type { AnalystResponse } from '@/lib/ai/agents/analyst'
-import { db } from '@/lib/db'
-import { parseAIResponse } from '../utils/json-parser'
+} from '@/lib/server/ai/prompts/mystic'
+import type { AnalystResponse } from '@/lib/server/ai/agents/analyst'
+import { db } from '@/lib/server/db'
+import { parseAIResponse } from '@/lib/server/ai/utils/json-parser'
 
 export interface CardReading {
   position: number

@@ -43,3 +43,6 @@ next-env.d.ts
 
 # temp files
 .tmp/
+
+# Oracle Framework
+ψ/

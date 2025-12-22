@@ -3,12 +3,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GET } from '@/app/api/predict/[jobId]/route'
-import { createTestRequest } from '../lib/utils'
-import { db } from '@/lib/db'
+import { createTestRequest } from '@/lib/shared/utils'
+import { db } from '@/lib/server/db'
 import type { GetPredictResponse } from '@/types/api'
 
 // Mock dependencies
-vi.mock('@/lib/db', () => ({
+vi.mock('@/lib/server/db', () => ({
   db: {
     prediction: {
       findFirst: vi.fn()

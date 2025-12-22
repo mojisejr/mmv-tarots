@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapReadingData } from '@/lib/reading-utils';
+import { mapReadingData } from '@/lib/client/reading-utils';
 import type { ReadingResult } from '@/types/reading';
 
 describe('mapReadingData', () => {

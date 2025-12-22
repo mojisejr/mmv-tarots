@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GET } from '@/app/api/predict/[jobId]/route'
-import { db } from '@/lib/db'
-import { adaptReadingData } from '@/lib/adapters/reading-adapter'
+import { db } from '@/lib/server/db'
+import { adaptReadingData } from '@/lib/server/adapters/reading-adapter'
 
 // Mock dependencies
-vi.mock('@/lib/db', () => ({
+vi.mock('@/lib/server/db', () => ({
   db: {
     prediction: {
       findFirst: vi.fn()
@@ -12,11 +12,11 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
-vi.mock('@/lib/job-id', () => ({
+vi.mock('@/lib/server/job-id', () => ({
   isValidJobId: vi.fn(() => true)
 }))
 
-vi.mock('@/lib/adapters/reading-adapter', () => ({
+vi.mock('@/lib/server/adapters/reading-adapter', () => ({
   adaptReadingData: vi.fn()
 }))
 

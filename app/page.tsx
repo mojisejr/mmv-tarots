@@ -7,8 +7,8 @@ import {
   MimiAvatar,
   GlassCard,
 } from '@/components';
-import { useNavigation } from '@/lib/providers/navigation-provider';
-import { submitQuestion, saveSubmissionState } from '@/lib/api';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import { submitQuestion, saveSubmissionState } from '@/lib/client/api';
 
 function Home() {
   const [question, setQuestion] = useState('');

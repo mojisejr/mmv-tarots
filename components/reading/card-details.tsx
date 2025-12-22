@@ -1,6 +1,6 @@
 import React from 'react';
-import { GlassCard } from '../card';
-import { TarotCardImage } from '../features/tarot/tarot-card-image';
+import { GlassCard } from '@/components/ui';
+import { TarotCardImage } from '@/components/features/tarot';
 import type { CardDetailsProps } from '@/types/reading';
 
 export function CardDetails({ card, className = '' }: CardDetailsProps) {

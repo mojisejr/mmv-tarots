@@ -17,7 +17,7 @@ vi.mock('@/components/layout/navbar', () => ({
   ),
 }));
 
-vi.mock('@/lib/providers/navigation-provider', () => ({
+vi.mock('@/lib/client/providers/navigation-provider', () => ({
   NavigationProvider: ({ children }: any) => (
     <div data-testid="navigation-provider">{children}</div>
   ),

@@ -2,8 +2,8 @@
 // Phase 1: RED - Failing tests for enhanced Dealer with Guardian context
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { dealerAgent } from '@/lib/ai/agents/dealer'
-import type { GuardianResponse } from '@/lib/ai/agents/guardian'
+import { dealerAgent } from '@/lib/server/ai/agents/dealer'
+import type { GuardianResponse } from '@/lib/server/ai/agents/guardian'
 
 // Mock AI SDK
 vi.mock('ai', () => ({

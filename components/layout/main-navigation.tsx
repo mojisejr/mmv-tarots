@@ -1,7 +1,7 @@
 'use client';
 
 import { Navigation } from './navbar';
-import { useNavigation } from '@/lib/providers/navigation-provider';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
 
 /**
  * Main Navigation component that uses Navigation context

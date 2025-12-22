@@ -28,7 +28,7 @@ vi.mock('../../scripts/import-cards', () => ({
   importCardsFromCSV: vi.fn()
 }));
 
-import { db } from '../lib/db';
+import { db } from '@/lib/server/db';
 import { importCardsFromCSV } from '../../scripts/import-cards';
 
 describe('Database Operations', () => {

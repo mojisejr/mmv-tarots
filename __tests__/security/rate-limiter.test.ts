@@ -12,7 +12,7 @@ import {
   anonymousRateLimiter,
   getClientIP,
   rateLimitStore
-} from '../../lib/security/rate-limiter'
+} from '@/lib/server/security/rate-limiter'
 
 describe('Rate Limiting System', () => {
   beforeEach(() => {

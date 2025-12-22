@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession, signIn, signOut } from '@/lib/auth-client';
+import { useSession, signIn, signOut } from '@/lib/client/auth-client';
 
 interface NavigationContextType {
   isLoggedIn: boolean;

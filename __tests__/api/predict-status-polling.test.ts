@@ -15,7 +15,7 @@ vi.mock('../../lib/db', () => ({
   }
 }))
 
-import { db } from '../../lib/db'
+import { db } from '@/lib/server/db'
 
 describe('GET /api/predict/[jobId] - Async Status Polling', () => {
   beforeEach(() => {

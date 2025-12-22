@@ -26,7 +26,7 @@ const mockNavigationContext = {
   handleBackClick: vi.fn(),
 };
 
-vi.mock('@/lib/providers/navigation-provider', () => ({
+vi.mock('@/lib/client/providers/navigation-provider', () => ({
   NavigationProvider: ({ children }: any) => children,
   useNavigation: () => mockNavigationContext,
 }));

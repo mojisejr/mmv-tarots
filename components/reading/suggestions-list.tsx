@@ -1,6 +1,5 @@
 import React from 'react';
-import { GlassCard } from '../card';
-import { Lightbulb } from '../icons';
+import { GlassCard, Lightbulb } from '@/components/ui';
 import type { SuggestionsListProps } from '@/types/reading';
 
 export function SuggestionsList({ suggestions, className = '' }: SuggestionsListProps) {

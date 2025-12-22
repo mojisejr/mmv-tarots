@@ -6,8 +6,8 @@ import { google } from '@ai-sdk/google'
 import {
   ANALYST_SYSTEM_PROMPT,
   ANALYST_USER_PROMPT_TEMPLATE
-} from '../prompts/analyst'
-import { parseAIResponse } from '../utils/json-parser'
+} from '@/lib/server/ai/prompts/analyst'
+import { parseAIResponse } from '@/lib/server/ai/utils/json-parser'
 
 export interface AnalystResponse {
   mood: string

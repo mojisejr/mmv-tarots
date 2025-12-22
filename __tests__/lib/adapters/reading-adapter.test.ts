@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { ReadingResult } from '@/types/reading'
-import { adaptReadingData } from '@/lib/adapters/reading-adapter'
+import { adaptReadingData } from '@/lib/server/adapters/reading-adapter'
 
 describe('adaptReadingData', () => {
   // Test Case 1: AI Agent wrapper format → valid ReadingResult

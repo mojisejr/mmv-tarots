@@ -1,5 +1,5 @@
 import React from 'react';
-import { Info } from '../icons';
+import { Info } from '@/components/ui';
 import type { DisclaimerProps } from '@/types/reading';
 
 export function Disclaimer({ text, className = '' }: DisclaimerProps) {

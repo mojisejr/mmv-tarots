@@ -24,7 +24,7 @@ vi.mock('../lib/api', () => ({
   checkJobStatus: vi.fn(),
 }));
 
-import { fetchUserPredictions, checkJobStatus } from '../lib/api';
+import { fetchUserPredictions, checkJobStatus } from '@/lib/client/api';
 
 // Mock components
 vi.mock('../../components/card', () => ({

@@ -1,9 +1,9 @@
 import { render, screen, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { NavigationProvider, useNavigation } from '@/lib/providers/navigation-provider';
+import { NavigationProvider, useNavigation } from '@/lib/client/providers/navigation-provider';
 
 // Mock Better Auth client
-vi.mock('@/lib/auth-client', () => ({
+vi.mock('@/lib/client/auth-client', () => ({
   useSession: () => ({
     data: null, // Not logged in by default
     isLoading: false,

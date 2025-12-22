@@ -1,10 +1,10 @@
 // Simple Synchronous Tarot Workflow
 // For immediate curl testing without Vercel Workflow complexity
 
-import { db } from '@/lib/db'
-import { gatekeeperAgent } from '@/lib/ai/agents/gatekeeper'
-import { analystAgent } from '@/lib/ai/agents/analyst'
-import { mysticAgent } from '@/lib/ai/agents/mystic'
+import { db } from '@/lib/server/db'
+import { gatekeeperAgent } from '@/lib/server/ai/agents/gatekeeper'
+import { analystAgent } from '@/lib/server/ai/agents/analyst'
+import { mysticAgent } from '@/lib/server/ai/agents/mystic'
 
 export interface SimpleTarotReadingParams {
   question: string
