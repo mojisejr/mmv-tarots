@@ -34,6 +34,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   predictions   Prediction[]
+  transactions  CreditTransaction[]
   @@map("user")
 }
 
@@ -96,4 +97,31 @@ model Prediction {
   @@index([status])
   @@index([createdAt])
   @@map("predictions")
+}
+
+enum TransactionType {
+  TOPUP
+  PREDICTION
+  REFUND
+}
+
+enum TransactionStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+model CreditTransaction {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int
+  balanceAfter Int
+  type         TransactionType
+  status       TransactionStatus @default(PENDING)
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@map("credit_transactions")
 }

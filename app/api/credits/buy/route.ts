@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
     const { packageId } = validation.data;
     const packageInfo = PACKAGES[packageId];
 
-    await CreditService.addStars(session.user.id, packageInfo.stars);
+    await CreditService.addStars(session.user.id, packageInfo.stars, {
+      packageId,
+      packageName: packageInfo.name
+    });
 
     return NextResponse.json({
       success: true,

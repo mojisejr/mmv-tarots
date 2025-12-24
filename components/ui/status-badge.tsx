@@ -2,10 +2,11 @@ import React from 'react';
 import { Loader2, CheckCircle2, AlertCircle, Clock } from './icons';
 
 interface StatusBadgeProps {
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SUCCESS';
+  message?: string;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, message }: StatusBadgeProps) {
   const getStatusConfig = () => {
     switch (status) {
       case 'PENDING':
@@ -13,7 +14,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
           bgColor: 'bg-yellow-500/20',
           textColor: 'text-yellow-300',
           borderColor: 'border-yellow-500/30',
-          message: 'รอคิว...',
+          message: message || 'รอคิว...',
           icon: Clock,
           testId: 'status-icon-pending',
         };
@@ -22,16 +23,17 @@ export function StatusBadge({ status }: StatusBadgeProps) {
           bgColor: 'bg-blue-500/20',
           textColor: 'text-blue-300',
           borderColor: 'border-blue-500/30',
-          message: 'กำลังทำนาย...',
+          message: message || 'กำลังทำนาย...',
           icon: Loader2,
           testId: 'status-icon-processing',
         };
       case 'COMPLETED':
+      case 'SUCCESS':
         return {
           bgColor: 'bg-green-500/20',
           textColor: 'text-green-300',
           borderColor: 'border-green-500/30',
-          message: 'ทำนายเสร็จแล้ว',
+          message: message || (status === 'SUCCESS' ? 'สำเร็จ' : 'ทำนายเสร็จแล้ว'),
           icon: CheckCircle2,
           testId: 'status-icon-completed',
         };
@@ -40,7 +42,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
           bgColor: 'bg-red-500/20',
           textColor: 'text-red-300',
           borderColor: 'border-red-500/30',
-          message: 'ไม่สามารถทำนายได้',
+          message: message || 'ไม่สำเร็จ',
           icon: AlertCircle,
           testId: 'status-icon-failed',
         };

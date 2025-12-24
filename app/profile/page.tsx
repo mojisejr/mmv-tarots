@@ -6,7 +6,8 @@ import { useSession } from '@/lib/client/auth-client';
 import { GlassCard, GlassButton, HistoryCard } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions } from '@/lib/client/api';
-import { User, Gift, QrCode, LogOut, Sparkles } from 'lucide-react';
+import { TransactionHistoryList } from '@/components/features/transaction-history-list';
+import { User, Gift, QrCode, LogOut, Sparkles, History } from 'lucide-react';
 
 interface Prediction {
   id: string;
@@ -25,6 +26,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stars, setStars] = useState(0);
+  const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
 
   useEffect(() => {
     setCurrentPage('profile');
@@ -180,44 +182,76 @@ export default function ProfilePage() {
         </button>
       </GlassCard>
 
-      {/* Predictions History */}
-      <div className="flex-1 overflow-y-auto -mx-2 px-2">
-        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 font-sans px-2">
-          ประวัติการทำนาย
-        </h3>
+      {/* Tabs Section */}
+      <div className="bg-white/5 p-1 rounded-2xl flex gap-1 mb-6 border border-white/10">
+        <button
+          onClick={() => setActiveTab('predictions')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all ${
+            activeTab === 'predictions' 
+              ? 'bg-white/10 text-white shadow-lg border border-white/10' 
+              : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>ประวัติการทำนาย</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('transactions')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all ${
+            activeTab === 'transactions' 
+              ? 'bg-white/10 text-white shadow-lg border border-white/10' 
+              : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>ประวัติ Star</span>
+        </button>
+      </div>
 
-        {loading ? (
-          <div className="text-center text-white/60 py-8">
-            Loading your predictions...
-          </div>
-        ) : error ? (
-          <div className="text-center">
-            <div className="text-red-300 mb-4">{error}</div>
-            <GlassButton onClick={loadPredictions}>Retry</GlassButton>
-          </div>
-        ) : predictions.length === 0 ? (
-          <div className="text-center text-white/60 py-8">
-            <p>ยังไม่มีการทำนาย</p>
-            <p className="text-sm mt-2">เริ่มต้นด้วยการถามคำถามแรกของคุณ</p>
-          </div>
-        ) : (
-          <div className="space-y-3 pb-4">
-            {predictions.slice(0, 10).map((prediction) => (
-              <HistoryCard
-                key={prediction.id}
-                prediction={prediction}
-                onClick={handlePredictionClick}
-              />
-            ))}
-            {predictions.length > 10 && (
-              <button
-                onClick={() => router.push('/history')}
-                className="w-full text-center text-sm text-white/60 hover:text-white/80 transition-colors py-2"
-              >
-                ดูทั้งหมด ({predictions.length})
-              </button>
+      {/* Content Section */}
+      <div className="flex-1 overflow-y-auto -mx-2 px-2">
+        <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4 px-2">
+          {activeTab === 'predictions' ? 'รายการทำนายล่าสุด' : 'ประวัติการทำรายการ Star'}
+        </h3>
+        
+        {activeTab === 'predictions' ? (
+          <>
+            {loading ? (
+              <div className="text-center text-white/60 py-8">
+                Loading your predictions...
+              </div>
+            ) : error ? (
+              <div className="text-center">
+                <div className="text-red-300 mb-4">{error}</div>
+                <GlassButton onClick={loadPredictions}>Retry</GlassButton>
+              </div>
+            ) : predictions.length === 0 ? (
+              <div className="text-center text-white/60 py-8">
+                <p>ยังไม่มีการทำนาย</p>
+                <p className="text-sm mt-2">เริ่มต้นด้วยการถามคำถามแรกของคุณ</p>
+              </div>
+            ) : (
+              <div className="space-y-3 pb-4">
+                {predictions.slice(0, 10).map((prediction) => (
+                  <HistoryCard
+                    key={prediction.id}
+                    prediction={prediction}
+                    onClick={handlePredictionClick}
+                  />
+                ))}
+                {predictions.length > 10 && (
+                  <button
+                    onClick={() => router.push('/history')}
+                    className="w-full text-center text-sm text-white/60 hover:text-white/80 transition-colors py-2"
+                  >
+                    ดูทั้งหมด ({predictions.length})
+                  </button>
+                )}
+              </div>
             )}
-          </div>
+          </>
+        ) : (
+          <TransactionHistoryList />
         )}
       </div>
     </div>

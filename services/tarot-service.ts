@@ -101,23 +101,31 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
       })
     }
 
-    // Step 5: Mark as COMPLETED with final reading
-    await updatePredictionStatus(jobId, {
-      status: 'COMPLETED',
-      finalReading,
-      completedAt: new Date()
-    })
-
-    // Deduct credit if userId is present
+    // Step 5: Deduct credit FIRST (if userId is present)
     if (params.userId) {
       try {
-        await CreditService.deductStar(params.userId)
+        await CreditService.deductStar(params.userId, { predictionId: jobId })
         console.log('Credit deducted for user:', params.userId)
       } catch (creditError) {
         console.error('Failed to deduct credit:', creditError)
-        // Note: We don't fail the workflow here as the reading is already delivered
-        // In a real system, we might want to flag this for manual review
+        throw new Error('Insufficient credits or payment failed')
       }
+    }
+
+    try {
+      // Step 6: Mark as COMPLETED with final reading
+      await updatePredictionStatus(jobId, {
+        status: 'COMPLETED',
+        finalReading,
+        completedAt: new Date()
+      })
+    } catch (dbError) {
+      // If DB update fails, REFUND the user
+      if (params.userId) {
+        console.error('Refunding user due to DB error...')
+        await CreditService.refundStar(params.userId, 1, 'System Error: Failed to save prediction', { predictionId: jobId })
+      }
+      throw dbError
     }
 
     console.log('Workflow completed successfully for job:', jobId)
