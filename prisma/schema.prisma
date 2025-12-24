@@ -29,7 +29,7 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  points        Int       @default(0)
+  stars         Int       @default(0)
   referralCode  String?   @unique @default(cuid())
   sessions      Session[]
   accounts      Account[]

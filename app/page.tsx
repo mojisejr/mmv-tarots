@@ -7,6 +7,7 @@ import {
   MimiAvatar,
   GlassCard,
   GlassButton,
+  Sparkles,
 } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { submitQuestion, saveSubmissionState } from '@/lib/client/api';
@@ -15,6 +16,7 @@ function Home() {
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stars, setStars] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
   const { 
@@ -23,6 +25,16 @@ function Home() {
     isLoggedIn, 
     handleLoginClick 
   } = useNavigation();
+
+  // Fetch stars on mount if logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetch('/api/credits/balance')
+        .then(res => res.json())
+        .then(data => setStars(data.stars))
+        .catch(console.error);
+    }
+  }, [isLoggedIn]);
 
   // Auto focus on mount
   useEffect(() => {
@@ -109,14 +121,37 @@ function Home() {
           )}
 
           {isLoggedIn ? (
-            <QuestionInput
-              value={question}
-              onChange={setQuestion}
-              onSubmit={handleQuestionSubmit}
-              placeholder="What would you like to know about your future?"
-              textareaRef={textareaRef}
-              disabled={isSubmitting}
-            />
+            stars === 0 ? (
+              <div className="flex flex-col items-center space-y-4 py-2 animate-fade-in">
+                <p className="text-white/60 text-sm font-medium">คุณไม่มี Star เหลือสำหรับการทำนาย</p>
+                <GlassButton 
+                  onClick={() => router.push('/package')}
+                  className="w-full sm:w-auto px-10 py-4 text-lg font-semibold bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 shadow-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <span>เติม Star เพื่อรับคำทำนาย</span>
+                  </div>
+                </GlassButton>
+              </div>
+            ) : (
+              <div className="relative">
+                <QuestionInput
+                  value={question}
+                  onChange={setQuestion}
+                  onSubmit={handleQuestionSubmit}
+                  placeholder="What would you like to know about your future?"
+                  textareaRef={textareaRef}
+                  disabled={isSubmitting}
+                />
+                {stars !== null && (
+                  <div className="absolute bottom-4 right-16 flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/5 pointer-events-none">
+                    <Sparkles className="w-3 h-3 text-yellow-400" />
+                    <span className="text-xs font-medium text-white/80">{stars}</span>
+                  </div>
+                )}
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center space-y-4 py-2 animate-fade-in">
               <p className="text-white/60 text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>

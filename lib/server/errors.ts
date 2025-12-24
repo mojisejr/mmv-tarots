@@ -28,23 +28,48 @@ export const ERROR_CODES = {
   WORKFLOW_ERROR: 'WORKFLOW_ERROR',
   DATA_INTEGRITY_ERROR: 'DATA_INTEGRITY_ERROR',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
-  UNAUTHORIZED: 'UNAUTHORIZED'
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  PAYMENT_REQUIRED: 'PAYMENT_REQUIRED'
 } as const
 
 export const createErrorResponse = (
-  error: ApiErrorData,
+  error: unknown,
   status: number = 500,
   includeTimestamp: boolean = true
 ) => {
+  let errorData: ApiErrorData;
+
+  if (error instanceof ApiError) {
+    errorData = {
+      code: error.code,
+      message: error.message,
+      details: error.details
+    };
+    // Adjust status code based on error code if needed
+    if (error.code === ERROR_CODES.UNAUTHORIZED) status = 401;
+    if (error.code === ERROR_CODES.PAYMENT_REQUIRED) status = 402;
+    if (error.code === ERROR_CODES.INVALID_REQUEST) status = 400;
+  } else if (error instanceof Error) {
+    errorData = {
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: error.message
+    };
+  } else {
+    errorData = {
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: 'An unknown error occurred'
+    };
+  }
+
   const response: any = {
     error: {
-      code: error.code,
-      message: error.message
+      code: errorData.code,
+      message: errorData.message
     }
   }
 
-  if (error.details) {
-    response.error.details = error.details
+  if (errorData.details) {
+    response.error.details = errorData.details
   }
 
   if (includeTimestamp) {
