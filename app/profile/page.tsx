@@ -6,7 +6,7 @@ import { useSession } from '@/lib/client/auth-client';
 import { GlassCard, GlassButton, HistoryCard } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions } from '@/lib/client/api';
-import { User, Gift, QrCode, LogOut } from 'lucide-react';
+import { User, Gift, QrCode, LogOut, Sparkles } from 'lucide-react';
 
 interface Prediction {
   id: string;
@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stars, setStars] = useState(0);
 
   useEffect(() => {
     setCurrentPage('profile');
@@ -39,8 +40,26 @@ export default function ProfilePage() {
     // Load predictions when user is authenticated
     if (session?.user?.id) {
       loadPredictions();
+      // In a real app, we should fetch stars from API
+      // For now, we'll assume session update or separate fetch
+      // But since we don't have a dedicated user/me endpoint that returns stars yet,
+      // let's fetch it via a new helper or just rely on what we have.
+      // Actually, let's add a quick fetch for stars
+      fetchUserStars();
     }
   }, [session, isPending, router]);
+
+  const fetchUserStars = async () => {
+    try {
+      const res = await fetch('/api/credits/balance');
+      if (res.ok) {
+        const data = await res.json();
+        setStars(data.stars);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stars:', err);
+    }
+  };
 
   const loadPredictions = async () => {
     try {
@@ -123,14 +142,20 @@ export default function ProfilePage() {
 
         {/* Points and Referral Info */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
-              <Gift className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 relative group">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-xs text-white/60">Points</p>
-              <p className="text-lg font-bold text-white">0</p>
+              <p className="text-xs text-white/60">Stars</p>
+              <p className="text-lg font-bold text-white">{stars}</p>
             </div>
+            <button 
+              onClick={() => router.push('/package')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1 rounded-lg transition-colors"
+            >
+              เติม
+            </button>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">

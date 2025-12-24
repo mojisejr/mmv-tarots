@@ -2,6 +2,7 @@
 // Phase 4: REFACTOR - Improved implementation for better performance
 
 import { PredictionService } from './prediction-service'
+import { CreditService } from './credit-service'
 import { gatekeeperAgent } from '@/lib/server/ai/agents/gatekeeper'
 import { analystAgent } from '@/lib/server/ai/agents/analyst'
 import type { AnalystResponse } from '@/lib/server/ai/agents/analyst'
@@ -106,6 +107,18 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
       finalReading,
       completedAt: new Date()
     })
+
+    // Deduct credit if userId is present
+    if (params.userId) {
+      try {
+        await CreditService.deductStar(params.userId)
+        console.log('Credit deducted for user:', params.userId)
+      } catch (creditError) {
+        console.error('Failed to deduct credit:', creditError)
+        // Note: We don't fail the workflow here as the reading is already delivered
+        // In a real system, we might want to flag this for manual review
+      }
+    }
 
     console.log('Workflow completed successfully for job:', jobId)
 

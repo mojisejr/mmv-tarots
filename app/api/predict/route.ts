@@ -4,6 +4,7 @@
 import { NextRequest } from 'next/server'
 import { startTarotWorkflow } from '@/services/tarot-service'
 import { PredictionService } from '@/services/prediction-service'
+import { CreditService } from '@/services/credit-service'
 import { validatePostPredictRequest } from '@/lib/server/validations'
 import { auth } from '@/lib/server/auth'
 import {
@@ -32,6 +33,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Extract userId and userName from session
     const userId = session.user.id
     const userName = session.user.name || null
+
+    // Check credit balance
+    const hasCredit = await CreditService.hasEnoughStars(userId)
+    if (!hasCredit) {
+      throw new ApiError({
+        code: ERROR_CODES.PAYMENT_REQUIRED,
+        message: 'Insufficient stars. Please top up to continue.'
+      })
+    }
     
     // Parse request body
     let body: unknown
