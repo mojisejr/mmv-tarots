@@ -55,11 +55,11 @@ function ShellMesh() {
 }
 
 // Particles Component
-function ParticlesMesh() {
+function ParticlesMesh({ performanceMode }: { performanceMode?: boolean }) {
   const meshRef = useRef<THREE.Points>(null);
 
   // Generate particle positions
-  const particleCount = 200;
+  const particleCount = performanceMode ? 50 : 200;
   const positions = new Float32Array(particleCount * 3);
   for (let i = 0; i < particleCount * 3; i += 3) {
     positions[i] = (Math.random() - 0.5) * 8;
@@ -78,10 +78,10 @@ function ParticlesMesh() {
   return (
     <Points ref={meshRef} positions={positions} stride={3} frustumCulled={false}>
       <pointsMaterial
-        size={0.03}
+        size={performanceMode ? 0.05 : 0.03}
         color={0xffffff}
         transparent
-        opacity={0.7}
+        opacity={performanceMode ? 0.4 : 0.7}
         sizeAttenuation
       />
     </Points>
@@ -89,7 +89,7 @@ function ParticlesMesh() {
 }
 
 // Main MimiAvatar Component
-export const MimiAvatar = () => {
+export const MimiAvatar = ({ performanceMode = false }: { performanceMode?: boolean }) => {
   return (
     <div
       className="w-full h-full"
@@ -102,17 +102,17 @@ export const MimiAvatar = () => {
       <Canvas
         gl={{
           alpha: true,
-          antialias: true,
+          antialias: !performanceMode,
           premultipliedAlpha: false,
         }}
-        dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1}
+        dpr={performanceMode ? 1 : (typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1)}
         camera={{ position: [0, 0, 5], fov: 75, near: 0.1, far: 1000 }}
         style={{ width: '100%', height: '100%' }}
       >
         <ambientLight intensity={1} />
         <CoreMesh />
-        <ShellMesh />
-        <ParticlesMesh />
+        {!performanceMode && <ShellMesh />}
+        <ParticlesMesh performanceMode={performanceMode} />
       </Canvas>
     </div>
   );

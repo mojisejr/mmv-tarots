@@ -64,18 +64,27 @@ export function Navigation({
       aria-label="Main navigation"
     >
       {/* Left Navigation Button */}
-      <button
-        onClick={isHomePage ? onMenuClick : onBackClick}
-        aria-label={isHomePage ? 'Open menu' : 'Go back'}
-        data-testid={isHomePage ? 'menu-button' : 'back-button'}
-        className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
-      >
+      <div className="flex items-center">
         {isHomePage ? (
-          <Menu className="w-6 h-6 text-white" />
+          <button
+            onClick={onMenuClick}
+            aria-label="Open menu"
+            data-testid="menu-button"
+            className="hidden md:flex p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
+          >
+            <Menu className="w-6 h-6 text-white" />
+          </button>
         ) : (
-          <ChevronLeft className="w-6 h-6 text-white" />
+          <button
+            onClick={onBackClick}
+            aria-label="Go back"
+            data-testid="back-button"
+            className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
+          >
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Center Logo */}
       <div
@@ -92,14 +101,14 @@ export function Navigation({
         MimiVibe
       </div>
 
-      {/* Right Authentication Button */}
+      {/* Right Authentication Button - Hidden on mobile as it's in Bottom Nav */}
       <div className="flex items-center gap-2">
         {isLoggedIn ? (
           <button
             onClick={onProfileClick}
             aria-label="User profile"
             data-testid="profile-button"
-            className="relative flex items-center gap-2 p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
+            className="hidden md:flex relative items-center gap-2 p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
           >
             {user?.image ? (
               <img
@@ -122,7 +131,7 @@ export function Navigation({
             onClick={onLoginClick}
             aria-label="Login with Line"
             data-testid="login-button"
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-success hover:bg-success-600 text-white font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-success/50 shadow-lg"
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-success hover:bg-success-600 text-white font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-success/50 shadow-lg"
           >
             <LogIn className="w-5 h-5" />
             <span className="text-sm">เข้าสู่ระบบ</span>

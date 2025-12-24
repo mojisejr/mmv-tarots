@@ -68,11 +68,11 @@ export default function PackagePage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+      <div className="grid grid-cols-1 gap-6 max-w-md mx-auto">
         {PACKAGES.map((pkg) => (
           <GlassCard
             key={pkg.id}
-            className="relative overflow-hidden group hover:scale-105 transition-transform duration-300"
+            className="relative overflow-hidden group transition-all duration-300 border-[0.5px]"
           >
             <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${pkg.color}`} />
             

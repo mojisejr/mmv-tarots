@@ -55,22 +55,22 @@ function ShellMesh() {
 }
 
 // Main MimiLoadingAvatar Component
-export const MimiLoadingAvatar = () => {
+export const MimiLoadingAvatar = ({ performanceMode = false }: { performanceMode?: boolean }) => {
   return (
     <div className="w-full h-full animate-fade-in">
       <Canvas
         gl={{
           alpha: true,
-          antialias: true,
+          antialias: !performanceMode,
           premultipliedAlpha: false,
         }}
-        dpr={typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1}
+        dpr={performanceMode ? 1 : (typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1)}
         camera={{ position: [0, 0, 4.5], fov: 75, near: 0.1, far: 1000 }}
         style={{ width: '100%', height: '100%' }}
       >
         <ambientLight intensity={1} />
         <CoreMesh />
-        <ShellMesh />
+        {!performanceMode && <ShellMesh />}
       </Canvas>
     </div>
   );

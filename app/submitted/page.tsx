@@ -12,6 +12,17 @@ function SubmittedPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentPage } = useNavigation();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile for performance optimization
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Get jobId from URL search params or fallback to sessionStorage
   const [jobId, setJobId] = useState<string | null>(null);
@@ -147,7 +158,7 @@ function SubmittedPageContent() {
         <div className="pt-12 pb-8 px-6">
           <div className="relative w-48 h-48 mx-auto mb-4 flex items-center justify-center">
             <div className="absolute inset-0 z-0">
-              <MimiLoadingAvatar />
+              <MimiLoadingAvatar performanceMode={isMobile} />
             </div>
             <div className="absolute inset-0 bg-[var(--primary)] opacity-30 blur-[60px] rounded-full animate-pulse"></div>
           </div>

@@ -17,8 +17,20 @@ function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stars, setStars] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+
+  // Detect mobile for performance optimization
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const { 
     setCurrentPage, 
     setCurrentJobId, 
@@ -91,7 +103,7 @@ function Home() {
           {/* Hero Section with Mimi Avatar */}
           <section className="text-center space-y-6 py-12">
             <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mx-auto flex items-center justify-center">
-              <MimiAvatar />
+              <MimiAvatar performanceMode={isMobile} />
             </div>
             <h1 className="text-5xl md:text-7xl font-serif text-white leading-tight tracking-tight drop-shadow-lg animate-fade-in-up">
               What guidance
@@ -105,11 +117,11 @@ function Home() {
       {/* Fixed Bottom Input */}
       <div
         data-testid="bottom-input-container"
-        className="fixed bottom-0 left-0 right-0 z-50 bg-none backdrop-blur-xl  shadow-2xl transition-all duration-300"
+        className="fixed bottom-24 md:bottom-8 left-0 right-0 z-40 bg-none transition-all duration-500 pb-[env(safe-area-inset-bottom)]"
       >
         <div
           data-testid="input-wrapper"
-          className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 max-w-4xl mx-auto"
+          className="w-full px-6 py-3 max-w-2xl mx-auto"
         >
           {/* Error display */}
           {error && (
@@ -143,6 +155,7 @@ function Home() {
                   placeholder="What would you like to know about your future?"
                   textareaRef={textareaRef}
                   disabled={isSubmitting}
+                  isSubmitting={isSubmitting}
                 />
                 {stars !== null && (
                   <div className="absolute bottom-4 right-16 flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/5 pointer-events-none">

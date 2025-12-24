@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { LiquidBackground, MainNavigation } from "@/components";
+import { LiquidBackground, MainNavigation, BottomNav } from "@/components";
 import { NavigationProvider } from "@/lib/client/providers/navigation-provider";
 
 // Use fallback system fonts for now
@@ -31,13 +31,16 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&family=Merriweather:wght@300;400;700&family=Ubuntu+Mono:wght@400&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${fontClasses} antialiased bg-background text-foreground safe-top`}
+        className={`${fontClasses} antialiased bg-background text-foreground safe-top min-h-screen flex flex-col`}
         style={{ fontFamily: 'Montserrat, system-ui, sans-serif' }}
       >
         <LiquidBackground />
         <NavigationProvider>
           <MainNavigation />
-          <main className="flex-1 pt-16 relative z-10">{children}</main>
+          <main className="flex-1 pt-16 md:pt-20 relative z-10 pb-[env(safe-area-inset-bottom)]">
+            {children}
+          </main>
+          <BottomNav />
         </NavigationProvider>
       </body>
     </html>

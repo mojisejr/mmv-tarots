@@ -113,146 +113,98 @@ export default function ProfilePage() {
   const user = session.user;
 
   return (
-    <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
-      <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">
-        โปรไฟล์
-      </h2>
-
-      {/* User Info Card */}
-      <GlassCard className="mb-6">
-        <div className="flex items-center gap-4 mb-6">
+    <div className="max-w-2xl mx-auto pt-6 px-4 pb-32">
+      {/* Profile Header */}
+      <div className="flex flex-col items-center mb-8 space-y-4">
+        <div className="relative">
           {user.image ? (
             <img
               src={user.image}
               alt={user.name || 'User'}
-              className="w-20 h-20 rounded-full border-2 border-white/20"
+              className="w-24 h-24 rounded-full border-2 border-primary/50 shadow-glow-primary"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-white/20">
-              <User className="w-10 h-10 text-white" />
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-white/20">
+              <User className="w-12 h-12 text-white" />
             </div>
           )}
-          <div className="flex-1">
-            <h3 className="text-xl font-semibold text-white mb-1">
-              {user.name || 'ผู้ใช้งาน'}
-            </h3>
-            {user.email && (
-              <p className="text-sm text-white/60">{user.email}</p>
-            )}
-          </div>
         </div>
-
-        {/* Points and Referral Info */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 relative group">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-white/60">Stars</p>
-              <p className="text-lg font-bold text-white">{stars}</p>
-            </div>
-            <button 
-              onClick={() => router.push('/package')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white text-xs px-2 py-1 rounded-lg transition-colors"
-            >
-              เติม
-            </button>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-              <QrCode className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-white/60">Referral</p>
-              <p className="text-xs font-mono text-white truncate">
-                {user.id?.slice(-8) || 'N/A'}
-              </p>
-            </div>
-          </div>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white">{user.name || 'Cosmic Traveler'}</h1>
+          <p className="text-white/40 text-sm">{user.email}</p>
         </div>
+      </div>
 
-        {/* Sign Out Button */}
-        <button
-          onClick={handleSignOut}
-          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 hover:text-red-200 transition-colors border border-red-500/20"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>ออกจากระบบ</span>
-        </button>
+      {/* Stars Wallet Card */}
+      <GlassCard className="mb-8 !bg-gradient-to-br from-white/10 to-white/5 border-primary/20">
+        <div className="flex justify-between items-center">
+          <div className="space-y-1">
+            <p className="text-white/60 text-xs uppercase tracking-widest">Your Balance</p>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-400" />
+              <span className="text-3xl font-bold text-white">{stars}</span>
+              <span className="text-white/60 text-sm">Stars</span>
+            </div>
+          </div>
+          <GlassButton 
+            onClick={() => router.push('/package')}
+            className="px-6 py-2 text-sm bg-primary/20 border-primary/30"
+          >
+            + Top Up
+          </GlassButton>
+        </div>
       </GlassCard>
 
-      {/* Tabs Section */}
-      <div className="bg-white/5 p-1 rounded-2xl flex gap-1 mb-6 border border-white/10">
+      {/* Tabs Control */}
+      <div className="flex p-1 bg-black/20 backdrop-blur-md rounded-2xl mb-6 border border-white/5">
         <button
           onClick={() => setActiveTab('predictions')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all ${
-            activeTab === 'predictions' 
-              ? 'bg-white/10 text-white shadow-lg border border-white/10' 
-              : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+            activeTab === 'predictions' ? 'bg-white/10 text-white shadow-lg' : 'text-white/40'
           }`}
         >
           <History className="w-4 h-4" />
-          <span>ประวัติการทำนาย</span>
+          <span className="text-sm font-medium">Predictions</span>
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all ${
-            activeTab === 'transactions' 
-              ? 'bg-white/10 text-white shadow-lg border border-white/10' 
-              : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+            activeTab === 'transactions' ? 'bg-white/10 text-white shadow-lg' : 'text-white/40'
           }`}
         >
-          <Sparkles className="w-4 h-4" />
-          <span>ประวัติ Star</span>
+          <QrCode className="w-4 h-4" />
+          <span className="text-sm font-medium">Transactions</span>
         </button>
       </div>
 
-      {/* Content Section */}
-      <div className="flex-1 overflow-y-auto -mx-2 px-2">
-        <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4 px-2">
-          {activeTab === 'predictions' ? 'รายการทำนายล่าสุด' : 'ประวัติการทำรายการ Star'}
-        </h3>
-        
-        {activeTab === 'predictions' ? (
-          <>
-            {loading ? (
-              <div className="text-center text-white/60 py-8">
-                Loading your predictions...
-              </div>
-            ) : error ? (
-              <div className="text-center">
-                <div className="text-red-300 mb-4">{error}</div>
-                <GlassButton onClick={loadPredictions}>Retry</GlassButton>
-              </div>
-            ) : predictions.length === 0 ? (
-              <div className="text-center text-white/60 py-8">
-                <p>ยังไม่มีการทำนาย</p>
-                <p className="text-sm mt-2">เริ่มต้นด้วยการถามคำถามแรกของคุณ</p>
-              </div>
-            ) : (
-              <div className="space-y-3 pb-4">
-                {predictions.slice(0, 10).map((prediction) => (
-                  <HistoryCard
-                    key={prediction.id}
-                    prediction={prediction}
-                    onClick={handlePredictionClick}
-                  />
-                ))}
-                {predictions.length > 10 && (
-                  <button
-                    onClick={() => router.push('/history')}
-                    className="w-full text-center text-sm text-white/60 hover:text-white/80 transition-colors py-2"
-                  >
-                    ดูทั้งหมด ({predictions.length})
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <TransactionHistoryList />
-        )}
+      {activeTab === 'predictions' ? (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-center py-10 text-white/40">Loading predictions...</div>
+          ) : predictions.length > 0 ? (
+            predictions.map((prediction) => (
+              <HistoryCard
+                key={prediction.id}
+                prediction={prediction}
+                onClick={() => handlePredictionClick(prediction.id)}
+              />
+            ))
+          ) : (
+            <div className="text-center py-10 text-white/40">No predictions yet</div>
+          )}
+        </div>
+      ) : (
+        <TransactionHistoryList />
+      )}
+
+      <div className="mt-12 flex justify-center">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 text-red-400/60 hover:text-red-400 transition-colors text-sm font-medium uppercase tracking-widest"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
       </div>
     </div>
   );

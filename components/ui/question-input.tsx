@@ -12,6 +12,7 @@ export interface QuestionInputProps {
   maxRows?: number;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
+  isSubmitting?: boolean;
 }
 
 const MIN_TEXTAREA_HEIGHT = 44; // pixels
@@ -35,6 +36,7 @@ export function QuestionInput({
   maxRows = 4,
   textareaRef: externalTextareaRef,
   disabled = false,
+  isSubmitting = false,
 }: QuestionInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -104,52 +106,71 @@ export function QuestionInput({
   const showHint = !isFocused && value.length === 0;
 
   return (
-    <div className="w-full" data-testid="question-input-container">
-      <div
-        className={`relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.5rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] p-2 pl-6 transition-all duration-300 hover:bg-white/15 hover:border-white/30 ${
-          isFocused ? 'bg-white/20 border-white/40 shadow-xl' : ''
+    <div className="w-full relative" data-testid="question-input-container">
+      {/* Focus Mode Backdrop */}
+      <div 
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-500 pointer-events-none z-[-1] ${
+          isFocused ? 'opacity-100' : 'opacity-0'
         }`}
-      >
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          rows={1}
-          autoFocus
-          disabled={disabled}
-          data-testid="question-textarea"
-          className="w-full bg-transparent border-none text-white placeholder-white/40 focus:ring-0 focus:outline-none resize-none py-4 pr-16 font-sans text-xl leading-relaxed tracking-wide"
-          style={{
-            minHeight: `${MIN_TEXTAREA_HEIGHT}px`,
-            maxHeight: `${MIN_TEXTAREA_HEIGHT + (24 * (maxRows - 1))}px`,
-          }}
-          aria-label="Question input"
-          aria-describedby={showHint ? 'question-hint' : undefined}
-        />
+      />
 
-        <div className="absolute right-2 bottom-2">
-          <button
-            onClick={handleSubmit}
-            disabled={!isValid || disabled}
-            aria-label={disabled ? 'Submitting question' : (isValid ? 'Submit question' : 'Question too short (minimum 5 characters)')}
-            className={`p-3 rounded-full transition-all duration-300 flex items-center justify-center shadow-lg focus:outline-none focus:ring-2 focus:ring-white/20 ${
-              disabled || !isValid
-                ? 'bg-white/10 text-white/30 cursor-not-allowed scale-95'
-                : 'bg-[var(--primary)] text-white scale-100 hover:scale-110 hover:shadow-[0_0_20px_var(--primary)]'
-            }`}
-          >
-            <ArrowUp className="w-6 h-6" strokeWidth={3} />
-          </button>
+      {/* Floating Status Badge */}
+      {isValid && !isFocused && (
+        <div className="absolute -top-8 right-4 animate-fade-in">
+          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-1.5 shadow-lg">
+            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+            <span className="text-[10px] font-bold text-white/80 uppercase tracking-tighter">Ready to Ask</span>
+          </div>
         </div>
+      )}
+
+      <div className="flex items-end gap-2">
+        <div
+          className={`flex-1 relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] transition-all duration-300 hover:bg-white/15 hover:border-white/30 ${
+            isFocused ? 'bg-white/20 border-white/40 shadow-xl ring-1 ring-white/20' : ''
+          }`}
+        >
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            rows={1}
+            autoFocus
+            disabled={disabled}
+            inputMode="text"
+            enterKeyHint="send"
+            data-testid="question-textarea"
+            className="w-full bg-transparent border-none text-white placeholder-white/30 focus:ring-0 focus:outline-none resize-none py-4 px-6 font-sans text-lg leading-relaxed tracking-wide"
+            style={{
+              minHeight: `${MIN_TEXTAREA_HEIGHT}px`,
+              maxHeight: `${MIN_TEXTAREA_HEIGHT + (24 * (maxRows - 1))}px`,
+            }}
+            aria-label="Question input"
+            aria-describedby={showHint ? 'question-hint' : undefined}
+          />
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!isValid || disabled}
+          aria-label={disabled ? 'Submitting question' : (isValid ? 'Submit question' : 'Question too short')}
+          className={`p-4 rounded-full transition-all duration-500 flex items-center justify-center shadow-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[56px] min-w-[56px] ${
+            disabled || !isValid
+              ? 'bg-white/5 text-white/20 cursor-not-allowed scale-90 grayscale'
+              : 'bg-gradient-to-br from-primary to-accent text-white scale-100 hover:scale-105 active:scale-95 shadow-glow-primary'
+          }`}
+        >
+          <ArrowUp className={`w-6 h-6 transition-transform duration-500 ${isSubmitting ? 'animate-bounce' : ''}`} />
+        </button>
       </div>
 
       <p
         id="question-hint"
-        className={`text-center text-[11px] text-white/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300 ${
+        className={`text-center text-[11px] text-white/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300 hidden md:block ${
           showHint ? 'opacity-100' : 'opacity-0'
         }`}
         aria-hidden={!showHint}
