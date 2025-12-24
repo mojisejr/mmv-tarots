@@ -39,21 +39,25 @@ export function mapReadingData(reading: ReadingResult | null | undefined): Mappe
       card &&
       typeof card === 'object' &&
       'position' in card &&
-      'name_th' in card &&
+      ('name_th' in card || 'nameTh' in card || 'displayName' in card || 'name' in card) &&
       typeof card.position === 'number'  // Ensure position is a number
-    );
+    ).map((card: any) => ({
+      ...card,
+      name_th: card.name_th || card.nameTh || card.displayName || card.name || 'ไม่ทราบชื่อไพ่',
+    }));
 
     // Type checking for all fields with fallbacks
-    const header = typeof reading.header === 'string' ? reading.header : '';
-    const readingText = typeof reading.reading === 'string' ? reading.reading : '';
-    const suggestions = Array.isArray(reading.suggestions)
-      ? reading.suggestions.filter(s => typeof s === 'string')
-      : [];
-    const nextQuestions = Array.isArray(reading.next_questions)
-      ? reading.next_questions.filter(q => typeof q === 'string')
-      : [];
-    const finalSummary = typeof reading.final_summary === 'string' ? reading.final_summary : '';
-    const disclaimer = typeof reading.disclaimer === 'string' ? reading.disclaimer : '';
+    const r = reading as any;
+    const header = typeof r.header === 'string' ? r.header : '';
+    const readingText = typeof r.reading === 'string' ? r.reading : (typeof r.content === 'string' ? r.content : '');
+    const suggestions = Array.isArray(r.suggestions)
+      ? r.suggestions.filter((s: any) => typeof s === 'string')
+      : (Array.isArray(r.advice) ? r.advice.filter((s: any) => typeof s === 'string') : []);
+    const nextQuestions = Array.isArray(r.next_questions)
+      ? r.next_questions.filter((q: any) => typeof q === 'string')
+      : (Array.isArray(r.follow_up) ? r.follow_up.filter((q: any) => typeof q === 'string') : []);
+    const finalSummary = typeof r.final_summary === 'string' ? r.final_summary : (typeof r.summary === 'string' ? r.summary : '');
+    const disclaimer = typeof r.disclaimer === 'string' ? r.disclaimer : '';
 
     // If no valid data at all, return null
     if (!header && !readingText && validCards.length === 0 &&

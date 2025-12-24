@@ -6,15 +6,27 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { MimiLoadingAvatar } from '../../components/features/avatar/mimi-loading-avatar';
 import { WAITING_STEPS, FUN_FACTS } from '../../constants/waiting-steps';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
-import { checkJobStatus } from '@/lib/client/api';
+import { checkJobStatus, getSubmissionState } from '@/lib/client/api';
 
 function SubmittedPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentPage } = useNavigation();
 
-  // Get jobId from URL search params
-  const jobId = searchParams?.get('jobId');
+  // Get jobId from URL search params or fallback to sessionStorage
+  const [jobId, setJobId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlJobId = searchParams?.get('jobId');
+    if (urlJobId) {
+      setJobId(urlJobId);
+    } else {
+      const { jobId: savedJobId } = getSubmissionState();
+      if (savedJobId) {
+        setJobId(savedJobId);
+      }
+    }
+  }, [searchParams]);
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -41,13 +53,17 @@ function SubmittedPageContent() {
     // Set current page in navigation context
     setCurrentPage('submitted');
 
-    // If no jobId, redirect to home
+    // If no jobId after checking both URL and sessionStorage, redirect to home
     if (!jobId) {
-      setError('No job ID provided');
-      setTimeout(() => {
-        router.push('/');
-      }, 3000);
-      return;
+      const timeout = setTimeout(() => {
+        if (!jobId) {
+          setError('No job ID provided');
+          setTimeout(() => {
+            router.push('/');
+          }, 3000);
+        }
+      }, 500); // Small delay to allow state to sync
+      return () => clearTimeout(timeout);
     }
 
     const stepInterval = setInterval(() => {
