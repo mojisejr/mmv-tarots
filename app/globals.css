@@ -7,7 +7,13 @@
   --color-muted-foreground: #a0a0a0;
   --color-primary: #F27669;
   --color-accent: #FCBD74;
-  --color-success: #06C755;
+  --color-success: #00B900;
+  --color-warning: #f59e0b;
+  --color-warning-foreground: #fef3c7;
+  --color-info: #3b82f6;
+  --color-info-foreground: #dbeafe;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fee2e2;
 }
 
 /* Base styles */

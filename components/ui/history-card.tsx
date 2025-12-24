@@ -40,7 +40,7 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
       role="button"
       tabIndex={0}
       aria-label={`Prediction: ${prediction.question}`}
-      className="group bg-[#ffffff0d] hover:bg-[#ffffff1a] border border-[#ffffff0d] hover:border-[#ffffff33] rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300 backdrop-blur-xl"
+      className="group bg-glass-white hover:bg-glass-whiteHover border border-glass-border hover:border-glass-borderHover rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300 backdrop-blur-xl"
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -50,11 +50,11 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
       }}
     >
       <div className="flex-1 min-w-0 pr-4">
-        <div className="font-medium truncate text-base mb-1 font-sans text-[#ffffff] group-hover:text-[var(--color-primary)] transition-colors">
+        <div className="font-medium truncate text-base mb-1 font-sans text-foreground group-hover:text-primary transition-colors">
           {prediction.question}
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-xs font-mono flex items-center gap-2 text-[#ffffff99]">
+          <div className="text-xs font-mono flex items-center gap-2 text-muted-foreground">
             <span>#{prediction.id}</span>
             <span className="w-1 h-1 rounded-full bg-white/40"></span>
             <span>{formatDate(prediction.createdAt)}</span>
@@ -65,7 +65,7 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
 
       <ChevronRight
         data-testid="chevron-icon"
-        className="w-5 h-5 text-[#ffffff66] group-hover:text-[#ffffffcc] group-hover:translate-x-1 transition-all flex-shrink-0"
+        className="w-5 h-5 text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all flex-shrink-0"
       />
     </div>
   );

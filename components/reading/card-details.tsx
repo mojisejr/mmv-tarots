@@ -34,22 +34,22 @@ export function CardDetails({ card, className = '' }: CardDetailsProps) {
             className="mx-auto relative"
           />
         </div>
-        <h3 className="text-xl font-serif text-white mb-1">{card.name_th}</h3>
-        <p className="text-sm text-[#ffffff99] italic">{card.name_en}</p>
-        <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-[#ffffff0d] border border-[#ffffff20]">
-          <span className="text-xs text-[#ffffffdd]">{card.arcana}</span>
+        <h3 className="text-xl font-serif text-foreground mb-1">{card.name_th}</h3>
+        <p className="text-sm text-muted-foreground italic">{card.name_en}</p>
+        <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-glass-white border border-white/20">
+          <span className="text-xs text-white/90">{card.arcana}</span>
         </div>
       </div>
 
       <div className="space-y-4">
         <div>
-          <p className="text-xs text-[#ffffff99] font-mono uppercase tracking-wider mb-2">Keywords</p>
+          <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider mb-2">Keywords</p>
           <div className="flex flex-wrap gap-2">
             {card.keywords.map((keyword, index) => (
               <span
                 key={index}
                 data-testid="keyword-chip"
-                className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-[#ffffff1a] to-[#ffffff0d] border border-[#ffffff20] text-[#ffffffdd] hover:from-[#ffffff2a] hover:to-[#ffffff1d] transition-all duration-300"
+                className="px-3 py-1 text-xs rounded-full bg-gradient-to-r from-white/10 to-white/5 border border-white/20 text-white/90 hover:from-white/20 hover:to-white/10 transition-all duration-300"
               >
                 {keyword}
               </span>
@@ -57,9 +57,9 @@ export function CardDetails({ card, className = '' }: CardDetailsProps) {
           </div>
         </div>
 
-        <div className="bg-[#ffffff0d] rounded-xl p-4 border border-[#ffffff10]">
-          <p className="text-sm text-[var(--color-primary)] font-serif mb-2">คำทำนาย</p>
-          <p className="text-sm text-[#ffffffcc] leading-relaxed">{card.interpretation}</p>
+        <div className="bg-glass-white rounded-xl p-4 border border-white/10">
+          <p className="text-sm text-primary font-serif mb-2">คำทำนาย</p>
+          <p className="text-sm text-white/80 leading-relaxed">{card.interpretation}</p>
         </div>
       </div>
     </GlassCard>

@@ -9,7 +9,7 @@ export function LiquidBackground() {
       {/* Base background */}
       <div
         data-testid="liquid-background-base"
-        className="absolute inset-0 bg-[#2a2a2e]"
+        className="absolute inset-0 bg-background"
       />
 
       {/* Floating gradient orbs */}

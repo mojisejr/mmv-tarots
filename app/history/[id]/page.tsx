@@ -172,7 +172,7 @@ export default function PredictionDetailPage() {
         {/* Back button */}
         <button
           onClick={handleBack}
-          className="mb-6 flex items-center text-[#ffffff99] hover:text-[#ffffff] transition-colors"
+          className="mb-6 flex items-center text-muted-foreground hover:text-foreground transition-colors"
           aria-label="กลับไปหน้าประวัติ"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />
@@ -181,13 +181,13 @@ export default function PredictionDetailPage() {
 
         {/* Error message */}
         <GlassCard className="p-8 text-center">
-          <h2 className="text-xl font-serif text-[#ffffff] mb-4">
+          <h2 className="text-xl font-serif text-foreground mb-4">
             ข้อมูลการทำนายไม่สมบูรณ์
           </h2>
-          <p className="text-[#ffffff99] mb-4">
+          <p className="text-muted-foreground mb-4">
             ไม่สามารถแสดงผลการทำนายได้เนื่องจากข้อมูลมีความเสียหายหรืออยู่ในรูปแบบที่ไม่รองรับ
           </p>
-          <p className="text-sm text-[#ffffff66]">
+          <p className="text-sm text-white/40">
             Job ID: #{jobId}
           </p>
         </GlassCard>
@@ -205,7 +205,7 @@ export default function PredictionDetailPage() {
         {/* Back button */}
         <button
           onClick={handleBack}
-          className="mb-6 flex items-center text-[#ffffff99] hover:text-[#ffffff] transition-colors"
+          className="mb-6 flex items-center text-muted-foreground hover:text-foreground transition-colors"
           aria-label="กลับไปหน้าประวัติ"
         >
           <ChevronLeft className="w-4 h-4 mr-2" />
@@ -217,14 +217,14 @@ export default function PredictionDetailPage() {
           {/* Question and metadata */}
           <GlassCard>
             <div className="p-6">
-              <h1 className="text-2xl font-serif text-[#ffffff] mb-4">
+              <h1 className="text-2xl font-serif text-foreground mb-4">
                 {prediction.question}
               </h1>
-              <div className="flex items-center gap-4 text-sm text-[#ffffff99]">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>Job ID: #{jobId}</span>
                 {prediction.completedAt && (
                   <>
-                    <span className="w-1 h-1 rounded-full bg-[#ffffff40]"></span>
+                    <span className="w-1 h-1 rounded-full bg-white/40"></span>
                     <span>{formatDate(prediction.completedAt)}</span>
                   </>
                 )}
@@ -241,8 +241,8 @@ export default function PredictionDetailPage() {
           {cards.length > 0 && (
             <GlassCard>
               <div className="p-6">
-                <h2 className="text-xl font-serif text-[#ffffff] mb-6">ไพ่ที่ได้รับ</h2>
-                <div className="text-center text-[#ffffff99]">
+                <h2 className="text-xl font-serif text-foreground mb-6">ไพ่ที่ได้รับ</h2>
+                <div className="text-center text-muted-foreground">
                   <p>การแสดงข้อมูลไพ่แบบเดิม</p>
                   <p className="text-sm mt-2">Card IDs: {cards.join(', ')}</p>
                 </div>
@@ -252,13 +252,13 @@ export default function PredictionDetailPage() {
 
           {/* Main Reading Text */}
           {mappedData?.reading && (
-            <GlassCard className="p-8 bg-gradient-to-br from-[#ffffff0f] to-[#ffffff05]">
+            <GlassCard className="p-8 bg-gradient-to-br from-white/5 to-transparent">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-1 h-8 bg-gradient-to-b from-[var(--color-primary)] to-transparent"></div>
-                <h2 className="text-2xl font-serif text-[#ffffff]">คำทำนาย</h2>
+                <div className="w-1 h-8 bg-gradient-to-b from-primary to-transparent"></div>
+                <h2 className="text-2xl font-serif text-foreground">คำทำนาย</h2>
               </div>
               <div className="prose prose-invert max-w-none">
-                <p className="text-[#ffffffcc] leading-relaxed whitespace-pre-wrap text-lg font-serif">
+                <p className="text-white/80 leading-relaxed whitespace-pre-wrap text-lg font-serif">
                   {mappedData.reading}
                 </p>
               </div>
@@ -274,7 +274,7 @@ export default function PredictionDetailPage() {
       {/* Back button */}
       <button
         onClick={handleBack}
-        className="mb-6 flex items-center text-[#ffffff99] hover:text-[#ffffff] transition-colors"
+        className="mb-6 flex items-center text-muted-foreground hover:text-foreground transition-colors"
         aria-label="กลับไปหน้าประวัติ"
       >
         <ChevronLeft className="w-4 h-4 mr-2" />
@@ -286,14 +286,14 @@ export default function PredictionDetailPage() {
         {/* Question and metadata */}
         <GlassCard>
           <div className="p-6">
-            <h1 className="text-2xl font-serif text-[#ffffff] mb-4">
+            <h1 className="text-2xl font-serif text-foreground mb-4">
               {prediction.question}
             </h1>
-            <div className="flex items-center gap-4 text-sm text-[#ffffff99]">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>Job ID: #{jobId}</span>
               {prediction.completedAt && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-[#ffffff40]"></span>
+                  <span className="w-1 h-1 rounded-full bg-white/40"></span>
                   <span>{formatDate(prediction.completedAt)}</span>
                 </>
               )}
@@ -311,7 +311,7 @@ export default function PredictionDetailPage() {
           <div className="space-y-6">
             <GlassCard>
               <div className="p-6">
-                <h2 className="text-xl font-serif text-[#ffffff] mb-6">ไพ่ที่ได้รับ</h2>
+                <h2 className="text-xl font-serif text-foreground mb-6">ไพ่ที่ได้รับ</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {mappedData.cards.map((card, index) => (
                     <CardDetails key={index} card={card} />
@@ -324,13 +324,13 @@ export default function PredictionDetailPage() {
 
         {/* Main Reading Text */}
         {mappedData?.reading && (
-          <GlassCard className="p-8 bg-gradient-to-br from-[#ffffff0f] to-[#ffffff05]">
+          <GlassCard className="p-8 bg-gradient-to-br from-white/5 to-transparent">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-1 h-8 bg-gradient-to-b from-[var(--color-primary)] to-transparent"></div>
-              <h2 className="text-2xl font-serif text-[#ffffff]">คำทำนาย</h2>
+              <div className="w-1 h-8 bg-gradient-to-b from-primary to-transparent"></div>
+              <h2 className="text-2xl font-serif text-foreground">คำทำนาย</h2>
             </div>
             <div className="prose prose-invert max-w-none">
-              <p className="text-[#ffffffcc] leading-relaxed whitespace-pre-wrap text-lg font-serif">
+              <p className="text-white/80 leading-relaxed whitespace-pre-wrap text-lg font-serif">
                 {mappedData.reading}
               </p>
             </div>

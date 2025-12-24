@@ -11,18 +11,18 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
     switch (status) {
       case 'PENDING':
         return {
-          bgColor: 'bg-yellow-500/20',
-          textColor: 'text-yellow-300',
-          borderColor: 'border-yellow-500/30',
+          bgColor: 'bg-warning/20',
+          textColor: 'text-warning',
+          borderColor: 'border-warning/30',
           message: message || 'รอคิว...',
           icon: Clock,
           testId: 'status-icon-pending',
         };
       case 'PROCESSING':
         return {
-          bgColor: 'bg-blue-500/20',
-          textColor: 'text-blue-300',
-          borderColor: 'border-blue-500/30',
+          bgColor: 'bg-info/20',
+          textColor: 'text-info',
+          borderColor: 'border-info/30',
           message: message || 'กำลังทำนาย...',
           icon: Loader2,
           testId: 'status-icon-processing',
@@ -30,27 +30,27 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
       case 'COMPLETED':
       case 'SUCCESS':
         return {
-          bgColor: 'bg-green-500/20',
-          textColor: 'text-green-300',
-          borderColor: 'border-green-500/30',
+          bgColor: 'bg-success/20',
+          textColor: 'text-success',
+          borderColor: 'border-success/30',
           message: message || (status === 'SUCCESS' ? 'สำเร็จ' : 'ทำนายเสร็จแล้ว'),
           icon: CheckCircle2,
           testId: 'status-icon-completed',
         };
       case 'FAILED':
         return {
-          bgColor: 'bg-red-500/20',
-          textColor: 'text-red-300',
-          borderColor: 'border-red-500/30',
+          bgColor: 'bg-destructive/20',
+          textColor: 'text-destructive',
+          borderColor: 'border-destructive/30',
           message: message || 'ไม่สำเร็จ',
           icon: AlertCircle,
           testId: 'status-icon-failed',
         };
       default:
         return {
-          bgColor: 'bg-gray-500/20',
-          textColor: 'text-gray-300',
-          borderColor: 'border-gray-500/30',
+          bgColor: 'bg-muted/20',
+          textColor: 'text-muted-foreground',
+          borderColor: 'border-muted/30',
           message: 'ไม่ทราบสถานะ',
           icon: AlertCircle,
           testId: 'status-icon-unknown',

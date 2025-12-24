@@ -49,12 +49,24 @@ export default {
           200: '#bbf7d0',
           300: '#86efac',
           400: '#4ade80',
-          500: '#06C755',
-          600: '#16a34a',
-          700: '#15803d',
-          800: '#166534',
-          900: '#14532d',
-          950: '#052e16',
+          500: '#00B900',
+          600: '#00A000',
+          700: '#008000',
+          800: '#006500',
+          900: '#005300',
+          950: '#002e00',
+        },
+        warning: {
+          DEFAULT: 'var(--color-warning)',
+          foreground: 'var(--color-warning-foreground)',
+        },
+        info: {
+          DEFAULT: 'var(--color-info)',
+          foreground: 'var(--color-info-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--color-destructive)',
+          foreground: 'var(--color-destructive-foreground)',
         },
         // Glass effect colors
         glass: {

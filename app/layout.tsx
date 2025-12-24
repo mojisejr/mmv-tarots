@@ -31,13 +31,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&family=Merriweather:wght@300;400;700&family=Ubuntu+Mono:wght@400&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${fontClasses} antialiased bg-[#2a2a2e] text-white safe-top`}
+        className={`${fontClasses} antialiased bg-background text-foreground safe-top`}
         style={{ fontFamily: 'Montserrat, system-ui, sans-serif' }}
       >
         <LiquidBackground />
         <NavigationProvider>
           <MainNavigation />
-          <main className="flex-1 pt-16">{children}</main>
+          <main className="flex-1 pt-16 relative z-10">{children}</main>
         </NavigationProvider>
       </body>
     </html>
