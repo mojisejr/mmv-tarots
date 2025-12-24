@@ -6,6 +6,7 @@ import {
   QuestionInput,
   MimiAvatar,
   GlassCard,
+  GlassButton,
 } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { submitQuestion, saveSubmissionState } from '@/lib/client/api';
@@ -16,7 +17,12 @@ function Home() {
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
-  const { setCurrentPage, setCurrentJobId } = useNavigation();
+  const { 
+    setCurrentPage, 
+    setCurrentJobId, 
+    isLoggedIn, 
+    handleLoginClick 
+  } = useNavigation();
 
   // Auto focus on mount
   useEffect(() => {
@@ -102,14 +108,26 @@ function Home() {
             </div>
           )}
 
-          <QuestionInput
-            value={question}
-            onChange={setQuestion}
-            onSubmit={handleQuestionSubmit}
-            placeholder="What would you like to know about your future?"
-            textareaRef={textareaRef}
-            disabled={isSubmitting}
-          />
+          {isLoggedIn ? (
+            <QuestionInput
+              value={question}
+              onChange={setQuestion}
+              onSubmit={handleQuestionSubmit}
+              placeholder="What would you like to know about your future?"
+              textareaRef={textareaRef}
+              disabled={isSubmitting}
+            />
+          ) : (
+            <div className="flex flex-col items-center space-y-4 py-2 animate-fade-in">
+              <p className="text-white/60 text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
+              <GlassButton 
+                onClick={handleLoginClick}
+                className="w-full sm:w-auto px-10 py-4 text-lg font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-white/10 hover:border-white/30 transition-all duration-300 shadow-lg"
+              >
+                เข้าสู่ระบบด้วย LINE
+              </GlassButton>
+            </div>
+          )}
         </div>
       </div>
     </>

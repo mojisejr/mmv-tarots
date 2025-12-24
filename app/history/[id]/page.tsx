@@ -24,47 +24,50 @@ export default function PredictionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPrediction = async () => {
-    if (!jobId) {
-      setError('No job ID provided');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const data = await checkJobStatus(jobId);
-      setPrediction(data);
-      setError(null);
-
-      // If still processing/ pending, set up polling
-      if (data.status === 'PENDING' || data.status === 'PROCESSING') {
-        const interval = setInterval(async () => {
-          try {
-            const updatedData = await checkJobStatus(jobId);
-            setPrediction(updatedData);
-
-            // Stop polling when complete
-            if (updatedData.status === 'COMPLETED' || updatedData.status === 'FAILED') {
-              clearInterval(interval);
-            }
-          } catch (err) {
-            console.error('Failed to refresh prediction:', err);
-          }
-        }, 5000);
-
-        // Cleanup interval on unmount
-        return () => clearInterval(interval);
-      }
-    } catch (err) {
-      console.error('Failed to fetch prediction:', err);
-      setError('ไม่พบข้อมูลการทำนาย');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const fetchPrediction = async () => {
+      if (!jobId) {
+        setError('No job ID provided');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await checkJobStatus(jobId);
+        setPrediction(data);
+        setError(null);
+
+        // If still processing/ pending, set up polling
+        if (data.status === 'PENDING' || data.status === 'PROCESSING') {
+          interval = setInterval(async () => {
+            try {
+              const updatedData = await checkJobStatus(jobId);
+              setPrediction(updatedData);
+
+              // Stop polling when complete
+              if (updatedData.status === 'COMPLETED' || updatedData.status === 'FAILED') {
+                clearInterval(interval);
+              }
+            } catch (err) {
+              console.error('Failed to refresh prediction:', err);
+            }
+          }, 5000);
+        }
+      } catch (err) {
+        console.error('Failed to fetch prediction:', err);
+        setError('ไม่พบข้อมูลการทำนาย');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchPrediction();
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [jobId]);
 
   const handleBack = () => {

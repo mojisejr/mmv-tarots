@@ -37,6 +37,16 @@ export type PostPredictRequest = z.infer<typeof PostPredictRequestSchema>;
 export type PostPredictResponse = z.infer<typeof PostPredictResponseSchema>;
 export type GetPredictResponse = z.infer<typeof GetPredictResponseSchema>;
 
+/**
+ * Custom error for authentication issues
+ */
+export class AuthError extends Error {
+  constructor(message: string = 'Authentication required') {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
 // API base URL
 const API_BASE = '/api';
 
@@ -60,6 +70,9 @@ export async function submitQuestion(question: string): Promise<PostPredictRespo
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthError();
+    }
     const errorText = await response.text();
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
@@ -79,6 +92,9 @@ export async function checkJobStatus(jobId: string): Promise<GetPredictResponse>
   const response = await fetch(`${API_BASE}/predict/${encodeURIComponent(jobId.trim())}`);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthError();
+    }
     const errorText = await response.text();
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
@@ -107,6 +123,9 @@ export async function fetchUserPredictions(): Promise<{
   const response = await fetch(`${API_BASE}/predictions/me`);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthError();
+    }
     // If endpoint doesn't exist yet, return empty array
     if (response.status === 404) {
       return {
