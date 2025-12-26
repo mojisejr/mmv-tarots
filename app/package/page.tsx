@@ -1,60 +1,72 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { GlassCard, GlassButton, Sparkles, Coins } from '@/components';
+import { GlassCard, GlassButton, Sparkles } from '@/components';
 import { useSession } from '@/lib/client/auth-client';
 
-const PACKAGES = [
-  {
-    id: '1',
-    stars: 100,
-    name: 'Starter Pack',
-    price: 'Free (Mockup)',
-    description: 'เหมาะสำหรับผู้เริ่มต้น',
-    color: 'from-blue-400 to-cyan-500',
-  },
-  {
-    id: '2',
-    stars: 200,
-    name: 'Pro Pack',
-    price: 'Free (Mockup)',
-    description: 'สำหรับผู้ที่ต้องการคำทำนายต่อเนื่อง',
-    color: 'from-purple-400 to-pink-500',
-  },
-];
+interface StarPackage {
+  id: string;
+  name: string;
+  description: string | null;
+  stars: number;
+  price: number;
+  active: boolean;
+}
 
 export default function PackagePage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [loading, setLoading] = useState<string | null>(null);
+  const [packages, setPackages] = useState<StarPackage[]>([]);
+
+  useEffect(() => {
+    fetch('/api/packages')
+      .then((res) => res.json())
+      .then((data) => setPackages(data))
+      .catch((error) => console.error('Failed to load packages:', error));
+  }, []);
 
   const handleBuy = async (packageId: string) => {
-    if (!session) {
-      alert('Please login first');
+    if (!session?.user) {
+      alert('กรุณา Login ก่อนซื้อแพ็กเกจ');
       return;
     }
 
     setLoading(packageId);
     try {
-      const res = await fetch('/api/credits/buy', {
+      const res = await fetch('/api/checkout/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId }),
+        body: JSON.stringify({ 
+          packageId, 
+          userId: session.user.id 
+        }),
       });
 
-      if (!res.ok) throw new Error('Failed to buy package');
+      if (!res.ok) throw new Error('Failed to create checkout session');
 
       const data = await res.json();
-      alert(data.message);
-      router.push('/profile');
-      router.refresh();
+      
+      // Redirect ไปยังหน้า Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
     } catch (error) {
       console.error(error);
-      alert('Failed to process transaction');
+      alert('เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
     } finally {
       setLoading(null);
     }
+  };
+
+  const getGradient = (index: number) => {
+    const gradients = [
+      'from-blue-400 to-cyan-500',
+      'from-purple-400 to-pink-500',
+      'from-amber-400 to-orange-500',
+    ];
+    return gradients[index % gradients.length];
   };
 
   return (
@@ -69,15 +81,15 @@ export default function PackagePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 max-w-md mx-auto">
-        {PACKAGES.map((pkg) => (
+        {packages.map((pkg, index) => (
           <GlassCard
             key={pkg.id}
             className="relative overflow-hidden group transition-all duration-300 border-[0.5px]"
           >
-            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${pkg.color}`} />
+            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${getGradient(index)}`} />
             
             <div className="relative z-10 flex flex-col items-center text-center p-6 space-y-4">
-              <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${pkg.color} flex items-center justify-center mb-2 shadow-lg`}>
+              <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getGradient(index)} flex items-center justify-center mb-2 shadow-lg`}>
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
 
@@ -89,20 +101,20 @@ export default function PackagePage() {
               </div>
 
               <p className="text-white/60 text-sm min-h-[40px]">
-                {pkg.description}
+                {pkg.description || 'แพ็กเกจพิเศษสำหรับคุณ'}
               </p>
 
               <div className="w-full pt-4">
                 <GlassButton
                   onClick={() => handleBuy(pkg.id)}
                   disabled={loading === pkg.id}
-                  className={`w-full py-3 font-semibold bg-gradient-to-r ${pkg.color} border-none hover:opacity-90`}
+                  className={`w-full py-3 font-semibold bg-gradient-to-r ${getGradient(index)} border-none hover:opacity-90`}
                 >
-                  {loading === pkg.id ? 'Processing...' : `รับ ${pkg.stars} Stars`}
+                  {loading === pkg.id ? 'กำลังเตรียมการชำระเงิน...' : `ซื้อ ${pkg.stars} Stars`}
                 </GlassButton>
               </div>
               
-              <p className="text-xs text-white/40 mt-2">{pkg.price}</p>
+              <p className="text-sm text-white/60 mt-2">฿{pkg.price.toFixed(2)}</p>
             </div>
           </GlassCard>
         ))}
@@ -110,3 +122,4 @@ export default function PackagePage() {
     </div>
   );
 }
+

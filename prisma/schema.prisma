@@ -22,19 +22,20 @@ model Card {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String              @id @default(cuid())
   name          String?
-  email         String?   @unique
-  emailVerified Boolean   @default(false)
+  email         String?             @unique
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  stars         Int       @default(0)
-  referralCode  String?   @unique @default(cuid())
-  sessions      Session[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  referralCode  String?             @unique @default(cuid())
+  stars         Int                 @default(0)
+  emailVerified Boolean             @default(false)
   accounts      Account[]
-  predictions   Prediction[]
   transactions  CreditTransaction[]
+  predictions   Prediction[]
+  sessions      Session[]
+
   @@map("user")
 }
 
@@ -43,11 +44,12 @@ model Session {
   userId    String
   expiresAt DateTime
   token     String   @unique
-  ipAddress String?
-  userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("session")
 }
 
@@ -62,10 +64,11 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   idToken               String?
-  password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  password              String?
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("account")
 }
 
@@ -76,27 +79,58 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
   @@map("verification")
 }
 
 model Prediction {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userIdentifier   String?  @map("user_identifier")
-  user             User?    @relation(fields: [userIdentifier], references: [id])
-  question         String
-  jobId            String?  @map("job_id")
-  status           String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
-  analysisResult   Json?    @map("analysis_result")
-  selectedCards    Json?    @map("selected_cards") // Array of card IDs: [0, 15, 32]
-  finalReading     Json?    @map("final_reading")
-  createdAt        DateTime @default(now()) @map("created_at")
-  completedAt      DateTime? @map("completed_at")
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userIdentifier String?   @map("user_identifier")
+  question       String
+  jobId          String?   @map("job_id")
+  status         String    @default("PENDING")
+  analysisResult Json?     @map("analysis_result")
+  selectedCards  Json?     @map("selected_cards")
+  finalReading   Json?     @map("final_reading")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+  user           User?     @relation(fields: [userIdentifier], references: [id])
 
   @@index([userIdentifier])
   @@index([jobId])
   @@index([status])
   @@index([createdAt])
   @@map("predictions")
+}
+
+model CreditTransaction {
+  id              String            @id @default(cuid())
+  userId          String
+  amount          Int
+  balanceAfter    Int
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  stripeSessionId String?           @unique
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_transactions")
+}
+
+model StarPackage {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  stars         Int
+  price         Float
+  stripePriceId String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("star_packages")
 }
 
 enum TransactionType {
@@ -109,19 +143,4 @@ enum TransactionStatus {
   SUCCESS
   FAILED
   PENDING
-}
-
-model CreditTransaction {
-  id           String            @id @default(cuid())
-  userId       String
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount       Int
-  balanceAfter Int
-  type         TransactionType
-  status       TransactionStatus @default(PENDING)
-  metadata     Json?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  @@map("credit_transactions")
 }

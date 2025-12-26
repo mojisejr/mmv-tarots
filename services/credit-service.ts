@@ -86,6 +86,7 @@ export const CreditService = {
           balanceAfter: newBalance,
           type: TransactionType.TOPUP,
           status: TransactionStatus.SUCCESS,
+          stripeSessionId: metadata?.stripeSessionId ?? null,
           metadata: metadata ?? {},
         },
       });
