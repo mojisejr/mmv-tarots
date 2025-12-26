@@ -1,30 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Menu, User, LogIn } from 'lucide-react';
+import { ChevronLeft, User, LogIn } from 'lucide-react';
+import Image from 'next/image';
 
 export interface NavigationProps {
   currentPage: string;
   isLoggedIn: boolean;
   user?: { name?: string | null; email?: string | null; image?: string | null } | null;
-  onMenuClick?: () => void;
+  onHomeClick?: () => void;
   onProfileClick?: () => void;
   onBackClick?: () => void;
   onLoginClick?: () => void;
 }
 
 /**
- * Navigation bar component with conditional button display
- * - Shows Menu button on home page
- * - Shows Back button on other pages
- * - Shows Login button when not logged in
- * - Shows Profile button with Avatar when logged in
+ * Unified Navigation bar component
+ * - Shows Back button on all pages except home
+ * - Logo always acts as Home button
+ * - Shows Login/Profile on desktop only (mobile uses BottomNav)
  */
 export function Navigation({
   currentPage,
   isLoggedIn,
   user,
-  onMenuClick,
+  onHomeClick,
   onProfileClick,
   onBackClick,
   onLoginClick,
@@ -63,18 +63,9 @@ export function Navigation({
       role="navigation"
       aria-label="Main navigation"
     >
-      {/* Left Navigation Button */}
-      <div className="flex items-center">
-        {isHomePage ? (
-          <button
-            onClick={onMenuClick}
-            aria-label="Open menu"
-            data-testid="menu-button"
-            className="hidden md:flex p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
-          >
-            <Menu className="w-6 h-6 text-white" />
-          </button>
-        ) : (
+      {/* Left Navigation Button - Only show Back when not on home */}
+      <div className="flex items-center w-12">
+        {!isHomePage && (
           <button
             onClick={onBackClick}
             aria-label="Go back"
@@ -86,20 +77,21 @@ export function Navigation({
         )}
       </div>
 
-      {/* Center Logo */}
-      <div
-        className="font-serif font-bold text-xl cursor-pointer text-white tracking-wide hover:text-[var(--primary)] transition-colors absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2 drop-shadow-md"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            // Handle logo click if needed
-          }
-        }}
+      {/* Center Logo - Always acts as Home button */}
+      <button
+        onClick={onHomeClick}
+        className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-white/20 rounded-lg p-1"
+        aria-label="Go to home"
       >
-        MimiVibe
-      </div>
+        <Image
+          src="/logo.svg"
+          alt="MimiVibe Logo"
+          width={120}
+          height={40}
+          priority
+          className="h-10 w-auto drop-shadow-lg"
+        />
+      </button>
 
       {/* Right Authentication Button - Hidden on mobile as it's in Bottom Nav */}
       <div className="flex items-center gap-2">

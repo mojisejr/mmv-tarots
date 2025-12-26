@@ -12,7 +12,9 @@ import {
 
 /**
  * GET /api/predictions/me
- * Fetch all predictions for the currently authenticated user
+ * Fetch predictions for the currently authenticated user
+ * Query params:
+ *  - limit: number (optional) - Limit number of predictions returned
  */
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -28,10 +30,15 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const userId = session.user.id;
 
+    // Get optional limit from query params
+    const { searchParams } = new URL(request.url);
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
     // Fetch predictions from database using Service
     let predictions;
     try {
-      predictions = await PredictionService.getByUserId(userId);
+      predictions = await PredictionService.getByUserId(userId, limit);
     } catch (dbError) {
       console.error('Database error fetching predictions:', dbError);
       throw new ApiError({

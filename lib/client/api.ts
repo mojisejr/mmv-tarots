@@ -106,7 +106,7 @@ export async function checkJobStatus(jobId: string): Promise<GetPredictResponse>
 /**
  * Fetch predictions for the current user
  */
-export async function fetchUserPredictions(): Promise<{
+export async function fetchUserPredictions(limit?: number): Promise<{
   predictions: Array<{
     id: string;
     jobId: string;
@@ -120,7 +120,8 @@ export async function fetchUserPredictions(): Promise<{
   page: number;
   totalPages: number;
 }> {
-  const response = await fetch(`${API_BASE}/predictions/me`);
+  const url = limit ? `${API_BASE}/predictions/me?limit=${limit}` : `${API_BASE}/predictions/me`;
+  const response = await fetch(url);
 
   if (!response.ok) {
     if (response.status === 401) {

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/client/auth-client';
 import { GlassCard, GlassButton, HistoryCard } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions } from '@/lib/client/api';
 import { TransactionHistoryList } from '@/components/features/transaction-history-list';
 import { User, Gift, QrCode, LogOut, Sparkles, History } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Prediction {
   id: string;
@@ -18,8 +19,9 @@ interface Prediction {
   selectedCards?: any[];
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setCurrentPage } = useNavigation();
   const { data: session, isPending } = useSession();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -30,7 +32,18 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setCurrentPage('profile');
-  }, [setCurrentPage]);
+    
+    // Check for payment status
+    const success = searchParams?.get('success');
+    if (success === 'true') {
+      toast.success('เติม Star สำเร็จ!', {
+        description: 'ยอด Star ของคุณได้รับการอัปเดตแล้ว',
+        duration: 5000,
+      });
+      // Clear the query param
+      window.history.replaceState({}, '', '/profile');
+    }
+  }, [setCurrentPage, searchParams]);
 
   useEffect(() => {
     // Redirect to home if not authenticated
@@ -66,7 +79,8 @@ export default function ProfilePage() {
   const loadPredictions = async () => {
     try {
       setLoading(true);
-      const data = await fetchUserPredictions();
+      // Fetch only recent 3 predictions for profile page
+      const data = await fetchUserPredictions(3);
       
       const transformedPredictions: Prediction[] = data.predictions.map(p => ({
         id: p.jobId,
@@ -179,6 +193,15 @@ export default function ProfilePage() {
 
       {activeTab === 'predictions' ? (
         <div className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Recent Predictions</h3>
+            <GlassButton 
+              onClick={() => router.push('/history')}
+              className="text-xs px-3 py-1"
+            >
+              View All
+            </GlassButton>
+          </div>
           {loading ? (
             <div className="text-center py-10 text-white/40">Loading predictions...</div>
           ) : predictions.length > 0 ? (
@@ -207,5 +230,17 @@ export default function ProfilePage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-md mx-auto pt-10 px-4 h-full flex items-center justify-center pb-24">
+        <div className="text-white/60">Loading...</div>
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

@@ -12,7 +12,7 @@ export function MainNavigation() {
     isLoggedIn,
     currentPage,
     user,
-    handleMenuClick,
+    handleHomeClick,
     handleProfileClick,
     handleBackClick,
     handleLoginClick,
@@ -23,7 +23,7 @@ export function MainNavigation() {
       currentPage={currentPage}
       isLoggedIn={isLoggedIn}
       user={user}
-      onMenuClick={handleMenuClick}
+      onHomeClick={handleHomeClick}
       onProfileClick={handleProfileClick}
       onBackClick={handleBackClick}
       onLoginClick={handleLoginClick}

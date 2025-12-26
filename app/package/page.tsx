@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GlassCard, GlassButton, Sparkles } from '@/components';
 import { useSession } from '@/lib/client/auth-client';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import { toast } from 'sonner';
 
 interface StarPackage {
   id: string;
@@ -14,11 +16,28 @@ interface StarPackage {
   active: boolean;
 }
 
-export default function PackagePage() {
+function PackagePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const { setCurrentPage } = useNavigation();
   const [loading, setLoading] = useState<string | null>(null);
   const [packages, setPackages] = useState<StarPackage[]>([]);
+
+  useEffect(() => {
+    setCurrentPage('package');
+    
+    // Check for payment cancel
+    const canceled = searchParams?.get('canceled');
+    if (canceled === 'true') {
+      toast.error('ยกเลิกการชำระเงิน', {
+        description: 'คุณสามารถเลือกแพ็กเกจใหม่ได้ตลอดเวลา',
+        duration: 5000,
+      });
+      // Clear the query param
+      window.history.replaceState({}, '', '/package');
+    }
+  }, [setCurrentPage, searchParams]);
 
   useEffect(() => {
     fetch('/api/packages')
@@ -123,3 +142,14 @@ export default function PackagePage() {
   );
 }
 
+export default function PackagePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
+        <div className="text-center text-white/60">กำลังโหลด...</div>
+      </div>
+    }>
+      <PackagePageContent />
+    </Suspense>
+  );
+}

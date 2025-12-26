@@ -13,10 +13,16 @@ import { useNavigation } from '@/lib/client/providers/navigation-provider';
  * - Glassmorphism design
  * - Active state indicators
  * - Safe area awareness
+ * - Hidden on /submitted page for immersive experience
  */
 export function BottomNav() {
   const pathname = usePathname();
   const { user, isLoggedIn } = useNavigation();
+
+  // Hide BottomNav on submitted (waiting) page
+  if (pathname === '/submitted') {
+    return null;
+  }
 
   const navItems = [
     { label: 'Home', icon: Home, href: '/' },

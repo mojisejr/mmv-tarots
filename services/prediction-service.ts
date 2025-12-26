@@ -47,11 +47,14 @@ export const PredictionService = {
 
   /**
    * Get predictions for a user
+   * @param userId - The user ID
+   * @param limit - Optional limit for number of predictions to return
    */
-  async getByUserId(userId: string) {
+  async getByUserId(userId: string, limit?: number) {
     return await db.prediction.findMany({
       where: { userIdentifier: userId },
       orderBy: { createdAt: 'desc' },
+      ...(limit ? { take: limit } : {}),
     });
   }
 };

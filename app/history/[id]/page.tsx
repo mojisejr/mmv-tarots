@@ -14,15 +14,21 @@ import {
 import { checkJobStatus } from '@/lib/client/api';
 import { GetPredictResponse } from '@/lib/client/api';
 import { mapReadingData } from '@/lib/client/reading-utils';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
 
 export default function PredictionDetailPage() {
   const router = useRouter();
   const params = useParams();
   const jobId = params?.id as string;
+  const { setCurrentPage } = useNavigation();
 
   const [prediction, setPrediction] = useState<GetPredictResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentPage('result');
+  }, [setCurrentPage]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;

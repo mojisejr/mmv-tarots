@@ -4,14 +4,16 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from '@/lib/client/auth-client';
 
+type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
+
 interface NavigationContextType {
   isLoggedIn: boolean;
-  currentPage: 'home' | 'submitted' | 'history' | 'result' | 'profile';
+  currentPage: PageType;
   currentJobId: string | null;
   user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null;
-  setCurrentPage: (value: 'home' | 'submitted' | 'history' | 'result' | 'profile') => void;
+  setCurrentPage: (value: PageType) => void;
   setCurrentJobId: (jobId: string | null) => void;
-  handleMenuClick: () => void;
+  handleHomeClick: () => void;
   handleProfileClick: () => void;
   handleBackClick: () => void;
   handleLoginClick: () => void;
@@ -23,30 +25,40 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { data: session } = useSession();
-  const [currentPage, setCurrentPage] = useState<'home' | 'submitted' | 'history' | 'result' | 'profile'>('home');
+  const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
   const isLoggedIn = !!session?.user;
   const user = session?.user || null;
 
-  const handleMenuClick = () => {
-    console.log('Menu clicked');
+  const handleHomeClick = () => {
     router.push('/');
+    setCurrentPage('home');
   };
 
   const handleProfileClick = () => {
-    console.log('Profile clicked');
     router.push('/profile');
   };
 
   const handleBackClick = () => {
-    console.log('Back clicked');
-    // Navigate back based on current page
-    if (currentPage === 'submitted' || currentPage === 'history' || currentPage === 'profile') {
-      router.push('/');
-      setCurrentPage('home');
-    } else {
-      router.back();
+    // Smart back navigation based on current page context
+    switch (currentPage) {
+      case 'result':
+        // From detail page, go back to history list
+        router.push('/history');
+        setCurrentPage('history');
+        break;
+      case 'submitted':
+      case 'history':
+      case 'profile':
+      case 'package':
+        // From main sections, go to home
+        router.push('/');
+        setCurrentPage('home');
+        break;
+      default:
+        // Fallback to browser back
+        router.back();
     }
   };
 
@@ -86,7 +98,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         user,
         setCurrentPage,
         setCurrentJobId,
-        handleMenuClick,
+        handleHomeClick,
         handleProfileClick,
         handleBackClick,
         handleLoginClick,
