@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { FloatingBadge } from './floating-badge';
 
 export interface QuestionInputProps {
   value: string;
@@ -9,15 +10,17 @@ export interface QuestionInputProps {
   onSubmit: (value: string) => void;
   placeholder?: string;
   minCharacters?: number;
+  maxCharacters?: number;
   maxRows?: number;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
   isSubmitting?: boolean;
 }
 
-const MIN_TEXTAREA_HEIGHT = 44; // pixels
+const MIN_TEXTAREA_HEIGHT = 56; // Increased for better touch target and spacing
 const DEFAULT_PLACEHOLDER = 'Ask Mimi...';
 const MIN_CHARACTERS = 5;
+const MAX_CHARACTERS_DEFAULT = 180;
 
 /**
  * Auto-resizing textarea component for question input
@@ -26,6 +29,7 @@ const MIN_CHARACTERS = 5;
  * - Submit on Enter (Shift+Enter for new line)
  * - Visual feedback for focus and validation
  * - Glassmorphism design
+ * - Character counter and limits
  */
 export function QuestionInput({
   value,
@@ -33,7 +37,8 @@ export function QuestionInput({
   onSubmit,
   placeholder = DEFAULT_PLACEHOLDER,
   minCharacters = MIN_CHARACTERS,
-  maxRows = 4,
+  maxCharacters = MAX_CHARACTERS_DEFAULT,
+  maxRows = 6, // Increased to accommodate 180 chars comfortably
   textareaRef: externalTextareaRef,
   disabled = false,
   isSubmitting = false,
@@ -52,7 +57,7 @@ export function QuestionInput({
 
     // Calculate new height
     const singleLineHeight = MIN_TEXTAREA_HEIGHT;
-    const lineHeight = 24; // Approximate line height for text-xl
+    const lineHeight = 28; // Increased line height for better readability
     const maxHeight = singleLineHeight + (lineHeight * (maxRows - 1));
     const newHeight = Math.min(Math.max(textarea.scrollHeight, singleLineHeight), maxHeight);
 
@@ -63,30 +68,33 @@ export function QuestionInput({
   // Handle textarea value changes
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onChange(e.target.value);
+      const newValue = e.target.value;
+      onChange(newValue);
     },
     [onChange]
   );
+
+  const isValid = value.length >= minCharacters && value.length <= maxCharacters;
 
   // Handle keyboard events
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (value.length >= minCharacters) {
+        if (isValid) {
           onSubmit(value);
         }
       }
     },
-    [value, minCharacters, onSubmit]
+    [value, isValid, onSubmit]
   );
 
   // Handle form submission
   const handleSubmit = useCallback(() => {
-    if (value.length >= minCharacters) {
+    if (isValid) {
       onSubmit(value);
     }
-  }, [value, minCharacters, onSubmit]);
+  }, [isValid, value, onSubmit]);
 
   // Handle focus events
   const handleFocus = useCallback(() => {
@@ -102,8 +110,8 @@ export function QuestionInput({
     resizeTextarea();
   }, [value, resizeTextarea]);
 
-  const isValid = value.length >= minCharacters;
   const showHint = !isFocused && value.length === 0;
+  const characterCount = value.length;
 
   return (
     <div className="w-full relative" data-testid="question-input-container">
@@ -114,22 +122,40 @@ export function QuestionInput({
         }`}
       />
 
-      {/* Floating Status Badge */}
-      {isValid && !isFocused && (
-        <div className="absolute -top-8 right-4 animate-fade-in">
-          <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-1.5 shadow-lg">
-            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-            <span className="text-[10px] font-bold text-white/80 uppercase tracking-tighter">Ready to Ask</span>
-          </div>
-        </div>
+      {/* Character Counter Badge (Top Left) */}
+      {(isFocused || characterCount > 0) && (
+        <FloatingBadge position="top-left" animate={false}>
+          <span className={`text-[10px] font-bold tracking-tighter ${
+            characterCount > maxCharacters ? 'text-red-400' : 'text-white/60'
+          }`}>
+            {characterCount}/{maxCharacters}
+          </span>
+        </FloatingBadge>
       )}
 
-      <div className="flex items-end gap-2">
+      {/* Ready Status Badge (Top Right) */}
+      {isValid && !isFocused && (
+        <FloatingBadge position="top-right">
+          <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+          <span className="text-[10px] font-bold text-white/80 uppercase tracking-tighter">Ready to Ask</span>
+        </FloatingBadge>
+      )}
+
+      <div className="flex items-end gap-3">
         <div
           className={`flex-1 relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] transition-all duration-300 hover:bg-white/15 hover:border-white/30 ${
             isFocused ? 'bg-white/20 border-white/40 shadow-xl ring-1 ring-white/20' : ''
           }`}
         >
+          <style jsx>{`
+            textarea::-webkit-scrollbar {
+              display: none;
+            }
+            textarea {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
           <textarea
             ref={textareaRef}
             value={value}
@@ -147,7 +173,7 @@ export function QuestionInput({
             className="w-full bg-transparent border-none text-white placeholder-white/30 focus:ring-0 focus:outline-none resize-none py-4 px-6 font-sans text-lg leading-relaxed tracking-wide"
             style={{
               minHeight: `${MIN_TEXTAREA_HEIGHT}px`,
-              maxHeight: `${MIN_TEXTAREA_HEIGHT + (24 * (maxRows - 1))}px`,
+              maxHeight: `${MIN_TEXTAREA_HEIGHT + (28 * (maxRows - 1))}px`,
             }}
             aria-label="Question input"
             aria-describedby={showHint ? 'question-hint' : undefined}
@@ -160,7 +186,7 @@ export function QuestionInput({
           aria-label={disabled ? 'Submitting question' : (isValid ? 'Submit question' : 'Question too short')}
           className={`p-4 rounded-full transition-all duration-500 flex items-center justify-center shadow-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[56px] min-w-[56px] ${
             disabled || !isValid
-              ? 'bg-white/5 text-white/20 cursor-not-allowed scale-90 grayscale'
+              ? 'bg-white/5 text-white/20 cursor-not-allowed scale-90 grayscale pointer-events-none'
               : 'bg-gradient-to-br from-primary to-accent text-white scale-100 hover:scale-105 active:scale-95 shadow-glow-primary'
           }`}
         >

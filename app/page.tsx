@@ -158,7 +158,7 @@ function Home() {
                   isSubmitting={isSubmitting}
                 />
                 {stars !== null && (
-                  <div className="absolute bottom-4 right-16 flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/5 pointer-events-none">
+                  <div className="absolute -top-8 right-20 md:bottom-4 md:top-auto md:right-16 flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/5 pointer-events-none animate-fade-in">
                     <Sparkles className="w-3 h-3 text-yellow-400" />
                     <span className="text-xs font-medium text-white/80">{stars}</span>
                   </div>
