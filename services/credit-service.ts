@@ -153,5 +153,102 @@ export const CreditService = {
         totalPages: Math.ceil(total / limit),
       },
     };
+  },
+
+  /**
+   * Apply referral rewards to both referrer and referee
+   * Referrer gets 2 stars, Referee gets 1 star
+   * This is an atomic operation - both succeed or both fail
+   */
+  async applyReferralReward(referralCode: string, newUserId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const result = await db.$transaction(async (tx) => {
+        // Find the referrer by referral code
+        const referrer = await tx.user.findUnique({
+          where: { referralCode },
+          select: { id: true, stars: true, name: true },
+        });
+
+        if (!referrer) {
+          return { success: false, message: 'Invalid referral code' };
+        }
+
+        // Check if trying to refer themselves
+        if (referrer.id === newUserId) {
+          return { success: false, message: 'Cannot refer yourself' };
+        }
+
+        // Check if the new user has already been referred
+        const newUser = await tx.user.findUnique({
+          where: { id: newUserId },
+          select: { referredById: true, stars: true },
+        });
+
+        if (!newUser) {
+          return { success: false, message: 'User not found' };
+        }
+
+        if (newUser.referredById) {
+          return { success: false, message: 'User has already been referred' };
+        }
+
+        // Update the new user's referredById
+        await tx.user.update({
+          where: { id: newUserId },
+          data: { referredById: referrer.id },
+        });
+
+        // Give 2 stars to referrer
+        const referrerNewBalance = referrer.stars + 2;
+        await tx.user.update({
+          where: { id: referrer.id },
+          data: { stars: referrerNewBalance },
+        });
+
+        await tx.creditTransaction.create({
+          data: {
+            userId: referrer.id,
+            amount: 2,
+            balanceAfter: referrerNewBalance,
+            type: TransactionType.TOPUP,
+            status: TransactionStatus.SUCCESS,
+            metadata: {
+              source: 'referral_reward',
+              refereeId: newUserId,
+              note: 'Reward for referring a new user',
+            },
+          },
+        });
+
+        // Give 1 star to new user
+        const refereeNewBalance = newUser.stars + 1;
+        await tx.user.update({
+          where: { id: newUserId },
+          data: { stars: refereeNewBalance },
+        });
+
+        await tx.creditTransaction.create({
+          data: {
+            userId: newUserId,
+            amount: 1,
+            balanceAfter: refereeNewBalance,
+            type: TransactionType.TOPUP,
+            status: TransactionStatus.SUCCESS,
+            metadata: {
+              source: 'referral_bonus',
+              referrerId: referrer.id,
+              note: 'Welcome bonus for using referral link',
+            },
+          },
+        });
+
+        return { success: true, message: 'Referral rewards applied successfully' };
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error applying referral reward:', error);
+      return { success: false, message: 'Failed to apply referral reward' };
+    }
   }
 };

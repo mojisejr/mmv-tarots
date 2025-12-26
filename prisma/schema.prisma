@@ -29,12 +29,15 @@ model User {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   referralCode  String?             @unique @default(cuid())
+  referredById  String?             @map("referred_by_id")
   stars         Int                 @default(0)
   emailVerified Boolean             @default(false)
   accounts      Account[]
   transactions  CreditTransaction[]
   predictions   Prediction[]
   sessions      Session[]
+  referredBy    User?               @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals     User[]              @relation("UserReferrals")
 
   @@map("user")
 }

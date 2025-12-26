@@ -7,7 +7,7 @@ import { GlassCard, GlassButton, HistoryCard } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions } from '@/lib/client/api';
 import { TransactionHistoryList } from '@/components/features/transaction-history-list';
-import { User, Gift, QrCode, LogOut, Sparkles, History } from 'lucide-react';
+import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Prediction {
@@ -29,6 +29,8 @@ function ProfilePageContent() {
   const [error, setError] = useState<string | null>(null);
   const [stars, setStars] = useState(0);
   const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setCurrentPage('profile');
@@ -55,14 +57,35 @@ function ProfilePageContent() {
     // Load predictions when user is authenticated
     if (session?.user?.id) {
       loadPredictions();
-      // In a real app, we should fetch stars from API
-      // For now, we'll assume session update or separate fetch
-      // But since we don't have a dedicated user/me endpoint that returns stars yet,
-      // let's fetch it via a new helper or just rely on what we have.
-      // Actually, let's add a quick fetch for stars
       fetchUserStars();
+      fetchUserProfile();
+      // Check for referral rewards on first load
+      checkReferralReward();
     }
   }, [session, isPending, router]);
+
+  const checkReferralReward = async () => {
+    try {
+      await fetch('/api/auth/referral-check', { method: 'POST' });
+    } catch (err) {
+      // Silent fail - not critical
+      console.error('Failed to check referral:', err);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const res = await fetch('/api/user/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.referralCode) {
+          setReferralCode(data.referralCode);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  };
 
   const fetchUserStars = async () => {
     try {
@@ -73,6 +96,25 @@ function ProfilePageContent() {
       }
     } catch (err) {
       console.error('Failed to fetch stars:', err);
+    }
+  };
+
+  const handleCopyReferralLink = async () => {
+    if (!referralCode) return;
+    
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const referralLink = `${baseUrl}/?ref=${referralCode}`;
+    
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      toast.success('คัดลอกลิงก์แล้ว!', {
+        description: 'แชร์ให้เพื่อนเพื่อรับ 2 Stars',
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('ไม่สามารถคัดลอกได้');
     }
   };
 
@@ -150,7 +192,7 @@ function ProfilePageContent() {
       </div>
 
       {/* Stars Wallet Card */}
-      <GlassCard className="mb-8 !bg-gradient-to-br from-white/10 to-white/5 border-primary/20">
+      <GlassCard className="mb-6 !bg-gradient-to-br from-white/10 to-white/5 border-primary/20">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <p className="text-white/60 text-xs uppercase tracking-widest">Your Balance</p>
@@ -168,6 +210,36 @@ function ProfilePageContent() {
           </GlassButton>
         </div>
       </GlassCard>
+
+      {/* Referral Program Card */}
+      {referralCode && (
+        <GlassCard className="mb-6 !bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-purple-500/20">
+              <Gift className="w-5 h-5 text-purple-300" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-bold text-white mb-1">ชวนเพื่อนรับ Stars</h4>
+              <p className="text-xs text-white/60 leading-relaxed">
+                เพื่อนคุณจะได้ <span className="text-white font-semibold">1 Star ฟรี</span><br />
+                คุณจะได้ <span className="text-white font-semibold">2 Stars</span> เมื่อเพื่อนสมัครสมาชิก
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <div className="flex-1 bg-black/30 rounded-lg px-3 py-2.5 text-xs font-mono text-white/80 truncate border border-white/5">
+              {typeof window !== 'undefined' ? window.location.origin : ''}/?ref={referralCode}
+            </div>
+            <GlassButton 
+              onClick={handleCopyReferralLink}
+              className="!px-4 !py-2.5 bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+            </GlassButton>
+          </div>
+        </GlassCard>
+      )}
 
       {/* Tabs Control */}
       <div className="flex p-1 bg-black/20 backdrop-blur-md rounded-2xl mb-6 border border-white/5">
