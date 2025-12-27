@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signIn, signOut } from '@/lib/client/auth-client';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
@@ -24,9 +24,27 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+
+  // Sync currentPage with pathname
+  useEffect(() => {
+    if (pathname === '/') {
+      setCurrentPage('home');
+    } else if (pathname === '/history') {
+      setCurrentPage('history');
+    } else if (pathname.startsWith('/history/')) {
+      setCurrentPage('result');
+    } else if (pathname === '/profile') {
+      setCurrentPage('profile');
+    } else if (pathname === '/package') {
+      setCurrentPage('package');
+    } else if (pathname === '/submitted') {
+      setCurrentPage('submitted');
+    }
+  }, [pathname]);
 
   const isLoggedIn = !!session?.user;
   const user = session?.user || null;

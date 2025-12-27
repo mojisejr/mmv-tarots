@@ -16,6 +16,7 @@ export function MainNavigation() {
     handleProfileClick,
     handleBackClick,
     handleLoginClick,
+    handleLogoutClick,
   } = useNavigation();
 
   return (
@@ -27,6 +28,7 @@ export function MainNavigation() {
       onProfileClick={handleProfileClick}
       onBackClick={handleBackClick}
       onLoginClick={handleLoginClick}
+      onLogoutClick={handleLogoutClick}
     />
   );
 }

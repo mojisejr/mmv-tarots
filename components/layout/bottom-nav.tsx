@@ -17,18 +17,18 @@ import { useNavigation } from '@/lib/client/providers/navigation-provider';
  */
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, isLoggedIn } = useNavigation();
+  const { user, isLoggedIn, currentPage, setCurrentPage } = useNavigation();
 
-  // Hide BottomNav on submitted (waiting) page
-  if (pathname === '/submitted') {
+  // Hide BottomNav on submitted (waiting) page or result page for immersive experience
+  if (pathname === '/submitted' || currentPage === 'result') {
     return null;
   }
 
   const navItems = [
-    { label: 'Home', icon: Home, href: '/' },
-    { label: 'History', icon: History, href: '/history' },
-    { label: 'Package', icon: Sparkles, href: '/package' },
-    { label: 'Profile', icon: User, href: '/profile' },
+    { label: 'Home', icon: Home, href: '/', type: 'home' as const },
+    { label: 'History', icon: History, href: '/history', type: 'history' as const },
+    { label: 'Package', icon: Sparkles, href: '/package', type: 'package' as const },
+    { label: 'Profile', icon: User, href: '/profile', type: 'profile' as const },
   ];
 
   return (
@@ -47,6 +47,7 @@ export function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setCurrentPage(item.type)}
                 className={`flex flex-col items-center gap-1 transition-all duration-300 ${
                   isActive ? 'text-[var(--primary)] scale-110' : 'text-white/40 hover:text-white/70'
                 }`}

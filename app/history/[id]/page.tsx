@@ -178,16 +178,6 @@ export default function PredictionDetailPage() {
     // Show error message when reading data cannot be processed
     return (
       <div className="max-w-4xl mx-auto px-4 h-full pb-20">
-        {/* Back button */}
-        <button
-          onClick={handleBack}
-          className="mb-6 flex items-center text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="กลับไปหน้าประวัติ"
-        >
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          กลับไปหน้าประวัติ
-        </button>
-
         {/* Error message */}
         <GlassCard className="p-8 text-center">
           <h2 className="text-xl font-serif text-foreground mb-4">
@@ -211,16 +201,6 @@ export default function PredictionDetailPage() {
 
     return (
       <div className="max-w-4xl mx-auto px-4 h-full pb-20">
-        {/* Back button */}
-        <button
-          onClick={handleBack}
-          className="mb-6 flex items-center text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="กลับไปหน้าประวัติ"
-        >
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          กลับไปหน้าประวัติ
-        </button>
-
         {/* Main content */}
         <div className="space-y-6">
           {/* Question and metadata */}
@@ -280,16 +260,6 @@ export default function PredictionDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 h-full pb-20">
-      {/* Back button */}
-      <button
-        onClick={handleBack}
-        className="mb-6 flex items-center text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="กลับไปหน้าประวัติ"
-      >
-        <ChevronLeft className="w-4 h-4 mr-2" />
-        กลับไปหน้าประวัติ
-      </button>
-
       {/* Main content */}
       <div className="space-y-6">
         {/* Question and metadata */}
