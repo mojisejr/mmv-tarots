@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChevronRight } from './icons';
+import { ChevronRight, Sparkles } from './icons';
 import { StatusBadge } from './status-badge';
+import { cn } from '@/lib/shared/utils';
 
 interface HistoryCardProps {
   prediction: {
@@ -40,7 +41,7 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
       role="button"
       tabIndex={0}
       aria-label={`Prediction: ${prediction.question}`}
-      className="group bg-glass-white hover:bg-glass-whiteHover border border-glass-border hover:border-glass-borderHover rounded-2xl p-4 flex justify-between items-center cursor-pointer transition-all duration-300 backdrop-blur-xl"
+      className="group relative flex flex-col h-full min-h-[280px] bg-glass-white hover:bg-glass-whiteHover border border-glass-border hover:border-primary/30 rounded-[1.5rem] p-6 cursor-pointer transition-all duration-500 backdrop-blur-xl hover:-translate-y-1 hover:shadow-glass-hover overflow-hidden"
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -49,24 +50,40 @@ export function HistoryCard({ prediction, onClick }: HistoryCardProps) {
         }
       }}
     >
-      <div className="flex-1 min-w-0 pr-4">
-        <div className="font-medium truncate text-base mb-1 font-sans text-foreground group-hover:text-primary transition-colors">
-          {prediction.question}
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-mono flex items-center gap-2 text-muted-foreground">
-            <span>#{prediction.id}</span>
-            <span className="w-1 h-1 rounded-full bg-white/40"></span>
-            <span>{formatDate(prediction.createdAt)}</span>
-          </div>
-          <StatusBadge status={prediction.status as any} />
-        </div>
+      {/* Decorative Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      
+      {/* Top Row: Status & Date */}
+      <div className="relative flex justify-between items-start mb-4 z-10">
+        <StatusBadge status={prediction.status as any} />
+        <span className="text-xs font-mono text-white/40 group-hover:text-white/60 transition-colors">
+          {formatDate(prediction.createdAt)}
+        </span>
       </div>
 
-      <ChevronRight
-        data-testid="chevron-icon"
-        className="w-5 h-5 text-white/40 group-hover:text-white/80 group-hover:translate-x-1 transition-all flex-shrink-0"
-      />
+      {/* Center: Card Visual (Abstract) */}
+      <div className="relative flex-1 flex items-center justify-center py-6 z-10">
+        <div className="w-20 h-32 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/5 transition-all duration-500 transform group-hover:scale-110 shadow-lg shadow-black/20">
+          <Sparkles className="w-6 h-6 text-white/20 group-hover:text-primary/60 transition-colors" />
+        </div>
+        {/* Decorative cards behind */}
+        <div className="absolute w-20 h-32 rounded-lg border border-white/5 bg-white/5 rotate-6 translate-x-2 translate-y-1 -z-10 opacity-50" />
+        <div className="absolute w-20 h-32 rounded-lg border border-white/5 bg-white/5 -rotate-6 -translate-x-2 translate-y-1 -z-10 opacity-50" />
+      </div>
+
+      {/* Bottom: Question */}
+      <div className="relative z-10 mt-auto">
+        <h3 className="font-serif text-lg leading-snug text-white/90 group-hover:text-primary transition-colors line-clamp-2 mb-3 min-h-[3.5rem]">
+          {prediction.question}
+        </h3>
+        <div className="flex items-center justify-between text-xs font-mono text-white/30 border-t border-white/5 pt-3">
+          <span>#{prediction.id.slice(0, 8)}</span>
+          <div className="flex items-center gap-1 text-primary/0 group-hover:text-primary/80 transition-all transform translate-x-2 group-hover:translate-x-0">
+            <span className="uppercase tracking-wider text-[10px]">View</span>
+            <ChevronRight className="w-3 h-3" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

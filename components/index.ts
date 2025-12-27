@@ -15,3 +15,6 @@ export * from './features/tarot';
 
 // Re-export reading components
 export * from './reading';
+
+// Re-export history components
+export * from './history';

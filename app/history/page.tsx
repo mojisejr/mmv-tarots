@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { GlassCard, GlassButton, ChevronRight, HistoryCard } from '@/components';
+import { GlassButton, HistoryCard, HistoryControls } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions, checkJobStatus } from '@/lib/client/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Prediction {
   id: string;
@@ -22,6 +23,11 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Filter & Sort State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
 
   const checkAndUpdatePrediction = useCallback(async (jobId: string) => {
     try {
@@ -115,13 +121,43 @@ export default function HistoryPage() {
     loadPredictions();
   }, [loadPredictions]);
 
+  const filteredPredictions = useMemo(() => {
+    let result = [...predictions];
+
+    // Filter by Status
+    if (statusFilter !== 'ALL') {
+      result = result.filter(p => p.status === statusFilter);
+    }
+
+    // Filter by Search Query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.question.toLowerCase().includes(query) || 
+        p.id.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [predictions, statusFilter, searchQuery, sortBy]);
+
   // Show loading state
   if (loading) {
     return (
-      <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
-        <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Your Journey</h2>
+      <div className="max-w-6xl mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-serif text-white drop-shadow-md mb-2">Your Journey</h2>
+          <p className="text-white/60 text-sm">Loading your visions...</p>
+        </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-white/60">Loading your predictions...</div>
+          <div className="w-12 h-12 border-4 border-white/10 border-t-primary rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -130,8 +166,10 @@ export default function HistoryPage() {
   // Show error state
   if (error) {
     return (
-      <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
-        <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Your Journey</h2>
+      <div className="max-w-6xl mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-serif text-white drop-shadow-md mb-2">Your Journey</h2>
+        </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="text-red-300 mb-4">{error}</div>
@@ -145,27 +183,55 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto pt-10 px-4 h-full flex flex-col pb-24">
-      <h2 className="text-3xl font-serif text-white mb-8 text-center drop-shadow-md">Your Journey</h2>
+    <div className="max-w-6xl mx-auto pt-10 px-4 h-full flex flex-col pb-24">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-serif text-white drop-shadow-md mb-2">Your Journey</h2>
+        <p className="text-white/60 text-sm">The path you have walked, revealed in the cards.</p>
+      </div>
 
-      <div className="flex-1 overflow-y-auto -mx-2 px-2">
-        <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4 font-sans px-2">Recent Visions</h3>
-        <div className="space-y-3 pb-4">
-          {predictions.length === 0 ? (
-            <div className="text-center text-white/60 py-8">
-              <p>No predictions found</p>
-              <p className="text-sm mt-2">Submit your first question to see it here</p>
-            </div>
-          ) : (
-            predictions.map((prediction) => (
-              <HistoryCard
-                key={prediction.id}
-                prediction={prediction}
-                onClick={handlePredictionClick}
-              />
-            ))
-          )}
-        </div>
+      <HistoryControls 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
+
+      <div className="flex-1 overflow-y-auto -mx-4 px-4 custom-scrollbar">
+        {filteredPredictions.length === 0 ? (
+          <div className="text-center text-white/60 py-12 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
+            <p className="text-lg font-serif mb-2">No visions found</p>
+            <p className="text-sm text-white/40">
+              {searchQuery || statusFilter !== 'ALL' 
+                ? "Try adjusting your filters to see more results."
+                : "Submit your first question to begin your journey."}
+            </p>
+          </div>
+        ) : (
+          <motion.div 
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 pb-8"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredPredictions.map((prediction) => (
+                <motion.div
+                  key={prediction.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <HistoryCard
+                    prediction={prediction}
+                    onClick={handlePredictionClick}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
       </div>
     </div>
   );
