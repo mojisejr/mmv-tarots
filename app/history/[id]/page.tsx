@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { GlassCard, GlassButton, ChevronLeft, Loader2, AlertCircle } from '@/components';
+import { GlassCard, GlassButton, ChevronLeft, Loader2, AlertCircle, Modal } from '@/components';
 import {
   ReadingHeader,
-  CardDetails,
+  CardSpread,
   SuggestionsList,
   NextQuestions,
   FinalSummary,
   Disclaimer
 } from '@/components/reading';
+import { TarotCardImage } from '@/components/features/tarot';
 import { checkJobStatus } from '@/lib/client/api';
 import { GetPredictResponse } from '@/lib/client/api';
 import { mapReadingData } from '@/lib/client/reading-utils';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import type { CardReading } from '@/types/reading';
 
 export default function PredictionDetailPage() {
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function PredictionDetailPage() {
   const [prediction, setPrediction] = useState<GetPredictResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CardReading | null>(null);
 
   useEffect(() => {
     setCurrentPage('result');
@@ -314,21 +317,22 @@ export default function PredictionDetailPage() {
 
         {/* Cards Details - using new component */}
         {mappedData?.cards && (
-          <div className="space-y-6">
-            <GlassCard>
-              <div className="p-6">
-                <h2 className="text-xl font-serif text-foreground mb-6">ไพ่ที่ได้รับ</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {mappedData.cards.map((card, index) => (
-                    <CardDetails key={index} card={card} />
-                  ))}
-                </div>
-              </div>
-            </GlassCard>
+          <div className="space-y-8">
+            <div className="flex items-center gap-3 px-2">
+              <div className="w-1 h-6 bg-primary/60 rounded-full"></div>
+              <h2 className="text-xl font-serif text-foreground">ไพ่ที่ได้รับ</h2>
+            </div>
+            
+            <CardSpread 
+              cards={mappedData.cards} 
+              onCardClick={setSelectedCard} 
+            />
           </div>
         )}
 
         {/* Main Reading Text */}
+
+
         {mappedData?.reading && (
           <GlassCard className="p-8 bg-gradient-to-br from-white/5 to-transparent">
             <div className="flex items-center gap-3 mb-6">
@@ -363,9 +367,78 @@ export default function PredictionDetailPage() {
           <Disclaimer text={mappedData.disclaimer} />
         )}
       </div>
+
+      {/* Card Detail Modal */}
+      <Modal
+        isOpen={!!selectedCard}
+        onClose={() => setSelectedCard(null)}
+        title={selectedCard?.name_th}
+      >
+        {selectedCard && (
+          <div className="space-y-6 sm:space-y-8">
+            <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start">
+              <div className="w-[160px] xs:w-[200px] sm:w-[250px] md:w-1/3 flex-shrink-0">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-all duration-500"></div>
+                  <TarotCardImage
+                    card={{
+                      id: selectedCard.name_en,
+                      name: selectedCard.name_en,
+                      displayName: selectedCard.name_th,
+                      imageUrl: selectedCard.image,
+                      keywords: selectedCard.keywords,
+                    }}
+                    width={300}
+                    height={450}
+                    className="w-full h-auto relative rounded-xl shadow-2xl"
+                  />
+                </div>
+              </div>
+
+              
+              <div className="flex-1 space-y-5 sm:space-y-6 text-center md:text-left">
+                <div>
+                  <p className="text-xs sm:text-sm text-primary font-serif uppercase tracking-widest mb-1">
+                    {selectedCard.arcana}
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-serif text-foreground mb-1 sm:mb-2">
+                    {selectedCard.name_th}
+                  </h3>
+                  <p className="text-base sm:text-lg text-muted-foreground italic">
+                    {selectedCard.name_en}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider mb-2 sm:mb-3">Keywords</p>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center md:justify-start">
+                    {selectedCard.keywords.map((keyword: string, index: number) => (
+                      <span
+                        key={index}
+                        className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full bg-white/5 border border-white/10 text-white/80"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
+                  <p className="text-base sm:text-lg text-primary font-serif mb-3 sm:mb-4">ความหมายของไพ่</p>
+                  <p className="text-white/90 leading-relaxed text-base sm:text-lg">
+                    {selectedCard.interpretation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 }
+
 
 // Named export for testing
 export { PredictionDetailPage };

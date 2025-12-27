@@ -12,4 +12,5 @@ export { QuestionInput } from './question-input';
 export { ErrorBoundary } from './error-boundary';
 export { HistoryCard } from './history-card';
 export { StatusBadge } from './status-badge';
+export { Modal } from './modal';
 export * from './icons';

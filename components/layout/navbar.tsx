@@ -84,7 +84,7 @@ export function Navigation({
         aria-label="Go to home"
       >
         <Image
-          src="/logo.svg"
+          src="/logo.webp"
           alt="MimiVibe Logo"
           width={120}
           height={40}
