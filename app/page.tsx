@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
-import { submitQuestion, saveSubmissionState } from '@/lib/client/api';
+import { submitQuestion, saveSubmissionState, fetchBalance } from '@/lib/client/api';
 
 function Home() {
   const [question, setQuestion] = useState('');
@@ -40,8 +40,7 @@ function Home() {
   // Fetch stars on mount if logged in
   useEffect(() => {
     if (isLoggedIn) {
-      fetch('/api/credits/balance')
-        .then(res => res.json())
+      fetchBalance()
         .then(data => setStars(data.stars))
         .catch(console.error);
     }

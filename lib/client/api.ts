@@ -32,10 +32,15 @@ const GetPredictResponseSchema = z.object({
   }).optional(),
 });
 
+const GetBalanceResponseSchema = z.object({
+  stars: z.number(),
+});
+
 // Types
 export type PostPredictRequest = z.infer<typeof PostPredictRequestSchema>;
 export type PostPredictResponse = z.infer<typeof PostPredictResponseSchema>;
 export type GetPredictResponse = z.infer<typeof GetPredictResponseSchema>;
+export type GetBalanceResponse = z.infer<typeof GetBalanceResponseSchema>;
 
 /**
  * Custom error for authentication issues
@@ -143,6 +148,23 @@ export async function fetchUserPredictions(limit?: number): Promise<{
 
   const data = await response.json();
   return data;
+}
+
+/**
+ * Fetch user's star balance
+ */
+export async function fetchBalance(): Promise<GetBalanceResponse> {
+  const response = await fetch('/api/credits/balance');
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new AuthError();
+    }
+    throw new Error('Failed to fetch balance');
+  }
+
+  const data = await response.json();
+  return GetBalanceResponseSchema.parse(data);
 }
 
 /**
