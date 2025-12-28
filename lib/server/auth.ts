@@ -20,9 +20,9 @@ export const auth = betterAuth({
   
   socialProviders: {
     line: {
-      clientId: process.env.LINE_CLIENT_ID || '',
-      clientSecret: process.env.LINE_CLIENT_SECRET || '',
-      redirectURI: process.env.LINE_REDIRECT_URI || '',
+      clientId: process.env.LINE_CLIENT_ID as string,
+      clientSecret: process.env.LINE_CLIENT_SECRET as string,
+      redirectURI: process.env.LINE_REDIRECT_URI,
       mapProfileToUser: (profile) => {
         return {
           name: profile.name || 'LINE User',
@@ -33,7 +33,7 @@ export const auth = betterAuth({
     },
   },
   
-  secret: process.env.BETTER_AUTH_SECRET || '',
+  secret: process.env.BETTER_AUTH_SECRET as string,
   
   advanced: {
     cookiePrefix: 'mmv_auth',
