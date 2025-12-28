@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   QuestionInput,
   MimiAvatar,
-  GlassCard,
   GlassButton,
   Sparkles,
 } from '@/components';
@@ -93,84 +92,86 @@ function Home() {
   };
 
   return (
-    <>
-      {/* Main Content */}
+    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden pb-32 md:pb-0">
+      {/* Main Content Area (The Sacred Space) */}
       <div
         data-testid="main-content"
-        className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-6 overflow-y-auto no-scrollbar pb-20 sm:pb-24 md:pb-28"
+        className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-6 w-full max-w-4xl mx-auto z-10"
       >
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Hero Section with Mimi Avatar */}
-          <section className="text-center space-y-6 py-12">
-            <div className="relative w-72 h-72 md:w-[28rem] md:h-[28rem] mx-auto flex items-center justify-center">
-              <MimiAvatar performanceMode={isMobile} />
-            </div>
-            <h1 className="text-5xl md:text-7xl font-serif text-white leading-tight tracking-tight drop-shadow-lg animate-fade-in-up">
-              What guidance
-              <br />
-              do you seek?
-            </h1>
-          </section>
-        </div>
+        {/* Hero Section with Mimi Avatar */}
+        <section className="w-full flex flex-col items-center justify-center space-y-6 md:space-y-10 animate-fade-in-up relative">
+          {/* Mimi Avatar as Background */}
+          <MimiAvatar performanceMode={isMobile} />
+
+          {/* Heading - Text Balance for perfect wrapping */}
+          <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-white leading-tight tracking-tight drop-shadow-lg text-balance pt-20 md:pt-0">
+            <span className="text-white/90">What guidance</span>
+            <br />
+            <span className="text-gradient-gold font-medium">do you seek?</span>
+          </h1>
+        </section>
       </div>
 
-      {/* Fixed Bottom Input */}
+      {/* Input Section (The Offering) - Sticky Bottom */}
       <div
         data-testid="bottom-input-container"
-        className="fixed bottom-24 md:bottom-8 left-0 right-0 z-40 bg-none transition-all duration-500 pb-[env(safe-area-inset-bottom)]"
+        className="fixed bottom-[90px] md:sticky md:bottom-0 left-0 right-0 z-40 w-full pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-background via-background/80 to-transparent pt-12"
       >
         <div
           data-testid="input-wrapper"
-          className="w-full px-6 py-3 max-w-2xl mx-auto"
+          className="w-full px-4 sm:px-6 py-4 max-w-2xl mx-auto"
         >
           {/* Error display */}
           {error && (
-            <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 mb-3">
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-                <p className="text-red-300 text-sm">{error}</p>
+            <div className="mb-4 animate-fade-in">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 backdrop-blur-sm">
+                <p className="text-red-300 text-sm text-center">{error}</p>
               </div>
             </div>
           )}
 
           {isLoggedIn ? (
             stars === 0 ? (
-              <div className="flex flex-col items-center space-y-4 py-2 animate-fade-in">
+              <div className="flex flex-col items-center space-y-4 animate-fade-in pb-4">
                 <p className="text-white/60 text-sm font-medium">คุณไม่มี Star เหลือสำหรับการทำนาย</p>
                 <GlassButton 
                   onClick={() => router.push('/package')}
-                  className="w-full sm:w-auto px-10 py-4 text-lg font-semibold bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 shadow-lg"
+                  className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 shadow-lg glass-celestial"
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
                     <span>เติม Star เพื่อรับคำทำนาย</span>
                   </div>
                 </GlassButton>
               </div>
             ) : (
-              <div className="relative">
-                <QuestionInput
-                  value={question}
-                  onChange={setQuestion}
-                  onSubmit={handleQuestionSubmit}
-                  placeholder="What would you like to know about your future?"
-                  textareaRef={textareaRef}
-                  disabled={isSubmitting}
-                  isSubmitting={isSubmitting}
-                />
-                {stars !== null && (
-                  <div className="absolute -top-8 right-20 md:bottom-4 md:top-auto md:right-16 flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-1 rounded-lg border border-white/5 pointer-events-none animate-fade-in">
-                    <Sparkles className="w-3 h-3 text-yellow-400" />
-                    <span className="text-xs font-medium text-white/80">{stars}</span>
-                  </div>
-                )}
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+                <div className="relative">
+                  <QuestionInput
+                    value={question}
+                    onChange={setQuestion}
+                    onSubmit={handleQuestionSubmit}
+                    placeholder="Ask the stars..."
+                    textareaRef={textareaRef}
+                    disabled={isSubmitting}
+                    isSubmitting={isSubmitting}
+                  />
+                  {stars !== null && (
+                    <div className="absolute -top-10 right-0 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-none animate-fade-in shadow-lg">
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                      <span className="text-xs font-medium text-white/90">{stars} Stars</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center space-y-4 py-2 animate-fade-in">
+            <div className="flex flex-col items-center space-y-4 animate-fade-in pb-4">
               <p className="text-white/60 text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
               <GlassButton 
                 onClick={handleLoginClick}
-                className="w-full sm:w-auto px-10 py-4 text-lg font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-white/10 hover:border-white/30 transition-all duration-300 shadow-lg"
+                className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-white/10 hover:border-white/30 transition-all duration-300 shadow-lg glass-celestial"
               >
                 เข้าสู่ระบบด้วย LINE
               </GlassButton>
@@ -178,7 +179,7 @@ function Home() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

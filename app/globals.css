@@ -98,6 +98,36 @@
   animation: slideDown 0.5s ease-out;
 }
 
+/* Celestial Minimalist Utilities (MimiVibe) */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Glassmorphism Variants */
+  .glass-mimi {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+  
+  .glass-celestial {
+    @apply bg-[#1E1B4B]/30 backdrop-blur-xl border border-[var(--color-accent)]/20 shadow-[0_0_15px_rgba(252,189,116,0.1)];
+  }
+
+  /* Aura Glows */
+  .aura-primary {
+    background: radial-gradient(circle at center, rgba(242, 118, 105, 0.15) 0%, transparent 70%);
+  }
+  
+  .aura-accent {
+    background: radial-gradient(circle at center, rgba(252, 189, 116, 0.15) 0%, transparent 70%);
+  }
+
+  /* Text Gradients */
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#FCBD74] via-[#F27669] to-[#FCBD74];
+  }
+}
+
 /* Hover effects for navigation buttons */
 .nav-button-hover {
   transition: all 0.2s ease;

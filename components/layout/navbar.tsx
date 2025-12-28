@@ -67,7 +67,7 @@ export function Navigation({
   const navClasses = `
     fixed top-0 left-0 right-0 z-50
     w-full h-16 px-3 sm:px-6
-    flex justify-between items-center
+    hidden md:flex justify-between items-center
     backdrop-blur-xl border-b transition-all duration-300
     navbar-enter
     ${scrolled
