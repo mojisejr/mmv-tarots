@@ -34,6 +34,23 @@ export async function POST(request: NextRequest): Promise<Response> {
     const userId = session.user.id
     const userName = session.user.name || null
 
+    // Rate Limit Check: 1 request per 2 minutes
+    const lastPrediction = await PredictionService.getByUserId(userId, 1)
+    if (lastPrediction && lastPrediction.length > 0) {
+      const lastTime = new Date(lastPrediction[0].createdAt).getTime()
+      const now = new Date().getTime()
+      const diffMinutes = (now - lastTime) / (1000 * 60)
+      
+      if (diffMinutes < 2) {
+        const retryAfter = Math.ceil((2 * 60) - ((now - lastTime) / 1000))
+        throw new ApiError({
+          code: ERROR_CODES.TOO_MANY_REQUESTS,
+          message: 'Please wait before asking another question.',
+          details: { retryAfter }
+        })
+      }
+    }
+
     // Check credit balance
     const hasCredit = await CreditService.hasEnoughStars(userId)
     if (!hasCredit) {
@@ -135,6 +152,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         error.code === ERROR_CODES.INVALID_REQUEST ||
         error.code === ERROR_CODES.INVALID_JSON
           ? 400
+          : error.code === ERROR_CODES.TOO_MANY_REQUESTS
+          ? 429
           : error.code === ERROR_CODES.DATABASE_ERROR ||
             error.code === ERROR_CODES.WORKFLOW_ERROR
           ? 500

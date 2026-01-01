@@ -15,6 +15,7 @@ export interface QuestionInputProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   disabled?: boolean;
   isSubmitting?: boolean;
+  cooldownRemaining?: number;
 }
 
 const MIN_TEXTAREA_HEIGHT = 56; // Increased for better touch target and spacing
@@ -42,6 +43,7 @@ export function QuestionInput({
   textareaRef: externalTextareaRef,
   disabled = false,
   isSubmitting = false,
+  cooldownRemaining = 0,
 }: QuestionInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -190,7 +192,13 @@ export function QuestionInput({
               : 'bg-gradient-to-br from-primary to-accent text-white scale-100 hover:scale-105 active:scale-95 shadow-glow-primary'
           }`}
         >
-          <ArrowUp className={`w-6 h-6 transition-transform duration-500 ${isSubmitting ? 'animate-bounce' : ''}`} />
+          {cooldownRemaining > 0 ? (
+            <span className="text-xs font-bold font-mono">
+              {Math.floor(cooldownRemaining / 60)}:{(cooldownRemaining % 60).toString().padStart(2, '0')}
+            </span>
+          ) : (
+            <ArrowUp className={`w-6 h-6 transition-transform duration-500 ${isSubmitting ? 'animate-bounce' : ''}`} />
+          )}
         </button>
       </div>
 

@@ -34,6 +34,7 @@ const GetPredictResponseSchema = z.object({
 
 const GetBalanceResponseSchema = z.object({
   stars: z.number(),
+  lastPredictionAt: z.string().nullable().optional(),
 });
 
 // Types
@@ -49,6 +50,19 @@ export class AuthError extends Error {
   constructor(message: string = 'Authentication required') {
     super(message);
     this.name = 'AuthError';
+  }
+}
+
+/**
+ * Custom error for rate limiting
+ */
+export class RateLimitError extends Error {
+  public retryAfter: number;
+
+  constructor(message: string, retryAfter: number) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -78,8 +92,15 @@ export async function submitQuestion(question: string): Promise<PostPredictRespo
     if (response.status === 401) {
       throw new AuthError();
     }
-    const errorText = await response.text();
-    throw new Error(`API Error: ${response.status} - ${errorText}`);
+    
+    const responseData = await response.json().catch(() => ({}));
+    const error = responseData.error || responseData;
+    
+    if (response.status === 429 && error.details?.retryAfter) {
+      throw new RateLimitError(error.message || 'Too many requests', error.details.retryAfter);
+    }
+
+    throw new Error(error.message || `API Error: ${response.status}`);
   }
 
   const data = await response.json();

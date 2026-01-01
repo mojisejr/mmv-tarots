@@ -28,5 +28,15 @@ export const GET = async () => {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  return NextResponse.json(user);
+  // Fetch last prediction time for cooldown calculation
+  const lastPrediction = await db.prediction.findFirst({
+    where: { userIdentifier: session.user.id },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true }
+  });
+
+  return NextResponse.json({
+    ...user,
+    lastPredictionAt: lastPrediction?.createdAt || null
+  });
 };

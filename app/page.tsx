@@ -9,13 +9,14 @@ import {
   Sparkles,
 } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
-import { submitQuestion, saveSubmissionState, fetchBalance } from '@/lib/client/api';
+import { submitQuestion, saveSubmissionState, fetchBalance, RateLimitError } from '@/lib/client/api';
 
 function Home() {
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stars, setStars] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [isMobile, setIsMobile] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
@@ -37,21 +38,52 @@ function Home() {
     handleLoginClick 
   } = useNavigation();
 
-  // Fetch stars on mount if logged in
+  // Cooldown Timer Logic
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setCooldownRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldownRemaining]);
+
+  // Fetch stars and cooldown status on mount if logged in
   useEffect(() => {
     if (isLoggedIn) {
       fetchBalance()
-        .then(data => setStars(data.stars))
+        .then(data => {
+          setStars(data.stars);
+          
+          // Calculate initial cooldown if lastPredictionAt exists
+          if (data.lastPredictionAt) {
+            const lastTime = new Date(data.lastPredictionAt).getTime();
+            const now = new Date().getTime();
+            const diffSeconds = Math.floor((now - lastTime) / 1000);
+            const cooldownSeconds = 120; // 2 minutes
+            
+            if (diffSeconds < cooldownSeconds) {
+              setCooldownRemaining(cooldownSeconds - diffSeconds);
+            }
+          }
+        })
         .catch(console.error);
     }
   }, [isLoggedIn]);
 
   // Auto focus on mount
   useEffect(() => {
-    if (textareaRef.current) {
+    if (textareaRef.current && cooldownRemaining === 0) {
       textareaRef.current.focus();
     }
-  }, []);
+  }, [cooldownRemaining]);
 
   const handleQuestionSubmit = async (value: string) => {
     // Validate input
@@ -84,7 +116,13 @@ function Home() {
       router.push(`/submitted?jobId=${response.jobId}`);
     } catch (err) {
       console.error('Failed to submit question:', err);
-      setError(err instanceof Error ? err.message : 'Failed to submit question. Please try again.');
+      
+      if (err instanceof RateLimitError) {
+        setCooldownRemaining(err.retryAfter);
+        setError(null); // Clear error as we show timer instead
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to submit question. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -151,10 +189,11 @@ function Home() {
                     value={question}
                     onChange={setQuestion}
                     onSubmit={handleQuestionSubmit}
-                    placeholder="Ask the stars..."
+                    placeholder={cooldownRemaining > 0 ? `Mimi is resting... (${Math.floor(cooldownRemaining / 60)}:${(cooldownRemaining % 60).toString().padStart(2, '0')})` : "Ask the stars..."}
                     textareaRef={textareaRef}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || cooldownRemaining > 0}
                     isSubmitting={isSubmitting}
+                    cooldownRemaining={cooldownRemaining}
                   />
                   {stars !== null && (
                     <div className="absolute -top-10 right-0 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-none animate-fade-in shadow-lg">

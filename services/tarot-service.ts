@@ -66,10 +66,15 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
     // Step 1: Mark as PROCESSING
     await updatePredictionStatus(jobId, { status: 'PROCESSING' })
 
-    // Step 2: Gatekeeper Agent - Validate question
-    console.log('Running gatekeeper agent...')
-    const gatekeeperResult = await retryOperation(() => gatekeeperAgent(question))
+    // Step 2 & 3: Run Gatekeeper and Analyst in PARALLEL
+    console.log('Running gatekeeper and analyst agents in parallel...')
+    
+    const [gatekeeperResult, analysisResult] = await Promise.all([
+      retryOperation(() => gatekeeperAgent(question)),
+      retryOperation(() => analystAgent(question, userName || undefined))
+    ])
 
+    // Check Gatekeeper result
     if (!gatekeeperResult.approved) {
       console.log('Question rejected by gatekeeper:', gatekeeperResult.reason)
       await updatePredictionStatus(jobId, {
@@ -78,10 +83,6 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
       })
       throw new Error(`Question rejected by gatekeeper: ${gatekeeperResult.reason}`)
     }
-
-    // Step 3: Analyst Agent - Analyze context with user name
-    console.log('Running analyst agent...')
-    const analysisResult = await retryOperation(() => analystAgent(question, userName || undefined))
 
     // Save analysis result
     await updatePredictionStatus(jobId, {
