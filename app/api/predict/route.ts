@@ -1,7 +1,7 @@
 // API Route for POST /api/predict
 // Phase 5: Fire-and-forget Vercel Workflow integration
 
-import { NextRequest } from 'next/server'
+import { NextRequest, after } from 'next/server'
 import { startTarotWorkflow } from '@/services/tarot-service'
 import { PredictionService } from '@/services/prediction-service'
 import { CreditService } from '@/services/credit-service'
@@ -90,23 +90,27 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const jobId = prediction.jobId as string;
 
-    // Trigger workflow asynchronously (fire-and-forget)
-    // Don't await - let it run in background
-    startTarotWorkflow({
-      jobId,
-      question: validBody.question,
-      userIdentifier: validBody.userIdentifier,
-      userId,
-      userName
-    }).catch(async (error) => {
-      // Handle errors asynchronously - log and update database
-      console.error('Workflow failed:', error)
+    // Trigger workflow asynchronously using after() to prevent Vercel suspension
+    // This ensures the background task completes even after response is sent
+    after(async () => {
+      try {
+        await startTarotWorkflow({
+          jobId,
+          question: validBody.question,
+          userIdentifier: validBody.userIdentifier,
+          userId,
+          userName
+        })
+      } catch (error) {
+        // Handle errors asynchronously - log and update database
+        console.error('Workflow failed:', error)
 
-      // Mark job as failed in database
-      await PredictionService.updatePrediction(jobId, {
-        status: 'FAILED',
-        completedAt: new Date()
-      }).catch(err => console.error('Failed to mark job as failed:', err))
+        // Mark job as failed in database
+        await PredictionService.updatePrediction(jobId, {
+          status: 'FAILED',
+          completedAt: new Date()
+        }).catch(err => console.error('Failed to mark job as failed:', err))
+      }
     })
 
     // Return success response with PENDING status
