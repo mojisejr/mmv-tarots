@@ -99,9 +99,9 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
                   
                   {/* Card Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-center">
-                    <p className="text-[9px] sm:text-[10px] text-primary/90 font-serif tracking-widest uppercase mb-0.5 opacity-90">
+                    {/* <p className="text-[9px] sm:text-[10px] text-primary/90 font-serif tracking-widest uppercase mb-0.5 opacity-90">
                       {getPositionName(card.position)}
-                    </p>
+                    </p> */}
                     <p className="text-[10px] sm:text-xs text-white font-serif line-clamp-1 text-shadow-sm">
                       {card.name_th}
                     </p>

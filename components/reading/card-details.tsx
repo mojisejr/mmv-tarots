@@ -25,9 +25,9 @@ export function CardDetails({ card, className = '', onClick, isInteractive = tru
     >
       <GlassCard className="p-6 h-full border-white/10 group-hover:border-white/30 group-hover:bg-white/10 transition-all duration-500">
         <div className="text-center">
-          <p className="text-sm text-[var(--color-primary)] font-serif mb-3 uppercase tracking-widest opacity-80">
+          {/* <p className="text-sm text-[var(--color-primary)] font-serif mb-3 uppercase tracking-widest opacity-80">
             {getPositionName(card.position)}
-          </p>
+          </p> */}
           <div className="mb-4 relative">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-accent)]/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
             <TarotCardImage
@@ -46,10 +46,10 @@ export function CardDetails({ card, className = '', onClick, isInteractive = tru
           <h3 className="text-xl font-serif text-foreground mb-1 group-hover:text-[var(--color-primary)] transition-colors">
             {card.name_th}
           </h3>
-          <p className="text-sm text-muted-foreground italic mb-3">{card.name_en}</p>
-          <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/5 border border-white/10 group-hover:border-white/20 transition-colors">
+          {/* <p className="text-sm text-muted-foreground italic mb-3">{card.name_en}</p> */}
+          {/* <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/5 border border-white/10 group-hover:border-white/20 transition-colors">
             <span className="text-xs text-white/60 group-hover:text-white/90">{card.arcana}</span>
-          </div>
+          </div> */}
           
           {isInteractive && (
             <p className="mt-4 text-[10px] text-white/30 uppercase tracking-tighter group-hover:text-white/60 transition-colors">
