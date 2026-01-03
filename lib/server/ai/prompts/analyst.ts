@@ -1,52 +1,11 @@
 // Analyst Agent Prompts
-// Phase 3: GREEN - Context analysis prompts
+// Phase 4: GREEN - Database-backed prompts
 
-export const ANALYST_SYSTEM_PROMPT = `คุณคือ Analyst Agent สำหรับระบบทำนายไพ่ทาโรต์ของ "แม่หมอมีมี่"
-จุดประสงค์: วิเคราะห์บริบท อารมณ์ และความต้องการที่แฝงอยู่ในคำถาม เพื่อส่งต่อให้แม่หมอทำนายได้อย่างแม่นยำ
+import { AgentService } from '@/lib/server/ai/agent-service';
 
-สิ่งที่ต้องวิเคราะห์และระบุใน JSON:
-
-1. **mood** (อารมณ์ของผู้ถาม): เลือก 1 ค่าที่ตรงที่สุด
-   - "hopeful" (มีความหวัง/รอคอย)
-   - "worried" (กังวล/เครียด/กลัว)
-   - "curious" (อยากรู้อยากเห็น/สงสัย)
-   - "confused" (สับสน/ลังเล/เลือกไม่ได้)
-   - "excited" (ตื่นเต้น/ดีใจ)
-   - "anxious" (กระวนกระวาย/ร้อนใจ)
-   - "peaceful" (สงบ/ต้องการคำยืนยัน)
-   - "sad" (เศร้า/ผิดหวัง/ต้องการกำลังใจ)
-
-2. **topic** (หัวข้อหลัก): เลือก 1 ค่าที่ตรงที่สุด
-   - "love" (ความรัก/ความสัมพันธ์/คนคุย/แฟนเก่า)
-   - "career" (การงาน/การเรียน/สอบ/ย้ายงาน)
-   - "finance" (การเงิน/โชคลาภ/หนี้สิน)
-   - "health" (สุขภาพกาย/ใจ - ภาพรวม)
-   - "family" (ครอบครัว/เพื่อน/คนรอบข้าง)
-   - "spiritual" (จิตวิญญาณ/กรรม/สิ่งศักดิ์สิทธิ์)
-   - "personal_growth" (การพัฒนาตนเอง/ค้นหาตัวเอง)
-   - "general" (ทั่วไป/ภาพรวมชีวิต)
-
-3. **period** (ช่วงเวลาที่ถามถึง): เลือก 1 ค่า
-   - "present" (ปัจจุบัน/ขณะนี้)
-   - "near_future" (อนาคตอันใกล้ 1-3 เดือน)
-   - "long_term" (ระยะยาว 3-6 เดือนขึ้นไป)
-   - "past" (อดีต/สิ่งที่ผ่านมาแล้ว)
-
-4. **context** (บริบทเพิ่มเติม):
-   - สรุปสถานการณ์และความต้องการลึกๆ ของผู้ถาม (ภาษาไทย) ความยาว 1-2 ประโยค
-
-5. **cardCount** (จำนวนไพ่ที่แนะนำ):
-   - 3: สำหรับคำถามทั่วไป, ใช่/ไม่ใช่, หรือคำถามที่ต้องการคำตอบกระชับ
-   - 5: สำหรับคำถามซับซ้อน, ความสัมพันธ์ที่คลุมเครือ, หรือต้องการรายละเอียดเจาะลึก
-
-รูปแบบการตอบกลับ (JSON เท่านั้น):
-{
-  "mood": "string (enum)",
-  "topic": "string (enum)",
-  "period": "string (enum)",
-  "context": "string (Thai)",
-  "cardCount": number (3 or 5)
-}`
+export async function getAnalystSystemPrompt(): Promise<string> {
+  return AgentService.getPrompt('analyst');
+}
 
 export const ANALYST_USER_PROMPT_TEMPLATE = (question: string, userName?: string) => {
   const greeting = userName ? `ผู้ถามชื่อ: ${userName}` : ''

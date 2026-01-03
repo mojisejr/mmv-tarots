@@ -1,10 +1,10 @@
 // Mystic Agent
-// Phase 2: GREEN - Database integration for 78-card reading generation
+// Phase 4: GREEN - Database-backed prompts
 
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 import {
-  MYSTIC_SYSTEM_PROMPT,
+  getMysticSystemPrompt,
   MYSTIC_USER_PROMPT_TEMPLATE
 } from '@/lib/server/ai/prompts/mystic'
 import type { AnalystResponse } from '@/lib/server/ai/agents/analyst'
@@ -41,6 +41,8 @@ export async function mysticAgent(
   analysis: AnalystResponse
 ): Promise<MysticResponse> {
   try {
+    const systemPrompt = await getMysticSystemPrompt();
+
     // Query database for available cards
     const availableCards = await db.card.findMany({
       select: {
@@ -152,7 +154,7 @@ Select ${analysis.cardCount} cards that best answer this question.`,
     // Use AI to generate reading based on database metadata
     const response = await generateText({
       model: google(process.env.MODEL_NAME || 'gemini-2.5-flash'),
-      system: MYSTIC_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt: MYSTIC_USER_PROMPT_TEMPLATE(question, analysis, selectedCards, transformedCardMetadata),
       temperature: 0.8
     })
