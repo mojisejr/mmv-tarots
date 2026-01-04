@@ -1,10 +1,10 @@
 // Gatekeeper Agent
-// Phase 3: GREEN - Question validation implementation
+// Phase 4: GREEN - Database-backed prompts
 
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 import {
-  GATEKEEPER_SYSTEM_PROMPT,
+  getGatekeeperSystemPrompt,
   GATEKEEPER_USER_PROMPT_TEMPLATE
 } from '@/lib/server/ai/prompts/gatekeeper'
 import { parseAIResponse } from '@/lib/server/ai/utils/json-parser'
@@ -18,9 +18,11 @@ export async function gatekeeperAgent(
   question: string
 ): Promise<GatekeeperResponse> {
   try {
+    const systemPrompt = await getGatekeeperSystemPrompt();
+
     const response = await generateText({
       model: google(process.env.MODEL_NAME || 'gemini-2.5-flash'),
-      system: GATEKEEPER_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt: GATEKEEPER_USER_PROMPT_TEMPLATE(question),
       temperature: 0.3
     })

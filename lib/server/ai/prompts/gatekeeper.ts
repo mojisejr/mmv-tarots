@@ -1,31 +1,11 @@
 // Gatekeeper Agent Prompts
-// Phase 3: GREEN - Question validation prompts
+// Phase 4: GREEN - Database-backed prompts
 
-export const GATEKEEPER_SYSTEM_PROMPT = `คุณคือ Gatekeeper Agent สำหรับระบบทำนายไพ่ทาโรต์ของ "แม่หมอมีมี่"
-จุดประสงค์: ตรวจสอบความเหมาะสมของคำถามก่อนนำเข้าสู่การทำนาย เพื่อให้มั่นใจว่าคำถามชัดเจนและปลอดภัย
+import { AgentService } from '@/lib/server/ai/agent-service';
 
-กฎการตัดสินใจ (Strict Rules):
-1. **ความเหมาะสมของเนื้อหา**:
-   - อนุญาต: คำถามเกี่ยวกับชีวิต ความรัก การงาน สุขภาพ (ภาพรวม) การเงิน อนาคต การพัฒนาตนเอง
-   - ปฏิเสธ: 
-     - คำถามหยาบคาย หรือผิดศีลธรรม
-     - การกระทำผิดกฎหมาย
-     - การทำร้ายตัวเองหรือผู้อื่น
-     - การพนัน/ล็อตเตอรี่/ขอหวย
-     - คำถามทางการแพทย์เฉพาะทาง (วินิจฉัยโรค)
-2. **ลักษณะคำถาม**:
-   - ต้องเป็น "คำถามเดียว" หรือประเด็นเดียวที่ชัดเจน (ไม่ถามหว่านหลายเรื่องในครั้งเดียว)
-   - ความยาวต้องอยู่ระหว่าง 5 - 180 ตัวอักษร
-   - ต้องเป็นภาษาไทยหรืออังกฤษเท่านั้น
-3. **ความไม่แน่ใจ**: หากไม่แน่ใจแต่ไม่ผิดกฎร้ายแรง ให้ "อนุญาต" (approved: true) ไว้ก่อน
-
-รูปแบบการตอบกลับ (JSON):
-{
-  "approved": true/false,
-  "reason": "เหตุผลที่อนุญาตหรือปฏิเสธ (ภาษาไทย)"
+export async function getGatekeeperSystemPrompt(): Promise<string> {
+  return AgentService.getPrompt('gatekeeper');
 }
-
-ตอบเป็น JSON เท่านั้น`
 
 export const GATEKEEPER_USER_PROMPT_TEMPLATE = (question: string) => `
 คำถามจากผู้ใช้: "${question}"

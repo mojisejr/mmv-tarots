@@ -1,10 +1,10 @@
 // Analyst Agent
-// Phase 3: GREEN - Context analysis implementation
+// Phase 4: GREEN - Database-backed prompts
 
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 import {
-  ANALYST_SYSTEM_PROMPT,
+  getAnalystSystemPrompt,
   ANALYST_USER_PROMPT_TEMPLATE
 } from '@/lib/server/ai/prompts/analyst'
 import { parseAIResponse } from '@/lib/server/ai/utils/json-parser'
@@ -22,9 +22,11 @@ export async function analystAgent(
   userName?: string
 ): Promise<AnalystResponse> {
   try {
+    const systemPrompt = await getAnalystSystemPrompt();
+
     const response = await generateText({
       model: google(process.env.MODEL_NAME || 'gemini-2.5-flash'),
-      system: ANALYST_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt: ANALYST_USER_PROMPT_TEMPLATE(question, userName),
       temperature: 0.5
     })
