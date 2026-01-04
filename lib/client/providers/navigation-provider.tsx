@@ -3,11 +3,16 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signIn, signOut } from '@/lib/client/auth-client';
+import { fetchBalance } from '@/lib/client/api';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
 
 interface NavigationContextType {
   isLoggedIn: boolean;
+  isPending: boolean;
+  isInitialLoading: boolean;
+  stars: number | null;
+  lastPredictionAt: string | null;
   currentPage: PageType;
   currentJobId: string | null;
   user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null;
@@ -18,6 +23,7 @@ interface NavigationContextType {
   handleBackClick: () => void;
   handleLoginClick: () => void;
   handleLogoutClick: () => void;
+  refreshBalance: () => Promise<void>;
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
@@ -25,9 +31,12 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [currentPage, setCurrentPage] = useState<PageType>('home');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [stars, setStars] = useState<number | null>(null);
+  const [lastPredictionAt, setLastPredictionAt] = useState<string | null>(null);
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
 
   // Sync currentPage with pathname
   useEffect(() => {
@@ -48,6 +57,33 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const isLoggedIn = !!session?.user;
   const user = session?.user || null;
+
+  // Fetch balance when logged in
+  const refreshBalance = async () => {
+    if (isLoggedIn) {
+      setIsFetchingBalance(true);
+      try {
+        const data = await fetchBalance();
+        setStars(data.stars);
+        setLastPredictionAt(data.lastPredictionAt || null);
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+      } finally {
+        setIsFetchingBalance(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      refreshBalance();
+    } else {
+      setStars(null);
+      setLastPredictionAt(null);
+    }
+  }, [isLoggedIn]);
+
+  const isInitialLoading = isPending || (isLoggedIn && stars === null);
 
   const handleHomeClick = () => {
     router.push('/');
@@ -111,6 +147,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     <NavigationContext.Provider
       value={{
         isLoggedIn,
+        isPending,
+        isInitialLoading,
+        stars,
+        lastPredictionAt,
         currentPage,
         currentJobId,
         user,
@@ -121,6 +161,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         handleBackClick,
         handleLoginClick,
         handleLogoutClick,
+        refreshBalance,
       }}
     >
       {children}

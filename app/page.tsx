@@ -9,13 +9,12 @@ import {
   Sparkles,
 } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
-import { submitQuestion, saveSubmissionState, fetchBalance, RateLimitError } from '@/lib/client/api';
+import { submitQuestion, saveSubmissionState, RateLimitError } from '@/lib/client/api';
 
 function Home() {
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stars, setStars] = useState<number | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [isMobile, setIsMobile] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -35,6 +34,8 @@ function Home() {
     setCurrentPage, 
     setCurrentJobId, 
     isLoggedIn, 
+    stars,
+    lastPredictionAt,
     handleLoginClick 
   } = useNavigation();
 
@@ -55,28 +56,19 @@ function Home() {
     return () => clearInterval(timer);
   }, [cooldownRemaining]);
 
-  // Fetch stars and cooldown status on mount if logged in
+  // Calculate initial cooldown if lastPredictionAt exists
   useEffect(() => {
-    if (isLoggedIn) {
-      fetchBalance()
-        .then(data => {
-          setStars(data.stars);
-          
-          // Calculate initial cooldown if lastPredictionAt exists
-          if (data.lastPredictionAt) {
-            const lastTime = new Date(data.lastPredictionAt).getTime();
-            const now = new Date().getTime();
-            const diffSeconds = Math.floor((now - lastTime) / 1000);
-            const cooldownSeconds = 120; // 2 minutes
-            
-            if (diffSeconds < cooldownSeconds) {
-              setCooldownRemaining(cooldownSeconds - diffSeconds);
-            }
-          }
-        })
-        .catch(console.error);
+    if (isLoggedIn && lastPredictionAt) {
+      const lastTime = new Date(lastPredictionAt).getTime();
+      const now = new Date().getTime();
+      const diffSeconds = Math.floor((now - lastTime) / 1000);
+      const cooldownSeconds = 120; // 2 minutes
+      
+      if (diffSeconds < cooldownSeconds) {
+        setCooldownRemaining(cooldownSeconds - diffSeconds);
+      }
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, lastPredictionAt]);
 
   // Auto focus on mount
   useEffect(() => {
@@ -129,11 +121,11 @@ function Home() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden pb-32 md:pb-0">
+    <div className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] flex flex-col relative overflow-hidden">
       {/* Main Content Area (The Sacred Space) */}
       <div
         data-testid="main-content"
-        className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-6 w-full max-w-4xl mx-auto z-10"
+        className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-6 w-full max-w-4xl mx-auto z-10 pb-40"
       >
         {/* Hero Section with Mimi Avatar */}
         <section className="w-full flex flex-col items-center justify-center space-y-6 md:space-y-10 animate-fade-in-up relative">
@@ -141,7 +133,7 @@ function Home() {
           <MimiAvatar performanceMode={isMobile} />
 
           {/* Heading - Text Balance for perfect wrapping */}
-          <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-foreground leading-tight tracking-tight text-balance pt-20 md:pt-0">
+          <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-foreground leading-tight tracking-tight text-balance pt-10 md:pt-0">
             <span className="text-text-main">What guidance</span>
             <br />
             <span className="text-primary-strong font-medium">do you seek?</span>
@@ -152,7 +144,7 @@ function Home() {
       {/* Input Section (The Offering) - Sticky Bottom */}
       <div
         data-testid="bottom-input-container"
-        className="fixed bottom-[90px] md:sticky md:bottom-0 left-0 right-0 z-40 w-full pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-background via-background/80 to-transparent pt-12"
+        className="fixed bottom-[90px] md:sticky md:bottom-0 left-0 right-0 z-40 w-full pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-background via-background/80 to-transparent pt-6"
       >
         <div
           data-testid="input-wrapper"

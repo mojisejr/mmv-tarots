@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { LiquidBackground, MainNavigation, BottomNav } from "@/components";
+import { LiquidBackground, MainNavigation, BottomNav, GlobalLoading } from "@/components";
 import { NavigationProvider } from "@/lib/client/providers/navigation-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
 
@@ -38,6 +38,7 @@ export default function RootLayout({
         <LiquidBackground />
         <ToastProvider />
         <NavigationProvider>
+          <GlobalLoading />
           <MainNavigation />
           <main className="flex-1 pt-16 md:pt-20 relative z-10 pb-[env(safe-area-inset-bottom)]">
             {children}
