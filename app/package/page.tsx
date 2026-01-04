@@ -6,6 +6,7 @@ import { GlassCard, GlassButton, Sparkles, ErrorBoundary } from '@/components';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { toast } from 'sonner';
+import { cn } from '@/lib/shared/utils';
 
 interface StarPackage {
   id: string;
@@ -48,7 +49,7 @@ function PackagePageContent() {
 
   const handleBuy = async (packageId: string) => {
     if (!session?.user) {
-      alert('กรุณา Login ก่อนซื้อแพ็กเกจ');
+      toast.error('กรุณา Login ก่อนซื้อแพ็กเกจ');
       return;
     }
 
@@ -73,7 +74,7 @@ function PackagePageContent() {
       }
     } catch (error) {
       console.error(error);
-      alert('เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
+      toast.error('เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
     } finally {
       setLoading(null);
     }
@@ -81,62 +82,92 @@ function PackagePageContent() {
 
   const getGradient = (index: number) => {
     const gradients = [
-      'from-blue-400 to-cyan-500',
-      'from-purple-400 to-pink-500',
-      'from-amber-400 to-orange-500',
+      'from-primary/40 to-primary-strong/40',
+      'from-accent/40 to-amber-600/40',
+      'from-primary-strong/40 to-accent/40',
     ];
     return gradients[index % gradients.length];
   };
 
+  const getIconColor = (index: number) => {
+    const colors = [
+      'text-primary-strong',
+      'text-accent',
+      'text-primary',
+    ];
+    return colors[index % colors.length];
+  };
+
   return (
     <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
-      <div className="text-center mb-12">
+      <div className="text-center mb-12 animate-fade-in-down">
         <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">
           เติม Star
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-lg font-sans">
           เลือกแพ็กเกจที่เหมาะกับคุณเพื่อเปิดคำทำนาย
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 max-w-md mx-auto">
-        {packages.map((pkg, index) => (
-          <GlassCard
-            key={pkg.id}
-            className="relative overflow-hidden group transition-all duration-300 border-[0.5px] glass-mimi"
-          >
-            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${getGradient(index)}`} />
-            
-            <div className="relative z-10 flex flex-col items-center text-center p-6 space-y-4">
-              <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getGradient(index)} flex items-center justify-center mb-2 shadow-lg`}>
-                <Sparkles className="w-8 h-8 text-foreground" />
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        {packages.map((pkg, index) => {
+          const isPopular = index === 1; // สมมติว่าใบกลางคือยอดนิยม
+          
+          return (
+            <GlassCard
+              key={pkg.id}
+              className={cn(
+                "relative overflow-hidden group transition-all duration-500 border-[0.5px] glass-mimi flex flex-col",
+                isPopular ? "scale-105 shadow-glow-primary border-primary/50 z-10" : "hover:scale-102"
+              )}
+            >
+              {isPopular && (
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-bold rounded-bl-xl z-20 shadow-sm">
+                  POPULAR
+                </div>
+              )}
 
-              <h3 className="text-2xl font-bold text-foreground">{pkg.name}</h3>
+              <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${getGradient(index)} group-hover:opacity-30 transition-opacity duration-500`} />
               
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-accent">{pkg.stars}</span>
-                <span className="text-muted-foreground">Stars</span>
-              </div>
+              <div className="relative z-10 flex flex-col items-center text-center p-6 space-y-6 h-full">
+                <div className={cn(
+                  "w-20 h-20 rounded-full bg-surface-card flex items-center justify-center mb-2 shadow-warm border border-border-subtle group-hover:rotate-12 transition-transform duration-500",
+                  getIconColor(index)
+                )}>
+                  <Sparkles className="w-10 h-10" />
+                </div>
 
-              <p className="text-muted-foreground text-sm min-h-[40px]">
-                {pkg.description || 'แพ็กเกจพิเศษสำหรับคุณ'}
-              </p>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-serif font-bold text-foreground">{pkg.name}</h3>
+                  <p className="text-muted-foreground text-sm font-sans leading-relaxed min-h-[40px]">
+                    {pkg.description || 'แพ็กเกจพิเศษสำหรับคุณ'}
+                  </p>
+                </div>
+                
+                <div className="flex flex-col items-center justify-center flex-grow py-4">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-bold text-foreground tracking-tighter">{pkg.stars}</span>
+                    <span className="text-muted-foreground font-medium">Stars</span>
+                  </div>
+                  <div className="mt-2 px-4 py-1 rounded-full bg-surface-subtle border border-border-subtle">
+                    <p className="text-lg font-semibold text-accent">฿{pkg.price.toFixed(2)}</p>
+                  </div>
+                </div>
 
-              <div className="w-full pt-4">
-                <GlassButton
-                  onClick={() => handleBuy(pkg.id)}
-                  disabled={loading === pkg.id}
-                  className={`w-full py-3 font-semibold bg-gradient-to-r ${getGradient(index)} border-none hover:opacity-90 text-foreground`}
-                >
-                  {loading === pkg.id ? 'กำลังเตรียมการชำระเงิน...' : `ซื้อ ${pkg.stars} Stars`}
-                </GlassButton>
+                <div className="w-full pt-4">
+                  <GlassButton
+                    onClick={() => handleBuy(pkg.id)}
+                    disabled={loading === pkg.id}
+                    variant={isPopular ? "primary" : "outline"}
+                    className="w-full py-4 font-bold text-lg shadow-warm"
+                  >
+                    {loading === pkg.id ? 'กำลังเตรียมการ...' : `เลือกแพ็กเกจ`}
+                  </GlassButton>
+                </div>
               </div>
-              
-              <p className="text-sm text-muted-foreground mt-2">฿{pkg.price.toFixed(2)}</p>
-            </div>
-          </GlassCard>
-        ))}
+            </GlassCard>
+          );
+        })}
       </div>
     </div>
   );
