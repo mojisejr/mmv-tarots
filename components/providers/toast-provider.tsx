@@ -12,12 +12,12 @@ export function ToastProvider() {
       position="top-center"
       toastOptions={{
         classNames: {
-          toast: 'bg-black/80 backdrop-blur-xl border border-white/10 text-white',
-          title: 'text-white font-medium',
-          description: 'text-white/70',
-          actionButton: 'bg-primary text-white',
-          cancelButton: 'bg-white/10 text-white',
-          closeButton: 'bg-white/10 text-white hover:bg-white/20',
+          toast: 'bg-white/80 backdrop-blur-xl border border-primary/20 text-foreground',
+          title: 'text-foreground font-medium',
+          description: 'text-muted-foreground',
+          actionButton: 'bg-primary text-foreground',
+          cancelButton: 'bg-primary/10 text-foreground',
+          closeButton: 'bg-primary/10 text-foreground hover:bg-primary/20',
         },
       }}
       richColors

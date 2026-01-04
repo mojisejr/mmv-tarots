@@ -11,8 +11,8 @@ export function Disclaimer({ text, className = '' }: DisclaimerProps) {
       className={`flex items-start gap-2 mt-8 ${className}`}
       role="note"
     >
-      <Info data-testid="info-icon" className="w-4 h-4 text-[#ffffff66] mt-0.5" />
-      <p className="flex-1 text-xs text-[#ffffff66] leading-relaxed">
+      <Info data-testid="info-icon" className="w-4 h-4 text-muted-foreground mt-0.5" />
+      <p className="flex-1 text-xs text-muted-foreground leading-relaxed">
         {text}
       </p>
     </div>

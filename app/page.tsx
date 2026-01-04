@@ -141,10 +141,10 @@ function Home() {
           <MimiAvatar performanceMode={isMobile} />
 
           {/* Heading - Text Balance for perfect wrapping */}
-          <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-white leading-tight tracking-tight drop-shadow-lg text-balance pt-20 md:pt-0">
-            <span className="text-white/90">What guidance</span>
+          <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-foreground leading-tight tracking-tight text-balance pt-20 md:pt-0">
+            <span className="text-text-main">What guidance</span>
             <br />
-            <span className="text-gradient-gold font-medium">do you seek?</span>
+            <span className="text-primary-strong font-medium">do you seek?</span>
           </h1>
         </section>
       </div>
@@ -161,8 +161,8 @@ function Home() {
           {/* Error display */}
           {error && (
             <div className="mb-4 animate-fade-in">
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 backdrop-blur-sm">
-                <p className="text-red-300 text-sm text-center">{error}</p>
+              <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 backdrop-blur-sm">
+                <p className="text-destructive text-sm text-center">{error}</p>
               </div>
             </div>
           )}
@@ -170,13 +170,13 @@ function Home() {
           {isLoggedIn ? (
             stars === 0 ? (
               <div className="flex flex-col items-center space-y-4 animate-fade-in pb-4">
-                <p className="text-white/60 text-sm font-medium">คุณไม่มี Star เหลือสำหรับการทำนาย</p>
+                <p className="text-muted-foreground text-sm font-medium">คุณไม่มี Star เหลือสำหรับการทำนาย</p>
                 <GlassButton 
                   onClick={() => router.push('/package')}
                   className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border-yellow-400/30 hover:border-yellow-400/50 transition-all duration-300 shadow-lg glass-celestial"
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                    <Sparkles className="w-4 h-4 text-accent" />
                     <span>เติม Star เพื่อรับคำทำนาย</span>
                   </div>
                 </GlassButton>
@@ -196,9 +196,9 @@ function Home() {
                     cooldownRemaining={cooldownRemaining}
                   />
                   {stars !== null && (
-                    <div className="absolute -top-10 right-0 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 pointer-events-none animate-fade-in shadow-lg">
-                      <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                      <span className="text-xs font-medium text-white/90">{stars} Stars</span>
+                    <div className="absolute -top-10 right-0 flex items-center gap-1.5 bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/20 pointer-events-none animate-fade-in shadow-warm">
+                      <Sparkles className="w-3.5 h-3.5 text-accent" />
+                      <span className="text-xs font-medium text-foreground">{stars} Stars</span>
                     </div>
                   )}
                 </div>
@@ -206,7 +206,7 @@ function Home() {
             )
           ) : (
             <div className="flex flex-col items-center space-y-4 animate-fade-in pb-4">
-              <p className="text-white/60 text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
+              <p className="text-muted-foreground text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
               <GlassButton 
                 onClick={handleLoginClick}
                 className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-white/10 hover:border-white/30 transition-all duration-300 shadow-lg glass-celestial"

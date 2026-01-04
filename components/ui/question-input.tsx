@@ -119,7 +119,7 @@ export function QuestionInput({
     <div className="w-full relative" data-testid="question-input-container">
       {/* Focus Mode Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-500 pointer-events-none z-[-1] ${
+        className={`fixed inset-0 bg-white/60 backdrop-blur-sm transition-opacity duration-500 pointer-events-none z-[-1] ${
           isFocused ? 'opacity-100' : 'opacity-0'
         }`}
       />
@@ -128,7 +128,7 @@ export function QuestionInput({
       {(isFocused || characterCount > 0) && (
         <FloatingBadge position="top-left" animate={false}>
           <span className={`text-[10px] font-bold tracking-tighter ${
-            characterCount > maxCharacters ? 'text-red-400' : 'text-white/60'
+            characterCount > maxCharacters ? 'text-red-400' : 'text-muted-foreground'
           }`}>
             {characterCount}/{maxCharacters}
           </span>
@@ -138,15 +138,15 @@ export function QuestionInput({
       {/* Ready Status Badge (Top Right) */}
       {isValid && !isFocused && (
         <FloatingBadge position="top-right">
-          <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-          <span className="text-[10px] font-bold text-white/80 uppercase tracking-tighter">Ready to Ask</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="text-[10px] font-bold text-foreground uppercase tracking-tighter">Ready to Ask</span>
         </FloatingBadge>
       )}
 
       <div className="flex items-end gap-3">
         <div
-          className={`flex-1 relative bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] transition-all duration-300 hover:bg-white/15 hover:border-white/30 ${
-            isFocused ? 'bg-white/20 border-white/40 shadow-xl ring-1 ring-white/20' : ''
+          className={`flex-1 relative bg-glass-mimi backdrop-blur-2xl border border-primary/20 rounded-[2rem] shadow-warm transition-all duration-300 hover:bg-primary/5 hover:border-primary/30 ${
+            isFocused ? 'bg-primary/10 border-primary/40 shadow-xl ring-1 ring-primary/20' : ''
           }`}
         >
           <style jsx>{`
@@ -172,7 +172,7 @@ export function QuestionInput({
             inputMode="text"
             enterKeyHint="send"
             data-testid="question-textarea"
-            className="w-full bg-transparent border-none text-white placeholder-white/30 focus:ring-0 focus:outline-none resize-none py-4 px-6 font-sans text-lg leading-relaxed tracking-wide"
+            className="w-full bg-transparent border-none text-foreground placeholder-foreground/30 focus:ring-0 focus:outline-none resize-none py-4 px-6 font-sans text-lg leading-relaxed tracking-wide"
             style={{
               minHeight: `${MIN_TEXTAREA_HEIGHT}px`,
               maxHeight: `${MIN_TEXTAREA_HEIGHT + (28 * (maxRows - 1))}px`,
@@ -188,8 +188,8 @@ export function QuestionInput({
           aria-label={disabled ? 'Submitting question' : (isValid ? 'Submit question' : 'Question too short')}
           className={`p-4 rounded-full transition-all duration-500 flex items-center justify-center shadow-2xl focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[56px] min-w-[56px] ${
             disabled || !isValid
-              ? 'bg-white/5 text-white/20 cursor-not-allowed scale-90 grayscale pointer-events-none'
-              : 'bg-gradient-to-br from-primary to-accent text-white scale-100 hover:scale-105 active:scale-95 shadow-glow-primary'
+              ? 'bg-black/5 text-foreground/20 cursor-not-allowed scale-90 grayscale pointer-events-none'
+              : 'bg-gradient-to-br from-primary to-accent text-foreground scale-100 hover:scale-105 active:scale-95 shadow-glow-primary'
           }`}
         >
           {cooldownRemaining > 0 ? (
@@ -204,7 +204,7 @@ export function QuestionInput({
 
       <p
         id="question-hint"
-        className={`text-center text-[11px] text-white/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300 hidden md:block ${
+        className={`text-center text-[11px] text-muted-foreground/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300 hidden md:block ${
           showHint ? 'opacity-100' : 'opacity-0'
         }`}
         aria-hidden={!showHint}

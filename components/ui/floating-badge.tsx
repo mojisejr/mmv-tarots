@@ -28,7 +28,7 @@ export function FloatingBadge({
       animate && "animate-fade-in"
     )}>
       <div className={cn(
-        "bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-3 py-1 flex items-center gap-1.5 shadow-lg",
+        "bg-surface-card backdrop-blur-md border border-border-subtle rounded-full px-3 py-1 flex items-center gap-1.5 shadow-lg",
         className
       )}>
         {children}

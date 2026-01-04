@@ -12,7 +12,7 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
       case 'PENDING':
         return {
           bgColor: 'bg-amber-500/10',
-          textColor: 'text-amber-400',
+          textColor: 'text-amber-700',
           borderColor: 'border-amber-500/20',
           glowColor: 'shadow-[0_0_10px_rgba(245,158,11,0.1)]',
           message: message || 'รอคิว...',
@@ -22,7 +22,7 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
       case 'PROCESSING':
         return {
           bgColor: 'bg-indigo-500/10',
-          textColor: 'text-indigo-400',
+          textColor: 'text-indigo-700',
           borderColor: 'border-indigo-500/20',
           glowColor: 'shadow-[0_0_10px_rgba(99,102,241,0.1)]',
           message: message || 'กำลังทำนาย...',
@@ -33,7 +33,7 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
       case 'SUCCESS':
         return {
           bgColor: 'bg-emerald-500/10',
-          textColor: 'text-emerald-400',
+          textColor: 'text-emerald-700',
           borderColor: 'border-emerald-500/20',
           glowColor: 'shadow-[0_0_10px_rgba(16,185,129,0.1)]',
           message: message || (status === 'SUCCESS' ? 'สำเร็จ' : 'ทำนายเสร็จแล้ว'),
@@ -43,7 +43,7 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
       case 'FAILED':
         return {
           bgColor: 'bg-rose-500/10',
-          textColor: 'text-rose-400',
+          textColor: 'text-rose-700',
           borderColor: 'border-rose-500/20',
           glowColor: 'shadow-[0_0_10px_rgba(244,63,94,0.1)]',
           message: message || 'ไม่สำเร็จ',
@@ -53,7 +53,7 @@ export function StatusBadge({ status, message }: StatusBadgeProps) {
       default:
         return {
           bgColor: 'bg-slate-500/10',
-          textColor: 'text-slate-400',
+          textColor: 'text-slate-700',
           borderColor: 'border-slate-500/20',
           glowColor: '',
           message: 'ไม่ทราบสถานะ',

@@ -11,12 +11,12 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
       <div
         ref={ref}
         className={cn(
-          'relative backdrop-blur-md bg-glass-white border-glass-border shadow-glass rounded-[1.5rem] p-6 text-foreground',
+          'relative backdrop-blur-md bg-surface-card border border-border-subtle shadow-warm rounded-[1.5rem] p-6 text-foreground',
           className
         )}
         {...props}
       >
-        <div className="absolute inset-0 rounded-[1.5rem] border-[0.5px] border-white/5 pointer-events-none"></div>
+        <div className="absolute inset-0 rounded-[1.5rem] border-[0.5px] border-border-subtle pointer-events-none opacity-50"></div>
         {children}
       </div>
     );

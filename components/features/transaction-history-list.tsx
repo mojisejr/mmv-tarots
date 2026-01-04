@@ -57,7 +57,7 @@ export function TransactionHistoryList() {
 
   if (!history?.transactions.length) {
     return (
-      <GlassCard className="p-6 text-center text-white/60">
+      <GlassCard className="p-6 text-center text-muted-foreground">
         <p>ไม่พบประวัติการทำรายการ</p>
       </GlassCard>
     );
@@ -69,13 +69,13 @@ export function TransactionHistoryList() {
         <GlassCard key={tx.id} className="flex items-center justify-between p-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <span className="font-serif font-bold text-white">
+              <span className="font-serif font-bold text-foreground">
                 {tx.type === 'TOPUP' ? 'เติมดาว (Package)' : 
                  tx.type === 'PREDICTION' ? 'ทำนายไพ่' : 'คืนดาว (Refund)'}
               </span>
               <StatusBadge status={tx.status as any} />
             </div>
-            <span className="text-xs text-white/60">
+            <span className="text-xs text-muted-foreground">
               {new Date(tx.createdAt).toLocaleString('th-TH', {
                 year: 'numeric',
                 month: 'short',
@@ -91,7 +91,7 @@ export function TransactionHistoryList() {
             }`}>
               {tx.amount > 0 ? '+' : ''}{tx.amount} Stars
             </div>
-            <div className="text-xs text-white/40">
+            <div className="text-xs text-muted-foreground/60">
               Balance: {tx.balanceAfter}
             </div>
           </div>

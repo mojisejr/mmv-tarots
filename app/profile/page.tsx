@@ -156,7 +156,7 @@ function ProfilePageContent() {
   if (isPending) {
     return (
       <div className="max-w-md mx-auto pt-10 px-4 h-full flex items-center justify-center pb-24">
-        <div className="text-white/60">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -180,26 +180,26 @@ function ProfilePageContent() {
               className="w-24 h-24 rounded-full border-2 border-primary/50 shadow-glow-primary"
             />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-2 border-white/20">
-              <User className="w-12 h-12 text-white" />
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center border-2 border-white/20">
+              <User className="w-12 h-12 text-foreground" />
             </div>
           )}
         </div>
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">{user.name || 'Cosmic Traveler'}</h1>
-          <p className="text-white/40 text-sm">{user.email}</p>
+          <h1 className="text-2xl font-bold text-foreground">{user.name || 'Cosmic Traveler'}</h1>
+          <p className="text-muted-foreground text-sm">{user.email}</p>
         </div>
       </div>
 
       {/* Stars Wallet Card */}
-      <GlassCard className="mb-6 !bg-gradient-to-br from-white/10 to-white/5 border-primary/20">
+      <GlassCard className="mb-6 glass-mimi border-primary/20">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
-            <p className="text-white/60 text-xs uppercase tracking-widest">Your Balance</p>
+            <p className="text-muted-foreground text-xs uppercase tracking-widest">Your Balance</p>
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-yellow-400" />
-              <span className="text-3xl font-bold text-white">{stars}</span>
-              <span className="text-white/60 text-sm">Stars</span>
+              <Sparkles className="w-5 h-5 text-accent" />
+              <span className="text-3xl font-bold text-foreground">{stars}</span>
+              <span className="text-muted-foreground text-sm">Stars</span>
             </div>
           </div>
           <GlassButton 
@@ -213,40 +213,40 @@ function ProfilePageContent() {
 
       {/* Referral Program Card */}
       {referralCode && (
-        <GlassCard className="mb-6 !bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
+        <GlassCard className="mb-6 glass-mimi border-accent/20">
           <div className="flex items-start gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <Gift className="w-5 h-5 text-purple-300" />
+            <div className="p-2 rounded-lg bg-accent/10">
+              <Gift className="w-5 h-5 text-accent" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-white mb-1">ชวนเพื่อนรับ Stars</h4>
-              <p className="text-xs text-white/60 leading-relaxed">
-                เพื่อนคุณจะได้ <span className="text-white font-semibold">1 Star ฟรี</span><br />
-                คุณจะได้ <span className="text-white font-semibold">2 Stars</span> เมื่อเพื่อนสมัครสมาชิก
+              <h4 className="text-sm font-bold text-foreground mb-1">ชวนเพื่อนรับ Stars</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                เพื่อนคุณจะได้ <span className="text-foreground font-semibold">1 Star ฟรี</span><br />
+                คุณจะได้ <span className="text-foreground font-semibold">2 Stars</span> เมื่อเพื่อนสมัครสมาชิก
               </p>
             </div>
           </div>
           
           <div className="flex gap-2">
-            <div className="flex-1 bg-black/30 rounded-lg px-3 py-2.5 text-xs font-mono text-white/80 truncate border border-white/5">
+            <div className="flex-1 bg-primary/5 rounded-lg px-3 py-2.5 text-xs font-mono text-foreground/80 truncate border border-primary/10">
               {typeof window !== 'undefined' ? window.location.origin : ''}/?ref={referralCode}
             </div>
             <GlassButton 
               onClick={handleCopyReferralLink}
-              className="!px-4 !py-2.5 bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30"
+              className="!px-4 !py-2.5 bg-accent/10 border-accent/20 hover:bg-accent/20"
             >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
             </GlassButton>
           </div>
         </GlassCard>
       )}
 
       {/* Tabs Control */}
-      <div className="flex p-1 bg-black/20 backdrop-blur-md rounded-2xl mb-6 border border-white/5">
+      <div className="flex p-1 bg-primary/10 backdrop-blur-md rounded-2xl mb-6 border border-primary/20">
         <button
           onClick={() => setActiveTab('predictions')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-            activeTab === 'predictions' ? 'bg-white/10 text-white shadow-lg' : 'text-white/40'
+            activeTab === 'predictions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-muted-foreground/60'
           }`}
         >
           <History className="w-4 h-4" />
@@ -255,7 +255,7 @@ function ProfilePageContent() {
         <button
           onClick={() => setActiveTab('transactions')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-            activeTab === 'transactions' ? 'bg-white/10 text-white shadow-lg' : 'text-white/40'
+            activeTab === 'transactions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-muted-foreground/60'
           }`}
         >
           <QrCode className="w-4 h-4" />
@@ -266,7 +266,7 @@ function ProfilePageContent() {
       {activeTab === 'predictions' ? (
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Recent Predictions</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Recent Predictions</h3>
             <GlassButton 
               onClick={() => router.push('/history')}
               className="text-xs px-3 py-1"
@@ -275,7 +275,7 @@ function ProfilePageContent() {
             </GlassButton>
           </div>
           {loading ? (
-            <div className="text-center py-10 text-white/40">Loading predictions...</div>
+            <div className="text-center py-10 text-muted-foreground/40">Loading predictions...</div>
           ) : predictions.length > 0 ? (
             predictions.map((prediction) => (
               <HistoryCard
@@ -285,7 +285,7 @@ function ProfilePageContent() {
               />
             ))
           ) : (
-            <div className="text-center py-10 text-white/40">No predictions yet</div>
+            <div className="text-center py-10 text-muted-foreground/40">No predictions yet</div>
           )}
         </div>
       ) : (
@@ -295,7 +295,7 @@ function ProfilePageContent() {
       <div className="mt-12 flex justify-center">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 text-red-400/60 hover:text-red-400 transition-colors text-sm font-medium uppercase tracking-widest"
+          className="flex items-center gap-2 text-destructive/60 hover:text-destructive transition-colors text-sm font-medium uppercase tracking-widest"
         >
           <LogOut className="w-4 h-4" />
           Sign Out

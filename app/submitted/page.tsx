@@ -127,16 +127,16 @@ function SubmittedPageContent() {
   if (error || !jobId) {
     return (
       <div className="max-w-xl mx-auto w-full px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8 !bg-white/5 !border-white/10">
-          <h2 className="text-2xl font-serif text-white mb-3 drop-shadow-md">
+        <GlassCard className="text-center p-8 glass-mimi">
+          <h2 className="text-2xl font-serif text-foreground mb-3">
             {error || 'Ticket Not Found'}
           </h2>
-          <p className="text-white/60 mb-6">
+          <p className="text-muted-foreground mb-6">
             {error || 'The ticket ID you provided is invalid or has expired.'}
           </p>
           <button
             onClick={() => router.push('/')}
-            className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full transition-colors"
+            className="bg-primary/10 hover:bg-primary/20 text-foreground px-6 py-3 rounded-full transition-colors border border-primary/20"
           >
             Go Home
           </button>
@@ -147,10 +147,10 @@ function SubmittedPageContent() {
 
   return (
     <div className="max-w-xl mx-auto w-full px-4 h-full flex flex-col justify-center pb-20">
-      <GlassCard className="text-center p-0 overflow-hidden !bg-white/5 !border-white/10">
-        <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
+      <GlassCard className="text-center p-0 overflow-hidden glass-mimi">
+        <div className="absolute top-0 left-0 w-full h-1 bg-primary/10">
           <div
-            className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] transition-all duration-1000 ease-linear shadow-[0_0_10px_var(--primary)]"
+            className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-linear shadow-glow-primary"
             style={{ width: `${((currentStepIndex + 1) / WAITING_STEPS.length) * 100}%` }}
           ></div>
         </div>
@@ -160,18 +160,18 @@ function SubmittedPageContent() {
             <div className="absolute inset-0 z-0">
               <MimiLoadingAvatar performanceMode={isMobile} />
             </div>
-            <div className="absolute inset-0 bg-[var(--primary)] opacity-30 blur-[60px] rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 bg-primary opacity-30 blur-[60px] rounded-full animate-pulse"></div>
           </div>
 
-          <h2 className="text-2xl font-serif text-white mb-3 drop-shadow-md">Connecting...</h2>
+          <h2 className="text-2xl font-serif text-foreground mb-3">Connecting...</h2>
 
           {/* Countdown display */}
-          <div className="text-sm text-white/60 mb-3">
+          <div className="text-sm text-muted-foreground mb-3">
             Redirecting in {timeLeft} seconds...
           </div>
 
           <div
-            className="flex items-center justify-center gap-2 text-xs text-white/60 mb-10 bg-white/5 hover:bg-white/10 py-2 px-5 rounded-full w-fit mx-auto cursor-pointer transition-colors font-mono border border-white/10"
+            className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-10 bg-primary/5 hover:bg-primary/10 py-2 px-5 rounded-full w-fit mx-auto cursor-pointer transition-colors font-mono border border-primary/10"
             onClick={copyJobId}
           >
             <span>#{jobId}</span>
@@ -182,7 +182,7 @@ function SubmittedPageContent() {
           {showSkipOption && (
             <button
               onClick={skipRedirect}
-              className="text-white/60 hover:text-white text-sm underline mb-6 transition-colors"
+              className="text-muted-foreground hover:text-foreground text-sm underline mb-6 transition-colors"
             >
               Skip waiting
             </button>
@@ -194,13 +194,13 @@ function SubmittedPageContent() {
                 key={step.id}
                 className={`flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 border ${
                   index === currentStepIndex
-                    ? 'bg-white/10 border-white/20 text-white scale-105 shadow-lg backdrop-blur-sm'
+                    ? 'bg-primary/10 border-primary/20 text-foreground scale-105 shadow-warm backdrop-blur-sm'
                     : index < currentStepIndex
-                    ? 'border-transparent text-white/40'
-                    : 'border-transparent text-white/10'
+                    ? 'border-transparent text-muted-foreground/40'
+                    : 'border-transparent text-muted-foreground/10'
                 }`}
               >
-                <div className={`p-2 rounded-full ${index <= currentStepIndex ? 'bg-white/10 text-[var(--primary)]' : 'bg-white/5'}`}>
+                <div className={`p-2 rounded-full ${index <= currentStepIndex ? 'bg-primary/10 text-accent' : 'bg-black/5'}`}>
                   {index < currentStepIndex ? <CheckCircle2 className="w-4 h-4" /> : <step.Icon className="w-5 h-5" />}
                 </div>
                 <span className="font-medium text-sm tracking-wide">{step.label}</span>
@@ -209,14 +209,14 @@ function SubmittedPageContent() {
           </div>
         </div>
 
-        <div className="bg-white/5 p-5 border-t border-white/5 mt-4 min-h-[90px] flex items-center justify-center backdrop-blur-sm">
-          <p className="text-sm text-white/70 italic animate-fade-in font-serif px-4 leading-relaxed">
+        <div className="bg-primary/5 p-5 border-t border-primary/10 mt-4 min-h-[90px] flex items-center justify-center backdrop-blur-sm">
+          <p className="text-sm text-muted-foreground italic animate-fade-in font-serif px-4 leading-relaxed">
             "{FUN_FACTS[quoteIndex]}"
           </p>
         </div>
       </GlassCard>
 
-      <p className="text-center text-[10px] text-white/30 mt-8 font-sans uppercase tracking-widest">
+      <p className="text-center text-[10px] text-muted-foreground/30 mt-8 font-sans uppercase tracking-widest">
         You can close this window.
       </p>
     </div>

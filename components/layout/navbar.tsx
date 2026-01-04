@@ -71,8 +71,8 @@ export function Navigation({
     backdrop-blur-xl border-b transition-all duration-300
     navbar-enter
     ${scrolled
-      ? 'bg-black/40 border-white/20 shadow-2xl'
-      : 'bg-black/20 border-white/10 shadow-lg'
+      ? 'bg-white/80 border-white/40 shadow-warm'
+      : 'bg-white/40 border-white/20 shadow-sm'
     }
   `;
 
@@ -90,14 +90,14 @@ export function Navigation({
             onClick={onBackClick}
             aria-label="Go back"
             data-testid="back-button"
-            className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 nav-button-hover"
+            className="p-2 rounded-full hover:bg-black/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black/10 nav-button-hover"
           >
-            <ChevronLeft className="w-6 h-6 text-white" />
+            <ChevronLeft className="w-6 h-6 text-foreground" />
           </button>
         ) : (
           <button
             onClick={onHomeClick}
-            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-white/20 rounded-lg p-1"
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-black/10 rounded-lg p-1"
             aria-label="Go to home"
           >
             <Image
@@ -116,7 +116,7 @@ export function Navigation({
       <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
         {!isHomePage && (
           <div className="flex flex-col items-center">
-            <span className="text-lg font-serif font-medium text-white drop-shadow-md whitespace-nowrap">
+            <span className="text-lg font-serif font-medium text-foreground whitespace-nowrap">
               {pageTitle}
             </span>
           </div>

@@ -54,15 +54,15 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative w-full max-w-2xl h-auto max-h-[90dvh] sm:max-h-[85vh] flex flex-col"
           >
-            <GlassCard className="flex flex-col h-full p-0 overflow-hidden border-white/20 shadow-2xl">
+            <GlassCard className="flex flex-col h-full p-0 overflow-hidden border-border-subtle shadow-2xl">
               {/* Header */}
-              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 bg-white/5 flex-shrink-0">
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border-subtle bg-surface-subtle flex-shrink-0">
                 <h2 className="text-lg sm:text-2xl font-serif text-foreground line-clamp-1">
                   {title}
                 </h2>
                 <button
                   onClick={onClose}
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                  className="p-1.5 sm:p-2 rounded-full hover:bg-surface-hover transition-colors text-muted-foreground hover:text-foreground"
                   aria-label="Close modal"
                 >
                   <X className="w-5 h-5 sm:w-6 h-6" />

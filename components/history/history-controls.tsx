@@ -26,14 +26,14 @@ export function HistoryControls({
       {/* Search Bar */}
       <div className="relative w-full md:max-w-md group">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-white/40 group-focus-within:text-primary/80 transition-colors" />
+          <Search className="h-4 w-4 text-text-muted group-focus-within:text-primary-strong transition-colors" />
         </div>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search your visions..."
-          className="block w-full pl-10 pr-3 py-2 border border-white/10 rounded-xl leading-5 bg-white/5 text-white placeholder-white/30 focus:outline-none focus:bg-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 sm:text-sm transition-all duration-300 backdrop-blur-sm"
+          className="block w-full pl-10 pr-3 py-2 border border-border-subtle rounded-xl leading-5 bg-surface-subtle text-text-main placeholder-text-muted focus:outline-none focus:bg-surface-hover focus:border-border-focus focus:ring-1 focus:ring-border-focus sm:text-sm transition-all duration-300 backdrop-blur-sm"
         />
       </div>
 
@@ -44,18 +44,18 @@ export function HistoryControls({
           <select
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="appearance-none pl-9 pr-8 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white/80 focus:outline-none focus:bg-white/10 focus:border-primary/50 transition-all cursor-pointer hover:bg-white/10"
+            className="appearance-none pl-9 pr-8 py-2 bg-surface-subtle border border-border-subtle rounded-xl text-sm text-text-main focus:outline-none focus:bg-surface-hover focus:border-border-focus transition-all cursor-pointer hover:bg-surface-hover"
           >
-            <option value="ALL" className="bg-slate-900 text-white">All Status</option>
-            <option value="COMPLETED" className="bg-slate-900 text-white">Completed</option>
-            <option value="PENDING" className="bg-slate-900 text-white">Pending</option>
-            <option value="FAILED" className="bg-slate-900 text-white">Failed</option>
+            <option value="ALL" className="bg-surface-card text-text-main">All Status</option>
+            <option value="COMPLETED" className="bg-surface-card text-text-main">Completed</option>
+            <option value="PENDING" className="bg-surface-card text-text-main">Pending</option>
+            <option value="FAILED" className="bg-surface-card text-text-main">Failed</option>
           </select>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter className="h-3.5 w-3.5 text-white/40 group-hover:text-primary/80 transition-colors" />
+            <Filter className="h-3.5 w-3.5 text-text-muted group-hover:text-primary-strong transition-colors" />
           </div>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <svg className="h-4 w-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
@@ -66,16 +66,16 @@ export function HistoryControls({
           <select
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value as 'newest' | 'oldest')}
-            className="appearance-none pl-9 pr-8 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white/80 focus:outline-none focus:bg-white/10 focus:border-primary/50 transition-all cursor-pointer hover:bg-white/10"
+            className="appearance-none pl-9 pr-8 py-2 bg-surface-subtle border border-border-subtle rounded-xl text-sm text-text-main focus:outline-none focus:bg-surface-hover focus:border-border-focus transition-all cursor-pointer hover:bg-surface-hover"
           >
-            <option value="newest" className="bg-slate-900 text-white">Newest First</option>
-            <option value="oldest" className="bg-slate-900 text-white">Oldest First</option>
+            <option value="newest" className="bg-surface-card text-text-main">Newest First</option>
+            <option value="oldest" className="bg-surface-card text-text-main">Oldest First</option>
           </select>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Calendar className="h-3.5 w-3.5 text-white/40 group-hover:text-primary/80 transition-colors" />
+            <Calendar className="h-3.5 w-3.5 text-text-muted group-hover:text-primary-strong transition-colors" />
           </div>
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <svg className="h-4 w-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>

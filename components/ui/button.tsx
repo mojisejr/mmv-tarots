@@ -7,10 +7,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary/90 text-white shadow-glow-primary hover:shadow-lg border-[0.5px] border-glass-border hover:bg-primary',
-        outline: 'bg-glass-white border-[0.5px] border-glass-border text-foreground hover:bg-glass-whiteHover hover:border-glass-borderHover hover:shadow-md',
-        ghost: 'bg-transparent text-muted-foreground hover:text-white hover:bg-white/5',
-        icon: 'p-3.5 rounded-full aspect-square bg-glass-white hover:bg-glass-whiteHover text-foreground border-[0.5px] border-white/5',
+        primary: 'bg-primary/90 text-primary-foreground shadow-glow-primary hover:shadow-lg border-[0.5px] border-border-subtle hover:bg-primary',
+        outline: 'bg-surface-card border-[0.5px] border-border-medium text-foreground hover:bg-surface-hover hover:border-border-subtle hover:shadow-md',
+        ghost: 'bg-transparent text-text-muted hover:text-foreground hover:bg-surface-hover',
+        icon: 'p-3.5 rounded-full aspect-square bg-surface-card hover:bg-surface-hover text-foreground border-[0.5px] border-border-subtle',
         line: 'bg-success hover:bg-success-600 text-white border-[0.5px] border-success/50 shadow-md hover:shadow-lg',
       },
     },
@@ -35,7 +35,7 @@ export const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>
         disabled={disabled}
         {...props}
       >
-        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent z-0 pointer-events-none"></div>
+        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-surface-hover to-transparent z-0 pointer-events-none"></div>
         <span className="relative z-10 flex items-center gap-2">{children}</span>
       </button>
     );

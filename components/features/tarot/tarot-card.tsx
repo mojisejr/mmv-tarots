@@ -73,30 +73,30 @@ export function TarotCardVisual({
       aria-label={`Tarot card: ${card.name_th} (${card.name_en})`}
     >
       <div className="relative transform transition-all duration-700 hover:scale-[1.02] hover:-translate-y-1">
-        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-3xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col items-center justify-center p-6 text-center overflow-hidden aspect-[2/3]">
+        <div className="bg-glass-mimi backdrop-blur-md rounded-3xl border border-primary/20 shadow-warm flex flex-col items-center justify-center p-6 text-center overflow-hidden aspect-[2/3]">
           {/* Background gradient orb */}
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[var(--primary)]/20 blur-[40px] rounded-full"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/20 blur-[40px] rounded-full"
             aria-hidden="true"
           />
 
           {/* Card position badge */}
           {showPosition && (
-            <div className="relative z-10 text-[10px] text-white/60 mb-4 uppercase tracking-[0.2em] font-sans font-bold bg-black/20 px-3 py-1 rounded-full border border-white/5">
+            <div className="relative z-10 text-[10px] text-muted-foreground mb-4 uppercase tracking-[0.2em] font-sans font-bold bg-primary/10 px-3 py-1 rounded-full border border-primary/10">
               {card.position}
             </div>
           )}
 
           {/* Icon container with hover effect */}
-          <div className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center mb-4 border border-white/10 shadow-lg backdrop-blur-sm group-hover:scale-110 transition-transform duration-500">
+          <div className="relative z-10 w-24 h-24 rounded-full bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center mb-4 border border-primary/10 shadow-lg backdrop-blur-sm group-hover:scale-110 transition-transform duration-500">
             {getCardIcon(card.id)}
           </div>
 
           {/* Card names */}
-          <h3 className="relative z-10 font-serif text-xl text-white font-bold leading-tight mb-1 drop-shadow-md">
+          <h3 className="relative z-10 font-serif text-xl text-foreground font-bold leading-tight mb-1">
             {card.name_th}
           </h3>
-          <p className="relative z-10 text-xs text-white/50 font-sans italic mb-4">
+          <p className="relative z-10 text-xs text-muted-foreground font-sans italic mb-4">
             {card.name_en}
           </p>
 

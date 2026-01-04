@@ -98,9 +98,9 @@ export default function PredictionDetailPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8">
-          <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-white/60" />
-          <p className="text-white/60">กำลังโหลด...</p>
+        <GlassCard className="text-center p-8 glass-mimi">
+          <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">กำลังโหลด...</p>
         </GlassCard>
       </div>
     );
@@ -109,10 +109,10 @@ export default function PredictionDetailPage() {
   if (error || !prediction) {
     return (
       <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8">
-          <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-red-300" />
-          <h2 className="text-2xl font-serif text-white mb-3">ไม่พบข้อมูลการทำนาย</h2>
-          <p className="text-white/60 mb-6">Job ID นี้ไม่ถูกต้องหรือไม่มีในระบบ</p>
+        <GlassCard className="text-center p-8 glass-mimi">
+          <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-destructive" />
+          <h2 className="text-2xl font-serif text-foreground mb-3">ไม่พบข้อมูลการทำนาย</h2>
+          <p className="text-muted-foreground mb-6">Job ID นี้ไม่ถูกต้องหรือไม่มีในระบบ</p>
           <GlassButton onClick={handleBack} className="mx-auto">
             กลับไปหน้าประวัติ
           </GlassButton>
@@ -124,13 +124,13 @@ export default function PredictionDetailPage() {
   if (prediction.status === 'PENDING' || prediction.status === 'PROCESSING') {
     return (
       <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8">
-          <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-white/60" />
-          <h2 className="text-2xl font-serif text-white mb-3">
+        <GlassCard className="text-center p-8 glass-mimi">
+          <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-serif text-foreground mb-3">
             {prediction.status === 'PENDING' ? 'รอคิว...' : 'กำลังทำนาย...'}
           </h2>
-          <p className="text-white/60">การทำนายของคุณอยู่ระหว่างดำเนินการ</p>
-          <p className="text-xs text-white/40 mt-4">Job ID: #{jobId}</p>
+          <p className="text-muted-foreground">การทำนายของคุณอยู่ระหว่างดำเนินการ</p>
+          <p className="text-xs text-muted-foreground/40 mt-4">Job ID: #{jobId}</p>
         </GlassCard>
       </div>
     );
@@ -139,10 +139,10 @@ export default function PredictionDetailPage() {
   if (prediction.status === 'FAILED') {
     return (
       <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8">
-          <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-red-300" />
-          <h2 className="text-2xl font-serif text-white mb-3">การทำนายล้มเหลว</h2>
-          <p className="text-white/60">
+        <GlassCard className="text-center p-8 glass-mimi">
+          <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-destructive" />
+          <h2 className="text-2xl font-serif text-foreground mb-3">การทำนายล้มเหลว</h2>
+          <p className="text-muted-foreground">
             {prediction.error?.message || 'เกิดข้อผิดพลาดในระหว่างการทำนาย'}
           </p>
           <GlassButton onClick={handleBack} className="mt-6">
@@ -304,13 +304,13 @@ export default function PredictionDetailPage() {
 
 
         {mappedData?.reading && (
-          <GlassCard className="p-8 bg-gradient-to-br from-white/5 to-transparent">
+          <GlassCard className="p-8 bg-glass-mimi">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1 h-8 bg-gradient-to-b from-primary to-transparent"></div>
               <h2 className="text-2xl font-serif text-foreground">คำทำนาย</h2>
             </div>
-            <div className="prose prose-invert max-w-none">
-              <p className="text-white/80 leading-relaxed whitespace-pre-wrap text-lg font-serif">
+            <div className="prose max-w-none">
+              <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap text-lg font-serif">
                 {mappedData.reading}
               </p>
             </div>
@@ -385,7 +385,7 @@ export default function PredictionDetailPage() {
                     {selectedCard.keywords.map((keyword: string, index: number) => (
                       <span
                         key={index}
-                        className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full bg-white/5 border border-white/10 text-white/80"
+                        className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full bg-primary/10 border border-primary/10 text-foreground"
                       >
                         {keyword}
                       </span>
@@ -393,9 +393,9 @@ export default function PredictionDetailPage() {
                   </div>
                 </div>
 
-                <div className="p-5 sm:p-6 rounded-2xl bg-white/5 border border-white/10 text-left">
+                <div className="p-5 sm:p-6 rounded-2xl bg-primary/5 border border-primary/10 text-left">
                   <p className="text-base sm:text-lg text-primary font-serif mb-3 sm:mb-4">ความหมายของไพ่</p>
-                  <p className="text-white/90 leading-relaxed text-base sm:text-lg">
+                  <p className="text-foreground/90 leading-relaxed text-base sm:text-lg">
                     {selectedCard.interpretation}
                   </p>
                 </div>

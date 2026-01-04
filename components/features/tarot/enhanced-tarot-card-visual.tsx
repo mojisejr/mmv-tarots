@@ -41,22 +41,22 @@ export function EnhancedTarotCardVisual({
       data-testid="enhanced-tarot-card"
     >
       <div className="relative transform transition-all duration-700 hover:scale-[1.02] hover:-translate-y-1">
-        <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-3xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] flex flex-col items-center justify-center p-6 text-center overflow-hidden aspect-[2/3] glass-card">
+        <div className="bg-glass-mimi backdrop-blur-md rounded-3xl border border-primary/20 shadow-warm flex flex-col items-center justify-center p-6 text-center overflow-hidden aspect-[2/3] glass-card">
           {/* Background gradient orb */}
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[var(--primary)]/20 blur-[40px] rounded-full"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/20 blur-[40px] rounded-full"
             aria-hidden="true"
           />
 
           {/* Card position badge */}
           {showPosition && (
-            <div className="relative z-10 text-[10px] text-white/60 mb-4 uppercase tracking-[0.2em] font-sans font-bold bg-black/20 px-3 py-1 rounded-full border border-white/5">
+            <div className="relative z-10 text-[10px] text-muted-foreground mb-4 uppercase tracking-[0.2em] font-sans font-bold bg-primary/10 px-3 py-1 rounded-full border border-primary/10">
               {card.position}
             </div>
           )}
 
           {/* Card image instead of icon */}
-          <div className="relative z-10 w-32 h-48 mb-4 rounded-xl overflow-hidden border border-white/10 shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform duration-500">
+          <div className="relative z-10 w-32 h-48 mb-4 rounded-xl overflow-hidden border border-primary/10 shadow-lg backdrop-blur-sm group-hover:scale-105 transition-transform duration-500">
             {cardData.imageUrl ? (
               <TarotCardImage
                 card={cardData}
@@ -66,9 +66,9 @@ export function EnhancedTarotCardVisual({
                 priority={card.position === 1} // Prioritize first card
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-                  <span className="text-white/60 text-xs font-serif text-center">
+              <div className="w-full h-full bg-gradient-to-br from-primary/10 to-transparent flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-muted-foreground text-xs font-serif text-center">
                     {card.name_en.split(' ').slice(-1)[0]}
                   </span>
                 </div>
@@ -77,10 +77,10 @@ export function EnhancedTarotCardVisual({
           </div>
 
           {/* Card names */}
-          <h3 className="relative z-10 font-serif text-xl text-white font-bold leading-tight mb-1 drop-shadow-md">
+          <h3 className="relative z-10 font-serif text-xl text-foreground font-bold leading-tight mb-1">
             {card.name_th}
           </h3>
-          <p className="relative z-10 text-xs text-white/50 font-sans italic mb-4">
+          <p className="relative z-10 text-xs text-muted-foreground font-sans italic mb-4">
             {card.name_en}
           </p>
 
@@ -89,7 +89,7 @@ export function EnhancedTarotCardVisual({
             {card.keywords.slice(0, 3).map((keyword, index) => (
               <span
                 key={`${card.id}-keyword-${index}`}
-                className="px-2 py-0.5 rounded-md bg-white/10 border border-white/5 text-[10px] text-white/80"
+                className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/5 text-[10px] text-foreground"
                 role="listitem"
               >
                 {keyword}

@@ -153,11 +153,11 @@ export default function HistoryPage() {
     return (
       <div className="max-w-6xl mx-auto pt-10 px-4 h-full flex flex-col pb-24">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-serif text-white drop-shadow-md mb-2">Your Journey</h2>
-          <p className="text-white/60 text-sm">Loading your visions...</p>
+          <h2 className="text-3xl font-serif text-foreground mb-2">Your Journey</h2>
+          <p className="text-muted-foreground text-sm">Loading your visions...</p>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-white/10 border-t-primary rounded-full animate-spin" />
+          <div className="w-12 h-12 border-4 border-primary/10 border-t-primary rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -168,11 +168,11 @@ export default function HistoryPage() {
     return (
       <div className="max-w-6xl mx-auto pt-10 px-4 h-full flex flex-col pb-24">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-serif text-white drop-shadow-md mb-2">Your Journey</h2>
+          <h2 className="text-3xl font-serif text-foreground mb-2">Your Journey</h2>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-red-300 mb-4">{error}</div>
+            <div className="text-destructive mb-4">{error}</div>
             <GlassButton onClick={handleRetry}>
               Retry
             </GlassButton>
@@ -185,8 +185,8 @@ export default function HistoryPage() {
   return (
     <div className="max-w-6xl mx-auto pt-10 px-4 h-full flex flex-col pb-24">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-serif text-white drop-shadow-md mb-2">Your Journey</h2>
-        <p className="text-white/60 text-sm">The path you have walked, revealed in the cards.</p>
+        <h2 className="text-3xl font-serif text-foreground mb-2">Your Journey</h2>
+        <p className="text-muted-foreground text-sm">The path you have walked, revealed in the cards.</p>
       </div>
 
       <HistoryControls 
@@ -200,9 +200,9 @@ export default function HistoryPage() {
 
       <div className="flex-1 overflow-y-auto -mx-4 px-4 custom-scrollbar">
         {filteredPredictions.length === 0 ? (
-          <div className="text-center text-white/60 py-12 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm">
+          <div className="text-center text-muted-foreground py-12 bg-primary/5 rounded-3xl border border-primary/10 backdrop-blur-sm">
             <p className="text-lg font-serif mb-2">No visions found</p>
-            <p className="text-sm text-white/40">
+            <p className="text-sm text-muted-foreground/60">
               {searchQuery || statusFilter !== 'ALL' 
                 ? "Try adjusting your filters to see more results."
                 : "Submit your first question to begin your journey."}

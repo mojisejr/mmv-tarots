@@ -80,7 +80,7 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
                 <div className="absolute -inset-1 bg-gradient-to-b from-primary/20 to-transparent rounded-2xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
                 {/* Main Card Container */}
-                <div className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.6)] border border-white/10 group-hover:border-primary/50 transition-all duration-300 bg-black/80">
+                <div className="relative aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-primary/20 group-hover:border-primary/50 transition-all duration-300 bg-white/80">
                   <TarotCardImage
                     card={{
                       id: card.name_en,
@@ -95,14 +95,14 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
                   />
                   
                   {/* Gradient Overlay for Text Readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/20 to-transparent opacity-80" />
                   
                   {/* Card Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 text-center">
                     {/* <p className="text-[9px] sm:text-[10px] text-primary/90 font-serif tracking-widest uppercase mb-0.5 opacity-90">
                       {getPositionName(card.position)}
                     </p> */}
-                    <p className="text-[10px] sm:text-xs text-white font-serif line-clamp-1 text-shadow-sm">
+                    <p className="text-[10px] sm:text-xs text-foreground font-serif line-clamp-1">
                       {card.name_th}
                     </p>
                   </div>
@@ -113,8 +113,8 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
         })}
       </motion.div>
       <div className="flex flex-col items-center gap-2 mt-8 animate-pulse">
-        <div className="w-1 h-6 bg-gradient-to-b from-primary/50 to-transparent rounded-full" />
-        <p className="text-center text-white/40 text-[10px] uppercase tracking-widest">
+        <div className="w-1 h-6 bg-gradient-to-b from-primary to-transparent rounded-full" />
+        <p className="text-center text-muted-foreground/60 text-[10px] uppercase tracking-widest">
           แตะที่ไพ่เพื่อดูคำทำนาย
         </p>
       </div>

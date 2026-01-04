@@ -37,7 +37,7 @@ export function BottomNav() {
       aria-label="Mobile navigation"
     >
       <div className="mx-4 mb-4">
-        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl px-6 py-3 flex justify-between items-center">
+        <div className="bg-white/80 backdrop-blur-2xl border border-white/40 rounded-[2rem] shadow-warm px-6 py-3 flex justify-between items-center">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const isProfile = item.href === '/profile';
@@ -49,15 +49,15 @@ export function BottomNav() {
                 href={item.href}
                 onClick={() => setCurrentPage(item.type)}
                 className={`flex flex-col items-center gap-1 transition-all duration-300 ${
-                  isActive ? 'text-[var(--primary)] scale-110' : 'text-white/40 hover:text-white/70'
+                  isActive ? 'text-[var(--primary-foreground)] scale-110' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <div className={`p-2 rounded-xl ${isActive ? 'bg-[var(--primary)]/10' : ''}`}>
+                <div className={`p-2 rounded-xl ${isActive ? 'bg-[var(--primary)]' : ''}`}>
                   {isProfile && isLoggedIn && user?.image ? (
                     <img 
                       src={user.image} 
                       alt="Profile" 
-                      className={`w-6 h-6 rounded-full border ${isActive ? 'border-[var(--primary)]' : 'border-white/20'}`}
+                      className={`w-6 h-6 rounded-full border ${isActive ? 'border-[var(--primary-foreground)]' : 'border-white/20'}`}
                     />
                   ) : (
                     <Icon className="w-6 h-6" />

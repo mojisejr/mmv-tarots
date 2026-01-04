@@ -23,13 +23,13 @@ export function CardDetails({ card, className = '', onClick, isInteractive = tru
       onClick={onClick}
       className={`group transition-all duration-500 ${isInteractive ? 'cursor-pointer hover:scale-[1.02]' : ''} ${className}`}
     >
-      <GlassCard className="p-6 h-full border-white/10 group-hover:border-white/30 group-hover:bg-white/10 transition-all duration-500">
+      <GlassCard className="p-6 h-full border-primary/10 group-hover:border-primary/30 group-hover:bg-primary/5 transition-all duration-500">
         <div className="text-center">
-          {/* <p className="text-sm text-[var(--color-primary)] font-serif mb-3 uppercase tracking-widest opacity-80">
+          {/* <p className="text-sm text-primary font-serif mb-3 uppercase tracking-widest opacity-80">
             {getPositionName(card.position)}
           </p> */}
           <div className="mb-4 relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-accent)]/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
             <TarotCardImage
               card={{
                 id: card.name_en,
@@ -43,7 +43,7 @@ export function CardDetails({ card, className = '', onClick, isInteractive = tru
               className="mx-auto relative rounded-lg shadow-lg group-hover:shadow-2xl transition-all duration-500"
             />
           </div>
-          <h3 className="text-xl font-serif text-foreground mb-1 group-hover:text-[var(--color-primary)] transition-colors">
+          <h3 className="text-xl font-serif text-foreground mb-1 group-hover:text-primary transition-colors">
             {card.name_th}
           </h3>
           {/* <p className="text-sm text-muted-foreground italic mb-3">{card.name_en}</p> */}
@@ -52,7 +52,7 @@ export function CardDetails({ card, className = '', onClick, isInteractive = tru
           </div> */}
           
           {isInteractive && (
-            <p className="mt-4 text-[10px] text-white/30 uppercase tracking-tighter group-hover:text-white/60 transition-colors">
+            <p className="mt-4 text-[10px] text-muted-foreground/40 uppercase tracking-tighter group-hover:text-muted-foreground/60 transition-colors">
               คลิกเพื่อดูความหมาย
             </p>
           )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { GlassCard, GlassButton, Sparkles } from '@/components';
+import { GlassCard, GlassButton, Sparkles, ErrorBoundary } from '@/components';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { toast } from 'sonner';
@@ -91,10 +91,10 @@ function PackagePageContent() {
   return (
     <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-serif text-white mb-4 drop-shadow-lg">
+        <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">
           เติม Star
         </h1>
-        <p className="text-white/60 text-lg">
+        <p className="text-muted-foreground text-lg">
           เลือกแพ็กเกจที่เหมาะกับคุณเพื่อเปิดคำทำนาย
         </p>
       </div>
@@ -103,23 +103,23 @@ function PackagePageContent() {
         {packages.map((pkg, index) => (
           <GlassCard
             key={pkg.id}
-            className="relative overflow-hidden group transition-all duration-300 border-[0.5px]"
+            className="relative overflow-hidden group transition-all duration-300 border-[0.5px] glass-mimi"
           >
             <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${getGradient(index)}`} />
             
             <div className="relative z-10 flex flex-col items-center text-center p-6 space-y-4">
               <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getGradient(index)} flex items-center justify-center mb-2 shadow-lg`}>
-                <Sparkles className="w-8 h-8 text-white" />
+                <Sparkles className="w-8 h-8 text-foreground" />
               </div>
 
-              <h3 className="text-2xl font-bold text-white">{pkg.name}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{pkg.name}</h3>
               
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-yellow-400">{pkg.stars}</span>
-                <span className="text-white/80">Stars</span>
+                <span className="text-4xl font-bold text-accent">{pkg.stars}</span>
+                <span className="text-muted-foreground">Stars</span>
               </div>
 
-              <p className="text-white/60 text-sm min-h-[40px]">
+              <p className="text-muted-foreground text-sm min-h-[40px]">
                 {pkg.description || 'แพ็กเกจพิเศษสำหรับคุณ'}
               </p>
 
@@ -127,13 +127,13 @@ function PackagePageContent() {
                 <GlassButton
                   onClick={() => handleBuy(pkg.id)}
                   disabled={loading === pkg.id}
-                  className={`w-full py-3 font-semibold bg-gradient-to-r ${getGradient(index)} border-none hover:opacity-90`}
+                  className={`w-full py-3 font-semibold bg-gradient-to-r ${getGradient(index)} border-none hover:opacity-90 text-foreground`}
                 >
                   {loading === pkg.id ? 'กำลังเตรียมการชำระเงิน...' : `ซื้อ ${pkg.stars} Stars`}
                 </GlassButton>
               </div>
               
-              <p className="text-sm text-white/60 mt-2">฿{pkg.price.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground mt-2">฿{pkg.price.toFixed(2)}</p>
             </div>
           </GlassCard>
         ))}
@@ -144,12 +144,14 @@ function PackagePageContent() {
 
 export default function PackagePage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
-        <div className="text-center text-white/60">กำลังโหลด...</div>
-      </div>
-    }>
-      <PackagePageContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={
+        <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
+          <div className="text-center text-muted-foreground">กำลังโหลด...</div>
+        </div>
+      }>
+        <PackagePageContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
