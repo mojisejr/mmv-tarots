@@ -139,8 +139,8 @@ function Home() {
 
       {/* Background Soul (Idle State) - Absolute to content center */}
       <div 
-        className={`absolute inset-0 z-0 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
-          isInputFocused ? 'opacity-20 md:opacity-30' : 'opacity-0'
+        className={`absolute inset-0 z-0 flex items-center justify-center pointer-events-none transition-all duration-1000 ${
+          isInputFocused ? 'opacity-40 md:opacity-60 scale-110' : 'opacity-0 scale-100'
         }`}
       >
         <div className="w-[320px] h-[320px] md:w-[600px] md:h-[600px]">
@@ -154,7 +154,9 @@ function Home() {
         className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-6 w-full max-w-4xl mx-auto z-10 pb-40"
       >
         {/* Hero Section with Mimi Avatar */}
-        <section className="w-full flex flex-col items-center justify-center space-y-6 md:space-y-10 animate-fade-in-up relative">
+        <section className={`w-full flex flex-col items-center justify-center space-y-6 md:space-y-10 animate-fade-in-up relative transition-all duration-700 ${
+          isInputFocused ? 'opacity-10 scale-95' : 'opacity-100 scale-100'
+        }`}>
           {/* Heading - Text Balance for perfect wrapping */}
           <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-foreground leading-tight tracking-tight text-balance pt-10 md:pt-0">
             <span className="text-text-main">What guidance</span>
