@@ -95,6 +95,8 @@ model Prediction {
   analysisResult Json?     @map("analysis_result")
   selectedCards  Json?     @map("selected_cards")
   finalReading   Json?     @map("final_reading")
+  failureCode    String?   @map("failure_code")
+  failureReason  String?   @map("failure_reason")
   createdAt      DateTime  @default(now()) @map("created_at")
   completedAt    DateTime? @map("completed_at")
   user           User?     @relation(fields: [userIdentifier], references: [id])

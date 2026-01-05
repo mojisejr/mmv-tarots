@@ -23,6 +23,8 @@ async function updatePredictionStatus(
     analysisResult?: any
     selectedCards?: any
     finalReading?: any
+    failureCode?: string
+    failureReason?: string
     completedAt?: Date
   }
 ): Promise<void> {
@@ -79,6 +81,8 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
       console.log('Question rejected by gatekeeper:', gatekeeperResult.reason)
       await updatePredictionStatus(jobId, {
         status: 'FAILED',
+        failureCode: 'GATEKEEPER_REJECTION',
+        failureReason: gatekeeperResult.reason,
         completedAt: new Date()
       })
       throw new Error(`Question rejected by gatekeeper: ${gatekeeperResult.reason}`)
@@ -137,6 +141,8 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
     // Mark as FAILED
     await updatePredictionStatus(jobId, {
       status: 'FAILED',
+      failureCode: 'WORKFLOW_ERROR',
+      failureReason: error instanceof Error ? error.message : 'Unknown error occurred',
       completedAt: new Date()
     })
 

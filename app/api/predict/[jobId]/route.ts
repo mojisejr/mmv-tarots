@@ -77,8 +77,8 @@ export async function GET(
     // Add error information if status is FAILED
     if (prediction.status === 'FAILED') {
       response.error = {
-        code: 'PREDICTION_FAILED',
-        message: 'Tarot reading processing failed'
+        code: prediction.failureCode || 'PREDICTION_FAILED',
+        message: prediction.failureReason || 'Tarot reading processing failed'
       }
     }
 
