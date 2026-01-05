@@ -140,7 +140,7 @@ function Home() {
       {/* Background Soul (Idle State) - Absolute to content center */}
       <div 
         className={`absolute inset-0 z-0 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
-          isInputFocused ? 'opacity-0' : 'opacity-20 md:opacity-30'
+          isInputFocused ? 'opacity-20 md:opacity-30' : 'opacity-0'
         }`}
       >
         <div className="w-[320px] h-[320px] md:w-[600px] md:h-[600px]">
