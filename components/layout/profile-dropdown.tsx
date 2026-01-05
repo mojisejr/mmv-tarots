@@ -6,6 +6,7 @@ import { User, History, Sparkles, LogOut, ChevronDown } from 'lucide-react';
 
 interface ProfileDropdownProps {
   user?: {
+    id: string;
     name?: string | null;
     email?: string | null;
     image?: string | null;
@@ -66,7 +67,9 @@ export function ProfileDropdown({ user, onLogout }: ProfileDropdownProps) {
         <div className="absolute right-0 mt-2 w-56 bg-white/90 backdrop-blur-xl border border-primary/20 rounded-xl shadow-warm py-2 z-50 transform origin-top-right animate-in fade-in zoom-in-95 duration-200">
           <div className="px-4 py-3 border-b border-primary/10 mb-1">
             <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            <p className="text-[10px] font-mono text-foreground/40 truncate">
+              ID: {user?.id ? `${user.id.slice(0, 6)}...${user.id.slice(-6)}` : 'Unknown'}
+            </p>
           </div>
           
           <div className="space-y-1 px-1">

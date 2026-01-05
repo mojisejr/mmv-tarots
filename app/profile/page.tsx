@@ -99,6 +99,16 @@ function ProfilePageContent() {
     }
   };
 
+  const handleCopyUserId = async () => {
+    if (!user?.id) return;
+    try {
+      await navigator.clipboard.writeText(user.id);
+      toast.success('คัดลอก User ID แล้ว');
+    } catch (err) {
+      console.error('Failed to copy User ID:', err);
+    }
+  };
+
   const handleCopyReferralLink = async () => {
     if (!referralCode) return;
     
@@ -187,7 +197,16 @@ function ProfilePageContent() {
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">{user.name || 'Cosmic Traveler'}</h1>
-          <p className="text-muted-foreground text-sm">{user.email}</p>
+          <button 
+            onClick={handleCopyUserId}
+            className="group flex items-center gap-1.5 mx-auto px-2 py-1 rounded-md hover:bg-primary/5 transition-colors"
+            title="Click to copy User ID"
+          >
+            <span className="text-[10px] font-mono text-foreground/30 group-hover:text-foreground/50 transition-colors">
+              ID: {user.id.slice(0, 8)}...{user.id.slice(-8)}
+            </span>
+            <Copy className="w-3 h-3 text-foreground/20 group-hover:text-accent transition-colors" />
+          </button>
         </div>
       </div>
 
@@ -195,11 +214,11 @@ function ProfilePageContent() {
       <GlassCard className="mb-6 glass-mimi border-primary/20">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
-            <p className="text-muted-foreground text-xs uppercase tracking-widest">Your Balance</p>
+            <p className="text-foreground/40 text-[10px] uppercase tracking-widest">Your Balance</p>
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent" />
               <span className="text-3xl font-bold text-foreground">{stars}</span>
-              <span className="text-muted-foreground text-sm">Stars</span>
+              <span className="text-foreground/60 text-sm">Stars</span>
             </div>
           </div>
           <GlassButton 
@@ -220,7 +239,7 @@ function ProfilePageContent() {
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-bold text-foreground mb-1">ชวนเพื่อนรับ Stars</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-foreground/60 leading-relaxed">
                 เพื่อนคุณจะได้ <span className="text-foreground font-semibold">1 Star ฟรี</span><br />
                 คุณจะได้ <span className="text-foreground font-semibold">2 Stars</span> เมื่อเพื่อนสมัครสมาชิก
               </p>
@@ -246,7 +265,7 @@ function ProfilePageContent() {
         <button
           onClick={() => setActiveTab('predictions')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-            activeTab === 'predictions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-muted-foreground/60'
+            activeTab === 'predictions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-foreground/40'
           }`}
         >
           <History className="w-4 h-4" />
@@ -255,7 +274,7 @@ function ProfilePageContent() {
         <button
           onClick={() => setActiveTab('transactions')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-            activeTab === 'transactions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-muted-foreground/60'
+            activeTab === 'transactions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-foreground/40'
           }`}
         >
           <QrCode className="w-4 h-4" />
@@ -266,10 +285,10 @@ function ProfilePageContent() {
       {activeTab === 'predictions' ? (
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Recent Predictions</h3>
+            <h3 className="text-[10px] font-semibold text-foreground/40 uppercase tracking-widest">Recent Predictions</h3>
             <GlassButton 
               onClick={() => router.push('/history')}
-              className="text-xs px-3 py-1"
+              className="text-[10px] px-3 py-1 uppercase tracking-tighter"
             >
               View All
             </GlassButton>

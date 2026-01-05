@@ -207,7 +207,13 @@ function PostProcessing({ performanceMode }: { performanceMode: boolean }) {
   );
 }
 
-export const MimiAvatar = ({ performanceMode = false }: { performanceMode?: boolean }) => {
+export const MimiAvatar = ({ 
+  performanceMode = false, 
+  showCore = true 
+}: { 
+  performanceMode?: boolean;
+  showCore?: boolean;
+}) => {
   return (
     <div
       className="fixed inset-0 z-0 pointer-events-none"
@@ -229,10 +235,12 @@ export const MimiAvatar = ({ performanceMode = false }: { performanceMode?: bool
         <ambientLight intensity={0.6} />
         <pointLight position={[0, 0, 0]} intensity={2} color={CONFIG.colors.primary} />
         
-        <group position={[0, 2, 0]}> {/* Position orb in the upper half */}
-          <CoreSphere />
-          <ShellSphere />
-        </group>
+        {showCore && (
+          <group position={[0, 2, 0]}> {/* Position orb in the upper half */}
+            <CoreSphere />
+            <ShellSphere />
+          </group>
+        )}
         
         <ParticleCloud performanceMode={performanceMode} />
         <Debris performanceMode={performanceMode} />

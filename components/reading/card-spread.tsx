@@ -102,7 +102,7 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
                     {/* <p className="text-[9px] sm:text-[10px] text-primary/90 font-serif tracking-widest uppercase mb-0.5 opacity-90">
                       {getPositionName(card.position)}
                     </p> */}
-                    <p className="text-[10px] sm:text-xs text-foreground font-serif line-clamp-1">
+                    <p className="text-[10px] sm:text-xs text-foreground font-serif line-clamp-1 group-hover:text-accent transition-colors duration-300">
                       {card.name_th}
                     </p>
                   </div>
@@ -113,8 +113,8 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
         })}
       </motion.div>
       <div className="flex flex-col items-center gap-2 mt-8 animate-pulse">
-        <div className="w-1 h-6 bg-gradient-to-b from-primary to-transparent rounded-full" />
-        <p className="text-center text-muted-foreground/60 text-[10px] uppercase tracking-widest">
+        <div className="w-1 h-6 bg-gradient-to-b from-accent to-transparent rounded-full" />
+        <p className="text-center text-foreground/40 text-[10px] uppercase tracking-widest">
           แตะที่ไพ่เพื่อดูคำทำนาย
         </p>
       </div>
@@ -145,35 +145,50 @@ export function CardSpread({ cards, onCardClick }: CardSpreadProps) {
             </div>
 
             {/* Card 1: Center (Current) */}
-            <motion.div variants={item} className="absolute z-20 scale-110">
+            <motion.div 
+              variants={item} 
+              className="absolute z-20 scale-110 transition-all duration-300 hover:z-50 hover:scale-[1.15]"
+            >
               <div className="w-[180px]">
                 <CardDetails card={cards[0]} onClick={() => onCardClick(cards[0])} />
               </div>
             </motion.div>
 
             {/* Card 2: Left (Past) */}
-            <motion.div variants={item} className="absolute left-[10%] top-1/2 -translate-y-1/2">
+            <motion.div 
+              variants={item} 
+              className="absolute left-[10%] top-1/2 -translate-y-1/2 transition-all duration-300 hover:z-50 hover:scale-105"
+            >
               <div className="w-[160px]">
                 <CardDetails card={cards[1]} onClick={() => onCardClick(cards[1])} />
               </div>
             </motion.div>
 
             {/* Card 3: Right (Future) */}
-            <motion.div variants={item} className="absolute right-[10%] top-1/2 -translate-y-1/2">
+            <motion.div 
+              variants={item} 
+              className="absolute right-[10%] top-1/2 -translate-y-1/2 transition-all duration-300 hover:z-50 hover:scale-105"
+            >
               <div className="w-[160px]">
                 <CardDetails card={cards[2]} onClick={() => onCardClick(cards[2])} />
               </div>
             </motion.div>
 
             {/* Card 4: Top (Thought) */}
-            <motion.div variants={item} className="absolute top-[5%] left-1/2 -translate-x-1/2">
+            <motion.div 
+              variants={item} 
+              className="absolute top-[5%] left-1/2 -translate-x-1/2 transition-all duration-300 hover:z-50 hover:scale-105"
+            >
               <div className="w-[160px]">
                 <CardDetails card={cards[3]} onClick={() => onCardClick(cards[3])} />
               </div>
             </motion.div>
 
             {/* Card 5: Bottom (Foundation) */}
-            <motion.div variants={item} className="absolute bottom-[5%] left-1/2 -translate-x-1/2">
+            <motion.div 
+              variants={item} 
+              className="absolute bottom-[5%] left-1/2 -translate-x-1/2 transition-all duration-300 hover:z-50 hover:scale-105"
+            >
               <div className="w-[160px]">
                 <CardDetails card={cards[4]} onClick={() => onCardClick(cards[4])} />
               </div>

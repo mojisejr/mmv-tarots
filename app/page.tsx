@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   QuestionInput,
   MimiAvatar,
+  MimiLoadingAvatar,
   GlassButton,
   Sparkles,
 } from '@/components';
@@ -14,6 +15,7 @@ import { submitQuestion, saveSubmissionState, RateLimitError } from '@/lib/clien
 function Home() {
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -122,6 +124,20 @@ function Home() {
 
   return (
     <div className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] flex flex-col relative overflow-hidden">
+      {/* Background Soul Particles */}
+      <MimiAvatar performanceMode={isMobile} showCore={false} />
+
+      {/* Background Soul (Idle State) - Absolute to content center */}
+      <div 
+        className={`absolute inset-0 z-0 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${
+          isInputFocused ? 'opacity-0' : 'opacity-20 md:opacity-30'
+        }`}
+      >
+        <div className="w-[320px] h-[320px] md:w-[600px] md:h-[600px]">
+          <MimiLoadingAvatar performanceMode={isMobile} />
+        </div>
+      </div>
+
       {/* Main Content Area (The Sacred Space) */}
       <div
         data-testid="main-content"
@@ -129,9 +145,6 @@ function Home() {
       >
         {/* Hero Section with Mimi Avatar */}
         <section className="w-full flex flex-col items-center justify-center space-y-6 md:space-y-10 animate-fade-in-up relative">
-          {/* Mimi Avatar as Background */}
-          <MimiAvatar performanceMode={isMobile} />
-
           {/* Heading - Text Balance for perfect wrapping */}
           <h1 className="relative z-10 text-4xl sm:text-5xl md:text-6xl font-serif text-center text-foreground leading-tight tracking-tight text-balance pt-10 md:pt-0">
             <span className="text-text-main">What guidance</span>
@@ -181,6 +194,8 @@ function Home() {
                     value={question}
                     onChange={setQuestion}
                     onSubmit={handleQuestionSubmit}
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
                     placeholder={cooldownRemaining > 0 ? `Mimi is resting... (${Math.floor(cooldownRemaining / 60)}:${(cooldownRemaining % 60).toString().padStart(2, '0')})` : "Ask the stars..."}
                     textareaRef={textareaRef}
                     disabled={isSubmitting || cooldownRemaining > 0}

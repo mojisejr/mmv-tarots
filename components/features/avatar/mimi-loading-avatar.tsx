@@ -48,7 +48,7 @@ function ShellMesh() {
         color={0xFCBD74}
         wireframe
         transparent
-        opacity={0.3} // Slightly more visible
+        opacity={0.5} // Increased for better visibility on mobile
       />
     </Icosahedron>
   );
@@ -61,7 +61,7 @@ export const MimiLoadingAvatar = ({ performanceMode = false }: { performanceMode
       <Canvas
         gl={{
           alpha: true,
-          antialias: !performanceMode,
+          antialias: true, // Always enable for smooth wireframe lines
           premultipliedAlpha: false,
         }}
         dpr={performanceMode ? 1 : (typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1)}
@@ -70,7 +70,7 @@ export const MimiLoadingAvatar = ({ performanceMode = false }: { performanceMode
       >
         <ambientLight intensity={1} />
         <CoreMesh />
-        {!performanceMode && <ShellMesh />}
+        <ShellMesh />
       </Canvas>
     </div>
   );

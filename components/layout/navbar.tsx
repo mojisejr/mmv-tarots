@@ -8,7 +8,7 @@ import { ProfileDropdown } from './profile-dropdown';
 export interface NavigationProps {
   currentPage: string;
   isLoggedIn: boolean;
-  user?: { name?: string | null; email?: string | null; image?: string | null } | null;
+  user?: { id: string; name?: string | null; email?: string | null; image?: string | null } | null;
   onHomeClick?: () => void;
   onProfileClick?: () => void;
   onBackClick?: () => void;

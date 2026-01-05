@@ -16,6 +16,8 @@ export interface QuestionInputProps {
   disabled?: boolean;
   isSubmitting?: boolean;
   cooldownRemaining?: number;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 const MIN_TEXTAREA_HEIGHT = 56; // Increased for better touch target and spacing
@@ -44,6 +46,8 @@ export function QuestionInput({
   disabled = false,
   isSubmitting = false,
   cooldownRemaining = 0,
+  onFocus,
+  onBlur,
 }: QuestionInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -101,11 +105,13 @@ export function QuestionInput({
   // Handle focus events
   const handleFocus = useCallback(() => {
     setIsFocused(true);
-  }, []);
+    onFocus?.();
+  }, [onFocus]);
 
   const handleBlur = useCallback(() => {
     setIsFocused(false);
-  }, []);
+    onBlur?.();
+  }, [onBlur]);
 
   // Resize textarea when value changes
   useEffect(() => {
@@ -117,13 +123,6 @@ export function QuestionInput({
 
   return (
     <div className="w-full relative" data-testid="question-input-container">
-      {/* Focus Mode Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-white/60 backdrop-blur-sm transition-opacity duration-500 pointer-events-none z-[-1] ${
-          isFocused ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
-
       {/* Character Counter Badge (Top Left) */}
       {(isFocused || characterCount > 0) && (
         <FloatingBadge position="top-left" animate={false}>

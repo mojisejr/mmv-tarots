@@ -97,58 +97,118 @@ export default function PredictionDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8 glass-mimi">
-          <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">กำลังโหลด...</p>
-        </GlassCard>
+      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col pb-20">
+        {/* Mobile Back Button */}
+        <div className="md:hidden pt-4 pb-2">
+          <button 
+            onClick={handleBack}
+            className="group flex items-center gap-2 text-foreground/60 hover:text-accent transition-all duration-300"
+          >
+            <div className="p-2 rounded-full bg-accent/5 border border-accent/10 group-hover:border-accent/30 group-hover:bg-accent/10 transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-serif uppercase tracking-widest">กลับ</span>
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center">
+          <GlassCard className="text-center p-8 glass-mimi">
+            <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">กำลังโหลด...</p>
+          </GlassCard>
+        </div>
       </div>
     );
   }
 
   if (error || !prediction) {
     return (
-      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8 glass-mimi">
-          <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-serif text-foreground mb-3">ไม่พบข้อมูลการทำนาย</h2>
-          <p className="text-muted-foreground mb-6">Job ID นี้ไม่ถูกต้องหรือไม่มีในระบบ</p>
-          <GlassButton onClick={handleBack} className="mx-auto">
-            กลับไปหน้าประวัติ
-          </GlassButton>
-        </GlassCard>
+      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col pb-20">
+        {/* Mobile Back Button */}
+        <div className="md:hidden pt-4 pb-2">
+          <button 
+            onClick={handleBack}
+            className="group flex items-center gap-2 text-foreground/60 hover:text-accent transition-all duration-300"
+          >
+            <div className="p-2 rounded-full bg-accent/5 border border-accent/10 group-hover:border-accent/30 group-hover:bg-accent/10 transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-serif uppercase tracking-widest">กลับ</span>
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center">
+          <GlassCard className="text-center p-8 glass-mimi">
+            <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-destructive" />
+            <h2 className="text-2xl font-serif text-foreground mb-3">ไม่พบข้อมูลการทำนาย</h2>
+            <p className="text-muted-foreground mb-6">Job ID นี้ไม่ถูกต้องหรือไม่มีในระบบ</p>
+            <GlassButton onClick={handleBack} className="mx-auto">
+              กลับไปหน้าประวัติ
+            </GlassButton>
+          </GlassCard>
+        </div>
       </div>
     );
   }
 
   if (prediction.status === 'PENDING' || prediction.status === 'PROCESSING') {
     return (
-      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8 glass-mimi">
-          <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-serif text-foreground mb-3">
-            {prediction.status === 'PENDING' ? 'รอคิว...' : 'กำลังทำนาย...'}
-          </h2>
-          <p className="text-muted-foreground">การทำนายของคุณอยู่ระหว่างดำเนินการ</p>
-          <p className="text-xs text-muted-foreground/40 mt-4">Job ID: #{jobId}</p>
-        </GlassCard>
+      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col pb-20">
+        {/* Mobile Back Button */}
+        <div className="md:hidden pt-4 pb-2">
+          <button 
+            onClick={handleBack}
+            className="group flex items-center gap-2 text-foreground/60 hover:text-accent transition-all duration-300"
+          >
+            <div className="p-2 rounded-full bg-accent/5 border border-accent/10 group-hover:border-accent/30 group-hover:bg-accent/10 transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-serif uppercase tracking-widest">กลับ</span>
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center">
+          <GlassCard className="text-center p-8 glass-mimi">
+            <Loader2 data-testid="loader-icon" className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-2xl font-serif text-foreground mb-3">
+              {prediction.status === 'PENDING' ? 'รอคิว...' : 'กำลังทำนาย...'}
+            </h2>
+            <p className="text-muted-foreground">การทำนายของคุณอยู่ระหว่างดำเนินการ</p>
+            <p className="text-xs text-muted-foreground/40 mt-4">Job ID: #{jobId}</p>
+          </GlassCard>
+        </div>
       </div>
     );
   }
 
   if (prediction.status === 'FAILED') {
     return (
-      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col justify-center pb-20">
-        <GlassCard className="text-center p-8 glass-mimi">
-          <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-serif text-foreground mb-3">การทำนายล้มเหลว</h2>
-          <p className="text-muted-foreground">
-            {prediction.error?.message || 'เกิดข้อผิดพลาดในระหว่างการทำนาย'}
-          </p>
-          <GlassButton onClick={handleBack} className="mt-6">
-            กลับไปหน้าประวัติ
-          </GlassButton>
-        </GlassCard>
+      <div className="max-w-4xl mx-auto px-4 h-full flex flex-col pb-20">
+        {/* Mobile Back Button */}
+        <div className="md:hidden pt-4 pb-2">
+          <button 
+            onClick={handleBack}
+            className="group flex items-center gap-2 text-foreground/60 hover:text-accent transition-all duration-300"
+          >
+            <div className="p-2 rounded-full bg-accent/5 border border-accent/10 group-hover:border-accent/30 group-hover:bg-accent/10 transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-serif uppercase tracking-widest">กลับ</span>
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center">
+          <GlassCard className="text-center p-8 glass-mimi">
+            <AlertCircle data-testid="alert-icon" className="w-12 h-12 mx-auto mb-4 text-destructive" />
+            <h2 className="text-2xl font-serif text-foreground mb-3">การทำนายล้มเหลว</h2>
+            <p className="text-muted-foreground">
+              {prediction.error?.message || 'เกิดข้อผิดพลาดในระหว่างการทำนาย'}
+            </p>
+            <GlassButton onClick={handleBack} className="mt-6">
+              กลับไปหน้าประวัติ
+            </GlassButton>
+          </GlassCard>
+        </div>
       </div>
     );
   }
@@ -178,6 +238,19 @@ export default function PredictionDetailPage() {
     // Show error message when reading data cannot be processed
     return (
       <div className="max-w-4xl mx-auto px-4 h-full pb-20">
+        {/* Mobile Back Button */}
+        <div className="md:hidden pt-4 pb-2">
+          <button 
+            onClick={handleBack}
+            className="group flex items-center gap-2 text-foreground/60 hover:text-accent transition-all duration-300"
+          >
+            <div className="p-2 rounded-full bg-accent/5 border border-accent/10 group-hover:border-accent/30 group-hover:bg-accent/10 transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-serif uppercase tracking-widest">กลับ</span>
+          </button>
+        </div>
+
         {/* Error message */}
         <GlassCard className="p-8 text-center">
           <h2 className="text-xl font-serif text-foreground mb-4">
@@ -186,7 +259,10 @@ export default function PredictionDetailPage() {
           <p className="text-muted-foreground mb-4">
             ไม่สามารถแสดงผลการทำนายได้เนื่องจากข้อมูลมีความเสียหายหรืออยู่ในรูปแบบที่ไม่รองรับ
           </p>
-          <p className="text-sm text-white/40">
+          <GlassButton onClick={handleBack} className="mx-auto">
+            กลับไปหน้าประวัติ
+          </GlassButton>
+          <p className="text-sm text-foreground/20 mt-4">
             Job ID: #{jobId}
           </p>
         </GlassCard>
@@ -209,11 +285,11 @@ export default function PredictionDetailPage() {
               <h1 className="text-2xl font-serif text-foreground mb-4">
                 {prediction.question}
               </h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-4 text-sm text-foreground/50">
                 <span>Job ID: #{jobId}</span>
                 {prediction.completedAt && (
                   <>
-                    <span className="w-1 h-1 rounded-full bg-white/40"></span>
+                    <span className="w-1 h-1 rounded-full bg-foreground/20"></span>
                     <span>{formatDate(prediction.completedAt)}</span>
                   </>
                 )}
@@ -260,6 +336,19 @@ export default function PredictionDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 h-full pb-20">
+      {/* Mobile Back Button */}
+      <div className="md:hidden pt-4 pb-2">
+        <button 
+          onClick={handleBack}
+          className="group flex items-center gap-2 text-foreground/60 hover:text-accent transition-all duration-300"
+        >
+          <div className="p-2 rounded-full bg-accent/5 border border-accent/10 group-hover:border-accent/30 group-hover:bg-accent/10 transition-all">
+            <ChevronLeft className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-serif uppercase tracking-widest">กลับ</span>
+        </button>
+      </div>
+
       {/* Main content */}
       <div className="space-y-6">
         {/* Question and metadata */}
@@ -368,24 +457,24 @@ export default function PredictionDetailPage() {
               
               <div className="flex-1 space-y-5 sm:space-y-6 text-center md:text-left">
                 <div>
-                  <p className="text-xs sm:text-sm text-primary font-serif uppercase tracking-widest mb-1">
+                  <p className="text-xs sm:text-sm text-accent font-serif uppercase tracking-widest mb-1">
                     {selectedCard.arcana}
                   </p>
                   <h3 className="text-2xl sm:text-3xl font-serif text-foreground mb-1 sm:mb-2">
                     {selectedCard.name_th}
                   </h3>
-                  <p className="text-base sm:text-lg text-muted-foreground italic">
+                  <p className="text-base sm:text-lg text-foreground/60 italic">
                     {selectedCard.name_en}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground font-mono uppercase tracking-wider mb-2 sm:mb-3">Keywords</p>
+                  <p className="text-[10px] sm:text-xs text-foreground/40 font-mono uppercase tracking-wider mb-2 sm:mb-3">Keywords</p>
                   <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center md:justify-start">
                     {selectedCard.keywords.map((keyword: string, index: number) => (
                       <span
                         key={index}
-                        className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full bg-primary/10 border border-primary/10 text-foreground"
+                        className="px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm rounded-full bg-accent/5 border border-accent/10 text-foreground/80"
                       >
                         {keyword}
                       </span>
@@ -393,9 +482,9 @@ export default function PredictionDetailPage() {
                   </div>
                 </div>
 
-                <div className="p-5 sm:p-6 rounded-2xl bg-primary/5 border border-primary/10 text-left">
-                  <p className="text-base sm:text-lg text-primary font-serif mb-3 sm:mb-4">ความหมายของไพ่</p>
-                  <p className="text-foreground/90 leading-relaxed text-base sm:text-lg">
+                <div className="p-5 sm:p-6 rounded-2xl bg-accent/5 border border-accent/10 text-left">
+                  <p className="text-base sm:text-lg text-accent font-serif mb-3 sm:mb-4">ความหมายของไพ่</p>
+                  <p className="text-foreground leading-relaxed text-base sm:text-lg">
                     {selectedCard.interpretation}
                   </p>
                 </div>

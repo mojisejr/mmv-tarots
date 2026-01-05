@@ -43,16 +43,15 @@ export function CardDetails({ card, className = '', onClick, isInteractive = tru
               className="mx-auto relative rounded-lg shadow-lg group-hover:shadow-2xl transition-all duration-500"
             />
           </div>
-          <h3 className="text-xl font-serif text-foreground mb-1 group-hover:text-primary transition-colors">
+          <h3 className="text-xl font-serif text-foreground mb-1 group-hover:text-accent transition-colors duration-300">
             {card.name_th}
           </h3>
-          {/* <p className="text-sm text-muted-foreground italic mb-3">{card.name_en}</p> */}
-          {/* <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/5 border border-white/10 group-hover:border-white/20 transition-colors">
-            <span className="text-xs text-white/60 group-hover:text-white/90">{card.arcana}</span>
-          </div> */}
+          <p className="text-sm text-foreground/60 italic mb-3 group-hover:text-foreground/80 transition-colors">
+            {card.name_en}
+          </p>
           
           {isInteractive && (
-            <p className="mt-4 text-[10px] text-muted-foreground/40 uppercase tracking-tighter group-hover:text-muted-foreground/60 transition-colors">
+            <p className="mt-4 text-[10px] text-foreground/40 uppercase tracking-tighter group-hover:text-accent/60 transition-colors">
               คลิกเพื่อดูความหมาย
             </p>
           )}
