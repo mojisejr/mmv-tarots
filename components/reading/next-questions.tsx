@@ -1,9 +1,18 @@
+'use client';
+
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { GlassCard, HelpCircle } from '@/components/ui';
 import type { NextQuestionsProps } from '@/types/reading';
 
 export function NextQuestions({ questions, className = '' }: NextQuestionsProps) {
+  const router = useRouter();
+
   if (!questions || questions.length === 0) return null;
+
+  const handleQuestionClick = (question: string) => {
+    router.push(`/?q=${encodeURIComponent(question)}`);
+  };
 
   return (
     <GlassCard className={`p-6 ${className}`}>
@@ -18,8 +27,9 @@ export function NextQuestions({ questions, className = '' }: NextQuestionsProps)
         {questions.map((question, index) => (
           <li
             key={index}
-            className="text-foreground italic leading-relaxed pl-6 border-l-2 border-primary/30 hover:border-primary transition-colors"
+            className="text-foreground italic leading-relaxed pl-6 border-l-2 border-primary/30 hover:border-primary hover:text-primary transition-colors cursor-pointer"
             role="listitem"
+            onClick={() => handleQuestionClick(question)}
           >
             {question}
           </li>
