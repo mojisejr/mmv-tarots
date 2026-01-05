@@ -72,6 +72,16 @@ function Home() {
     }
   }, [isLoggedIn, lastPredictionAt]);
 
+  // Handle query parameter for suggested questions
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) {
+      setQuestion(decodeURIComponent(q));
+      // Focus will be handled by the auto-focus useEffect below
+    }
+  }, []);
+
   // Auto focus on mount
   useEffect(() => {
     if (textareaRef.current && cooldownRemaining === 0) {
