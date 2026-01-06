@@ -5,6 +5,12 @@ export async function GET() {
   try {
     const packages = await db.starPackage.findMany({
       where: { active: true },
+      include: {
+        prices: {
+          where: { active: true },
+          orderBy: { amount: 'asc' },
+        },
+      },
       orderBy: { stars: 'asc' },
     });
 
