@@ -6,3 +6,4 @@ export { SuggestionsList } from './suggestions-list';
 export { NextQuestions } from './next-questions';
 export { FinalSummary } from './final-summary';
 export { Disclaimer } from './disclaimer';
+export { ShareActions } from './share-actions';

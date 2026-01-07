@@ -9,7 +9,8 @@ import {
   SuggestionsList,
   NextQuestions,
   FinalSummary,
-  Disclaimer
+  Disclaimer,
+  ShareActions
 } from '@/components/reading';
 import { TarotCardImage } from '@/components/features/tarot';
 import { checkJobStatus } from '@/lib/client/api';
@@ -354,16 +355,27 @@ export default function PredictionDetailPage() {
         {/* Question and metadata */}
         <GlassCard>
           <div className="p-6">
-            <h1 className="text-2xl font-serif text-foreground mb-4">
-              {prediction.question}
-            </h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>Job ID: #{jobId}</span>
-              {prediction.completedAt && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-white/40"></span>
-                  <span>{formatDate(prediction.completedAt)}</span>
-                </>
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex-1">
+                <h1 className="text-2xl font-serif text-foreground mb-4">
+                  {prediction.question}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span>Job ID: #{jobId}</span>
+                  {prediction.completedAt && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-white/40"></span>
+                      <span>{formatDate(prediction.completedAt)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              {mappedData?.cards && (
+                <ShareActions 
+                  predictionId={jobId} 
+                  cardName={mappedData.cards[0]?.name_th || 'คำทำนาย'} 
+                  variant="minimal"
+                />
               )}
             </div>
           </div>
@@ -419,6 +431,15 @@ export default function PredictionDetailPage() {
         {/* Final Summary */}
         {mappedData?.finalSummary && (
           <FinalSummary summary={mappedData.finalSummary} />
+        )}
+
+        {/* Share CTA */}
+        {mappedData?.cards && (
+            <ShareActions 
+                predictionId={jobId}
+                cardName={mappedData.cards[0]?.name_th || 'คำทำนาย'}
+                variant="card"
+            />
         )}
 
         {/* Disclaimer */}
