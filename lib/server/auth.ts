@@ -14,6 +14,23 @@ export const auth = betterAuth({
   database: prismaAdapter(db, {
     provider: 'postgresql',
   }),
+
+  user: {
+    additionalFields: {
+      referralCode: {
+        type: 'string',
+        required: false,
+      },
+      stars: {
+        type: 'number',
+        required: false,
+      },
+      referredById: {
+        type: 'string',
+        required: false,
+      },
+    },
+  },
   
   databaseHooks: {
     user: {
