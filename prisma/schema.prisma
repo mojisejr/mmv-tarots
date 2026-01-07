@@ -125,17 +125,32 @@ model CreditTransaction {
 }
 
 model StarPackage {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  stars         Int
-  price         Float
-  stripePriceId String?
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  stars       Int
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  prices      PackagePrice[]
 
   @@map("star_packages")
+}
+
+model PackagePrice {
+  id            String      @id @default(cuid())
+  packageId     String
+  stripePriceId String      @unique
+  amount        Float
+  currency      String      @default("thb")
+  active        Boolean     @default(true)
+  isPromo       Boolean     @default(false)
+  promoLabel    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  package       StarPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@map("package_prices")
 }
 
 enum TransactionType {

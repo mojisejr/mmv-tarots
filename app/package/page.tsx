@@ -8,13 +8,22 @@ import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { toast } from 'sonner';
 import { cn } from '@/lib/shared/utils';
 
+interface PackagePrice {
+  id: string;
+  amount: number;
+  currency: string;
+  isPromo: boolean;
+  promoLabel: string | null;
+  active: boolean;
+}
+
 interface StarPackage {
   id: string;
   name: string;
   description: string | null;
   stars: number;
-  price: number;
   active: boolean;
+  prices: PackagePrice[];
 }
 
 function PackagePageContent() {
@@ -24,6 +33,7 @@ function PackagePageContent() {
   const { setCurrentPage } = useNavigation();
   const [loading, setLoading] = useState<string | null>(null);
   const [packages, setPackages] = useState<StarPackage[]>([]);
+  const [isEligible, setIsEligible] = useState<boolean>(false);
 
   useEffect(() => {
     setCurrentPage('package');
@@ -47,24 +57,40 @@ function PackagePageContent() {
       .catch((error) => console.error('Failed to load packages:', error));
   }, []);
 
-  const handleBuy = async (packageId: string) => {
+  useEffect(() => {
+    if (session?.user) {
+      fetch(`/api/user/promo-eligibility?userId=${session.user.id}`)
+        .then((res) => res.json())
+        .then((data) => setIsEligible(data.eligible))
+        .catch((err) => console.error('Failed to check eligibility:', err));
+    } else {
+      // If not logged in, show promo prices (assume new user)
+      setIsEligible(true);
+    }
+  }, [session]);
+
+  const handleBuy = async (priceId: string) => {
     if (!session?.user) {
       toast.error('กรุณา Login ก่อนซื้อแพ็กเกจ');
+      // Optional: Redirect to login
       return;
     }
 
-    setLoading(packageId);
+    setLoading(priceId);
     try {
       const res = await fetch('/api/checkout/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          packageId, 
+          priceId, 
           userId: session.user.id 
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to create checkout session');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to create checkout session');
+      }
 
       const data = await res.json();
       
@@ -72,9 +98,9 @@ function PackagePageContent() {
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error('เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
     } finally {
       setLoading(null);
     }
@@ -113,6 +139,17 @@ function PackagePageContent() {
         {packages.map((pkg, index) => {
           const isPopular = index === 1; // สมมติว่าใบกลางคือยอดนิยม
           
+          // Determine prices
+          const regularPrice = pkg.prices.find(p => !p.isPromo);
+          const promoPrice = pkg.prices.find(p => p.isPromo);
+          
+          // Logic: Show promo if eligible and exists
+          const showPromo = isEligible && !!promoPrice;
+          const activePrice = showPromo ? promoPrice! : regularPrice!;
+          
+          // Fallback if no price found (should not happen with seeded data)
+          if (!activePrice) return null;
+
           return (
             <GlassCard
               key={pkg.id}
@@ -124,6 +161,12 @@ function PackagePageContent() {
               {isPopular && (
                 <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-bold rounded-bl-xl z-20 shadow-sm">
                   POPULAR
+                </div>
+              )}
+              
+              {showPromo && promoPrice?.promoLabel && (
+                <div className="absolute top-0 left-0 bg-accent text-accent-foreground px-3 py-1 text-xs font-bold rounded-br-xl z-20 shadow-sm animate-pulse">
+                  {promoPrice.promoLabel}
                 </div>
               )}
 
@@ -149,19 +192,32 @@ function PackagePageContent() {
                     <span className="text-5xl font-bold text-foreground tracking-tighter">{pkg.stars}</span>
                     <span className="text-muted-foreground font-medium">Stars</span>
                   </div>
-                  <div className="mt-2 px-4 py-1 rounded-full bg-surface-subtle border border-border-subtle">
-                    <p className="text-lg font-semibold text-accent">฿{pkg.price.toFixed(2)}</p>
+                  
+                  <div className="mt-4 flex flex-col items-center gap-1">
+                    {showPromo && regularPrice && (
+                      <span className="text-sm text-muted-foreground line-through decoration-destructive/50">
+                        ฿{regularPrice.amount.toFixed(0)}
+                      </span>
+                    )}
+                    <div className={cn(
+                      "px-4 py-1 rounded-full border",
+                      showPromo 
+                        ? "bg-accent/10 border-accent text-accent" 
+                        : "bg-surface-subtle border-border-subtle text-foreground"
+                    )}>
+                      <p className="text-lg font-semibold">฿{activePrice.amount.toFixed(0)}</p>
+                    </div>
                   </div>
                 </div>
 
                 <div className="w-full pt-4">
                   <GlassButton
-                    onClick={() => handleBuy(pkg.id)}
-                    disabled={loading === pkg.id}
-                    variant={isPopular ? "primary" : "outline"}
+                    onClick={() => handleBuy(activePrice.id)}
+                    disabled={loading === activePrice.id}
+                    variant={isPopular || showPromo ? "primary" : "outline"}
                     className="w-full py-4 font-bold text-lg shadow-warm"
                   >
-                    {loading === pkg.id ? 'กำลังเตรียมการ...' : `เลือกแพ็กเกจ`}
+                    {loading === activePrice.id ? 'กำลังเตรียมการ...' : `เลือกแพ็กเกจ`}
                   </GlassButton>
                 </div>
               </div>
