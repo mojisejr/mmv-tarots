@@ -57,6 +57,20 @@ export async function generateMetadata(
     openGraph: {
       title: 'ผลการทำนายไพ่ยิปซีของคุณ | MimiVibe',
       description: 'เปิดคำทำนายไพ่ยิปซีพร้อมความหมายลึกซึ้งที่ MimiVibe',
+      images: [
+        {
+          url: `/api/og?id=${identifier}`,
+          width: 1200,
+          height: 630,
+          alt: 'MimiVibe Tarot Prediction',
+        }
+      ],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'ผลการทำนายไพ่ยิปซีของคุณ | MimiVibe',
+      description: 'เปิดคำทำนายไพ่ยิปซีพร้อมความหมายลึกซึ้งที่ MimiVibe',
       images: [`/api/og?id=${identifier}`],
     },
   };

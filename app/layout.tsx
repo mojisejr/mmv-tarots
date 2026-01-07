@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/providers/toast-provider";
 const fontClasses = "font-sans";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://mmv-tarots.vercel.app'),
   title: "MimiVibe - Cosmic Tarot Reader",
   description: "AI-powered tarot reading application",
   viewport: {
