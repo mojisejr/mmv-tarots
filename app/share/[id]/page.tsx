@@ -1,5 +1,6 @@
 import type { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { db } from '@/lib/server/db';
 import { ShareView } from './share-view';
 import { mapReadingData } from '@/lib/client/reading-utils';
@@ -95,6 +96,21 @@ export default async function SharePage({ params }: Props) {
     notFound();
   }
 
+  // Check for referral cookie to show welcome banner
+  const cookieStore = await cookies();
+  const refCode = cookieStore.get('mmv_ref')?.value;
+  let referrerName = null;
+
+  if (refCode) {
+    const referrer = await db.user.findUnique({
+      where: { referralCode: refCode },
+      select: { name: true }
+    });
+    if (referrer) {
+      referrerName = referrer.name;
+    }
+  }
+
   // 1. Adapt raw DB JSON to standardized ReadingResult
   const adaptedReading = adaptReadingData(prediction.finalReading);
   
@@ -116,5 +132,5 @@ export default async function SharePage({ params }: Props) {
   }
 
   // Server Component: Fetch data -> Render Client View
-  return <ShareView data={mappedData} predictionId={prediction.id} />;
+  return <ShareView data={mappedData} predictionId={prediction.id} referrerName={referrerName} />;
 }
