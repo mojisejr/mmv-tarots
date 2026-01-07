@@ -79,7 +79,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
   }, [jobId]);
 
   const handleBack = () => {
-    router.push('/history');
+    router.push('/');
   };
 
   const formatDate = (dateString: string) => {
@@ -110,7 +110,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>
@@ -161,7 +161,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>
@@ -187,7 +187,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>
@@ -220,7 +220,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>
@@ -251,7 +251,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>
@@ -319,7 +319,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             className="min-w-[200px] group transition-all duration-300 hover:border-accent/40"
           >
             <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>กลับไปหน้ารวมประวัติ</span>
+            <span>กลับไปถามต่อ</span>
           </GlassButton>
         </div>
       </div>

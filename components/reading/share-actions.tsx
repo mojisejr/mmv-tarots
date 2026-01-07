@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Share2, Link as LinkIcon, Check, Facebook, Twitter } from 'lucide-react';
 import { GlassButton, GlassCard } from '@/components';
 import { toast } from 'sonner';
+import { useSession } from '@/lib/client/auth-client';
 
 interface ShareActionsProps {
   predictionId: string;
@@ -15,10 +16,19 @@ interface ShareActionsProps {
 
 export function ShareActions({ predictionId, cardName, className = '', variant = 'minimal' }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
+  const { data: session } = useSession();
 
   const getShareUrl = () => {
     if (typeof window === 'undefined') return '';
-    return `${window.location.origin}/share/${predictionId}`;
+    const baseUrl = `${window.location.origin}/share/${predictionId}`;
+    
+    // Append referral code if user is logged in
+    const referralCode = (session?.user as any)?.referralCode;
+    if (referralCode) {
+      return `${baseUrl}?ref=${referralCode}`;
+    }
+    
+    return baseUrl;
   };
 
   const handleShare = async () => {

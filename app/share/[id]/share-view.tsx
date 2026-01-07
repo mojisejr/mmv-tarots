@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GlassCard, GlassButton, Modal, ArrowRight, Sparkles } from '@/components';
+import { GlassCard, GlassButton, Modal, ArrowRight, Sparkles, Gift } from '@/components';
 import {
   ReadingHeader,
   CardSpread,
@@ -18,9 +18,10 @@ import { motion } from 'framer-motion';
 interface ShareViewProps {
   data: MappedReadingData;
   predictionId: string; // Keep for reference if needed
+  referrerName?: string | null;
 }
 
-export function ShareView({ data, predictionId }: ShareViewProps) {
+export function ShareView({ data, predictionId, referrerName }: ShareViewProps) {
   const router = useRouter();
   const [selectedCard, setSelectedCard] = useState<CardReading | null>(null);
 
@@ -30,6 +31,38 @@ export function ShareView({ data, predictionId }: ShareViewProps) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 h-full pb-20 pt-8">
+      {/* Referral Welcome Banner */}
+      {referrerName && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-8"
+        >
+          <GlassCard className="p-4 border-accent/30 bg-accent/5 backdrop-blur-xl relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+              <Gift className="w-24 h-24 text-accent" />
+            </div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 border border-accent/20">
+                <Gift className="w-5 h-5 text-accent" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-foreground">คุณได้รับของขวัญจาก {referrerName}!</h4>
+                <p className="text-xs text-muted-foreground">
+                  เพื่อนส่งคำทำนายนี้ให้คุณ พร้อมสิทธิ์รับ <span className="text-accent font-bold">1 Star ฟรี</span> เมื่อสมัครสมาชิกครั้งแรก
+                </p>
+              </div>
+              <GlassButton 
+                onClick={() => router.push('/')}
+                className="!px-3 !py-1.5 text-xs bg-accent/20 border-accent/20 hover:bg-accent/30 whitespace-nowrap"
+              >
+                รับสิทธิ์เลย
+              </GlassButton>
+            </div>
+          </GlassCard>
+        </motion.div>
+      )}
+
       {/* Header / Intro */}
       <div className="text-center mb-8">
         <GlassCard className="inline-block px-4 py-1 mb-4 rounded-full border-primary/20 bg-primary/10">
