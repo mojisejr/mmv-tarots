@@ -69,7 +69,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   // Fetch balance when logged in
   const refreshBalance = async () => {
     if (isLoggedIn) {
-      setIsFetchingBalance(true);
+      // Don't set isFetchingBalance during polling to avoid UI flickering
+      // Only set it if explicitly triggered (future implementation might distinguish)
+      // For now we keep it simple or maybe we don't need loading state for background refresh
+      // Let's keep isFetchingBalance for manual triggers if we add a button later
+      // But for polling we might want to skip it.
+      
       try {
         const data = await fetchBalance();
         setStars(data.stars);
@@ -79,15 +84,28 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('Failed to fetch balance:', error);
-      } finally {
-        setIsFetchingBalance(false);
       }
     }
   };
 
+  // Polling for concentration refill
+  useEffect(() => {
+    if (!isLoggedIn || !concentration) return;
+
+    // Only poll if slots are not full
+    if (concentration.active < concentration.total) {
+      const intervalId = setInterval(() => {
+        refreshBalance();
+      }, 10000); // Check every 10 seconds
+
+      return () => clearInterval(intervalId);
+    }
+  }, [isLoggedIn, concentration?.active, concentration?.total]);
+
   useEffect(() => {
     if (isLoggedIn) {
-      refreshBalance();
+      setIsFetchingBalance(true);
+      refreshBalance().finally(() => setIsFetchingBalance(false));
     } else {
       setStars(null);
       setLastPredictionAt(null);

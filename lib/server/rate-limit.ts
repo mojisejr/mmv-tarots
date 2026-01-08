@@ -84,6 +84,9 @@ export function calculateRateLimit(
   const finalRefill = elapsedSinceLast / REFILL_RATE_SECONDS;
   tokens = Math.min(CAPACITY, tokens + finalRefill);
   
+  // Fix floating point precision issues (e.g. 2.9999 -> 3)
+  tokens = Math.round(tokens * 1000) / 1000;
+  
   const activeInteger = Math.floor(tokens);
   
   // If we have < 1 token, we are blocked.

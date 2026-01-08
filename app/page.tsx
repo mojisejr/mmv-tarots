@@ -39,7 +39,8 @@ function Home() {
     stars,
     lastPredictionAt,
     concentration,
-    handleLoginClick 
+    handleLoginClick,
+    refreshBalance
   } = useNavigation();
 
   // Cooldown Timer Logic
@@ -109,6 +110,9 @@ function Home() {
       // Update navigation state
       setCurrentJobId(response.jobId);
       setCurrentPage('submitted');
+      
+      // Refresh balance and concentration after submission
+      refreshBalance();
 
       // Navigate to submitted page with jobId
       router.push(`/submitted?jobId=${response.jobId}`);
@@ -208,6 +212,7 @@ function Home() {
                     isSubmitting={isSubmitting}
                     cooldownRemaining={cooldownRemaining}
                     concentration={concentration}
+                    onRefreshQuota={refreshBalance}
                   />
                   {stars !== null && (
                     <div className="absolute -top-10 right-0 flex items-center gap-1.5 bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/20 pointer-events-none animate-fade-in shadow-warm">
