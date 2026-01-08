@@ -16,6 +16,7 @@ export interface QuestionInputProps {
   disabled?: boolean;
   isSubmitting?: boolean;
   cooldownRemaining?: number;
+  concentration?: { active: number; total: number; nextRefillIn: number } | null;
   onFocus?: () => void;
   onBlur?: () => void;
 }
@@ -46,6 +47,7 @@ export function QuestionInput({
   disabled = false,
   isSubmitting = false,
   cooldownRemaining = 0,
+  concentration,
   onFocus,
   onBlur,
 }: QuestionInputProps) {
@@ -142,6 +144,26 @@ export function QuestionInput({
         </FloatingBadge>
       )}
 
+      {/* Concentration/Quota Badge (Bottom Left) */}
+      {concentration && !isFocused && (
+        <FloatingBadge position="bottom-left" animate={false}>
+          <div className="flex gap-1 items-center px-1">
+            {Array.from({ length: concentration.total }).map((_, i) => (
+              <span 
+                key={i} 
+                className={`text-xs transition-opacity duration-500 transform ${
+                  i < concentration.active ? 'opacity-100 scale-100' : 'opacity-20 grayscale scale-90'
+                }`}
+                role="img" 
+                aria-label="Crystal Ball"
+              >
+                🔮
+              </span>
+            ))}
+          </div>
+        </FloatingBadge>
+      )}
+
       <div className="flex items-end gap-3">
         <div
           className={`flex-1 relative bg-glass-mimi backdrop-blur-2xl border border-primary/20 rounded-[2rem] shadow-warm transition-all duration-300 hover:bg-primary/5 hover:border-primary/30 ${
@@ -204,11 +226,18 @@ export function QuestionInput({
       <p
         id="question-hint"
         className={`text-center text-[11px] text-muted-foreground/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300 hidden md:block ${
-          showHint ? 'opacity-100' : 'opacity-0'
+          showHint || cooldownRemaining > 0 ? 'opacity-100' : 'opacity-0'
         }`}
-        aria-hidden={!showHint}
+        aria-hidden={!showHint && cooldownRemaining <= 0}
       >
-        Press Enter to send
+        {cooldownRemaining > 0 ? (
+          <span className="text-accent/80 animate-pulse font-medium flex items-center justify-center gap-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+            แม่หมอกำลังรวบรวมสมาธิ... อีก {cooldownRemaining} วินาที
+          </span>
+        ) : (
+          'Press Enter to send'
+        )}
       </p>
     </div>
   );

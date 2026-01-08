@@ -7,12 +7,19 @@ import { fetchBalance } from '@/lib/client/api';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
 
+interface Concentration {
+  active: number;
+  total: number;
+  nextRefillIn: number;
+}
+
 interface NavigationContextType {
   isLoggedIn: boolean;
   isPending: boolean;
   isInitialLoading: boolean;
   stars: number | null;
   lastPredictionAt: string | null;
+  concentration: Concentration | null;
   currentPage: PageType;
   currentJobId: string | null;
   user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null;
@@ -36,6 +43,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [stars, setStars] = useState<number | null>(null);
   const [lastPredictionAt, setLastPredictionAt] = useState<string | null>(null);
+  const [concentration, setConcentration] = useState<Concentration | null>(null);
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
 
   // Sync currentPage with pathname
@@ -66,6 +74,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         const data = await fetchBalance();
         setStars(data.stars);
         setLastPredictionAt(data.lastPredictionAt || null);
+        if (data.concentration) {
+          setConcentration(data.concentration);
+        }
       } catch (error) {
         console.error('Failed to fetch balance:', error);
       } finally {
@@ -80,6 +91,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     } else {
       setStars(null);
       setLastPredictionAt(null);
+      setConcentration(null);
     }
   }, [isLoggedIn]);
 
@@ -151,6 +163,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         isInitialLoading,
         stars,
         lastPredictionAt,
+        concentration,
         currentPage,
         currentJobId,
         user,

@@ -32,9 +32,16 @@ const GetPredictResponseSchema = z.object({
   }).optional(),
 });
 
+const ConcentrationSchema = z.object({
+  active: z.number(),
+  total: z.number(),
+  nextRefillIn: z.number(),
+});
+
 const GetBalanceResponseSchema = z.object({
   stars: z.number(),
   lastPredictionAt: z.string().nullable().optional(),
+  concentration: ConcentrationSchema.optional(),
 });
 
 // Types

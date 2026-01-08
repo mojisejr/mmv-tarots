@@ -5,6 +5,7 @@ import { NextRequest, after } from 'next/server'
 import { startTarotWorkflow } from '@/services/tarot-service'
 import { PredictionService } from '@/services/prediction-service'
 import { CreditService } from '@/services/credit-service'
+import { calculateRateLimit } from '@/lib/server/rate-limit'
 import { validatePostPredictRequest } from '@/lib/server/validations'
 import { auth } from '@/lib/server/auth'
 import {
@@ -34,21 +35,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     const userId = session.user.id
     const userName = session.user.name || null
 
-    // Rate Limit Check: 1 request per 2 minutes
-    const lastPrediction = await PredictionService.getByUserId(userId, 1)
-    if (lastPrediction && lastPrediction.length > 0) {
-      const lastTime = new Date(lastPrediction[0].createdAt).getTime()
-      const now = new Date().getTime()
-      const diffMinutes = (now - lastTime) / (1000 * 60)
-      
-      if (diffMinutes < 2) {
-        const retryAfter = Math.ceil((2 * 60) - ((now - lastTime) / 1000))
-        throw new ApiError({
-          code: ERROR_CODES.TOO_MANY_REQUESTS,
-          message: 'Please wait before asking another question.',
-          details: { retryAfter }
-        })
-      }
+    // Rate Limit Check: Burst & Breathe (Token Bucket)
+    const recentPredictions = await PredictionService.getByUserId(userId, 10)
+    const { allowed, retryAfter } = calculateRateLimit(recentPredictions)
+    
+    if (!allowed) {
+      throw new ApiError({
+        code: ERROR_CODES.TOO_MANY_REQUESTS,
+        message: 'Mimi needs a moment to recharge...',
+        details: { retryAfter }
+      })
     }
 
     // Check credit balance

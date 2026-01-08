@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/server/auth';
+import { calculateRateLimit } from '@/lib/server/rate-limit';
 
 export const GET = async () => {
   const session = await auth.api.getSession({
@@ -28,15 +29,20 @@ export const GET = async () => {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Fetch last prediction time for cooldown calculation
-  const lastPrediction = await db.prediction.findFirst({
+  // Fetch recent predictions for concentration/cooldown calculation
+  // We need enough history for the Token Bucket algorithm
+  const predictions = await db.prediction.findMany({
     where: { userIdentifier: session.user.id },
     orderBy: { createdAt: 'desc' },
+    take: 10,
     select: { createdAt: true }
   });
 
+  const { concentration } = calculateRateLimit(predictions);
+
   return NextResponse.json({
     ...user,
-    lastPredictionAt: lastPrediction?.createdAt || null
+    concentration,
+    lastPredictionAt: predictions[0]?.createdAt || null
   });
 };
