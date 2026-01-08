@@ -185,16 +185,6 @@ export function QuestionInput({
         </FloatingBadge>
       )}
 
-      <div className={`                  aria-label="Crystal Ball"
-                >
-                  🔮
-                </span>
-              ))}
-            </div>
-          )}
-        </FloatingBadge>
-      )}
-
       {/* Ready Status Badge (Top Right) */}
       {isValid && !isFocused && (
         <FloatingBadge position="top-right">
@@ -202,8 +192,6 @@ export function QuestionInput({
           <span className="text-[10px] font-bold text-foreground uppercase tracking-tighter">Ready to Ask</span>
         </FloatingBadge>
       )}
-
-      {/* Concentration/Quota Badge (Bottom Left) - Removed or moved back if needed */}
 
       <div className="flex items-end gap-3">
         <div
