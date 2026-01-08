@@ -38,7 +38,9 @@ function Home() {
     isLoggedIn, 
     stars,
     lastPredictionAt,
-    handleLoginClick 
+    concentration,
+    handleLoginClick,
+    refreshBalance
   } = useNavigation();
 
   // Cooldown Timer Logic
@@ -58,19 +60,12 @@ function Home() {
     return () => clearInterval(timer);
   }, [cooldownRemaining]);
 
-  // Calculate initial cooldown if lastPredictionAt exists
+  // Initialize cooldown from concentration state (Burst & Breathe)
   useEffect(() => {
-    if (isLoggedIn && lastPredictionAt) {
-      const lastTime = new Date(lastPredictionAt).getTime();
-      const now = new Date().getTime();
-      const diffSeconds = Math.floor((now - lastTime) / 1000);
-      const cooldownSeconds = 120; // 2 minutes
-      
-      if (diffSeconds < cooldownSeconds) {
-        setCooldownRemaining(cooldownSeconds - diffSeconds);
-      }
+    if (concentration && concentration.active === 0 && concentration.nextRefillIn > 0) {
+      setCooldownRemaining(concentration.nextRefillIn);
     }
-  }, [isLoggedIn, lastPredictionAt]);
+  }, [concentration]);
 
   // Handle query parameter for suggested questions
   useEffect(() => {
@@ -115,6 +110,9 @@ function Home() {
       // Update navigation state
       setCurrentJobId(response.jobId);
       setCurrentPage('submitted');
+      
+      // Refresh balance and concentration after submission
+      refreshBalance();
 
       // Navigate to submitted page with jobId
       router.push(`/submitted?jobId=${response.jobId}`);
@@ -213,6 +211,8 @@ function Home() {
                     disabled={isSubmitting || cooldownRemaining > 0}
                     isSubmitting={isSubmitting}
                     cooldownRemaining={cooldownRemaining}
+                    concentration={concentration}
+                    onRefreshQuota={refreshBalance}
                   />
                   {stars !== null && (
                     <div className="absolute -top-10 right-0 flex items-center gap-1.5 bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/20 pointer-events-none animate-fade-in shadow-warm">

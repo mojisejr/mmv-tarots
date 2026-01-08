@@ -7,12 +7,19 @@ import { fetchBalance } from '@/lib/client/api';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
 
+interface Concentration {
+  active: number;
+  total: number;
+  nextRefillIn: number;
+}
+
 interface NavigationContextType {
   isLoggedIn: boolean;
   isPending: boolean;
   isInitialLoading: boolean;
   stars: number | null;
   lastPredictionAt: string | null;
+  concentration: Concentration | null;
   currentPage: PageType;
   currentJobId: string | null;
   user: { id: string; name?: string | null; email?: string | null; image?: string | null } | null;
@@ -36,6 +43,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [stars, setStars] = useState<number | null>(null);
   const [lastPredictionAt, setLastPredictionAt] = useState<string | null>(null);
+  const [concentration, setConcentration] = useState<Concentration | null>(null);
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
 
   // Sync currentPage with pathname
@@ -61,25 +69,47 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   // Fetch balance when logged in
   const refreshBalance = async () => {
     if (isLoggedIn) {
-      setIsFetchingBalance(true);
+      // Don't set isFetchingBalance during polling to avoid UI flickering
+      // Only set it if explicitly triggered (future implementation might distinguish)
+      // For now we keep it simple or maybe we don't need loading state for background refresh
+      // Let's keep isFetchingBalance for manual triggers if we add a button later
+      // But for polling we might want to skip it.
+      
       try {
         const data = await fetchBalance();
         setStars(data.stars);
         setLastPredictionAt(data.lastPredictionAt || null);
+        if (data.concentration) {
+          setConcentration(data.concentration);
+        }
       } catch (error) {
         console.error('Failed to fetch balance:', error);
-      } finally {
-        setIsFetchingBalance(false);
       }
     }
   };
 
+  // Polling for concentration refill
+  useEffect(() => {
+    if (!isLoggedIn || !concentration) return;
+
+    // Only poll if slots are not full
+    if (concentration.active < concentration.total) {
+      const intervalId = setInterval(() => {
+        refreshBalance();
+      }, 10000); // Check every 10 seconds
+
+      return () => clearInterval(intervalId);
+    }
+  }, [isLoggedIn, concentration?.active, concentration?.total]);
+
   useEffect(() => {
     if (isLoggedIn) {
-      refreshBalance();
+      setIsFetchingBalance(true);
+      refreshBalance().finally(() => setIsFetchingBalance(false));
     } else {
       setStars(null);
       setLastPredictionAt(null);
+      setConcentration(null);
     }
   }, [isLoggedIn]);
 
@@ -151,6 +181,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         isInitialLoading,
         stars,
         lastPredictionAt,
+        concentration,
         currentPage,
         currentJobId,
         user,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, RotateCw } from 'lucide-react';
 import { FloatingBadge } from './floating-badge';
 
 export interface QuestionInputProps {
@@ -16,8 +16,10 @@ export interface QuestionInputProps {
   disabled?: boolean;
   isSubmitting?: boolean;
   cooldownRemaining?: number;
+  concentration?: { active: number; total: number; nextRefillIn: number } | null;
   onFocus?: () => void;
   onBlur?: () => void;
+  onRefreshQuota?: () => void;
 }
 
 const MIN_TEXTAREA_HEIGHT = 56; // Increased for better touch target and spacing
@@ -46,10 +48,13 @@ export function QuestionInput({
   disabled = false,
   isSubmitting = false,
   cooldownRemaining = 0,
+  concentration,
   onFocus,
   onBlur,
+  onRefreshQuota,
 }: QuestionInputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = externalTextareaRef || internalTextareaRef;
 
@@ -118,19 +123,65 @@ export function QuestionInput({
     resizeTextarea();
   }, [value, resizeTextarea]);
 
+  const handleRefreshClick = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onRefreshQuota && !isRefreshing) {
+      setIsRefreshing(true);
+      await onRefreshQuota();
+      // Keep spinning a bit longer for visual feedback
+      setTimeout(() => setIsRefreshing(false), 500);
+    }
+  }, [onRefreshQuota, isRefreshing]);
+
   const showHint = !isFocused && value.length === 0;
   const characterCount = value.length;
 
   return (
     <div className="w-full relative" data-testid="question-input-container">
-      {/* Character Counter Badge (Top Left) */}
-      {(isFocused || characterCount > 0) && (
-        <FloatingBadge position="top-left" animate={false}>
+      {/* Character Counter & Concentration Badge (Top Left) */}
+      {(isFocused || characterCount > 0 || concentration) && (
+        <FloatingBadge position="top-left" animate={false} className="flex gap-2 items-center pointer-events-auto">
           <span className={`text-[10px] font-bold tracking-tighter ${
+            concentration ? 'border-r border-border-subtle pr-2' : ''
+          } ${
             characterCount > maxCharacters ? 'text-red-400' : 'text-muted-foreground'
           }`}>
             {characterCount}/{maxCharacters}
           </span>
+          
+          {concentration && (
+            <div className="flex gap-1.5 items-center">
+              <div className="flex gap-0.5 items-center">
+                {Array.from({ length: concentration.total }).map((_, i) => (
+                  <span 
+                    key={i} 
+                    className={`text-[10px] transition-all duration-500 transform ${
+                      i < concentration.active ? 'opacity-100 scale-110 drop-shadow-[0_0_2px_rgba(168,85,247,0.5)]' : 'opacity-20 grayscale scale-90'
+                    }`}
+                    role="img" 
+                    aria-label="Crystal Ball"
+                  >
+                    🔮
+                  </span>
+                ))}
+              </div>
+              
+              {/* Refresh Button - Only show if quota is not full */}
+              {concentration.active < concentration.total && (
+                <button
+                  onClick={handleRefreshClick}
+                  disabled={isRefreshing}
+                  className={`text-muted-foreground/50 hover:text-primary transition-colors p-0.5 rounded-full hover:bg-white/5 ${
+                    isRefreshing ? 'animate-spin text-primary' : ''
+                  }`}
+                  title="รวมสมาธิ"
+                >
+                  <RotateCw size={10} />
+                </button>
+              )}
+            </div>
+          )}
         </FloatingBadge>
       )}
 
@@ -204,11 +255,18 @@ export function QuestionInput({
       <p
         id="question-hint"
         className={`text-center text-[11px] text-muted-foreground/40 mt-4 font-sans tracking-wider uppercase transition-opacity duration-300 hidden md:block ${
-          showHint ? 'opacity-100' : 'opacity-0'
+          showHint || cooldownRemaining > 0 ? 'opacity-100' : 'opacity-0'
         }`}
-        aria-hidden={!showHint}
+        aria-hidden={!showHint && cooldownRemaining <= 0}
       >
-        Press Enter to send
+        {cooldownRemaining > 0 ? (
+          <span className="text-accent/80 animate-pulse font-medium flex items-center justify-center gap-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+            แม่หมอกำลังรวบรวมสมาธิ... อีก {cooldownRemaining} วินาที
+          </span>
+        ) : (
+          'Press Enter to send'
+        )}
       </p>
     </div>
   );

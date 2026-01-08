@@ -32,9 +32,16 @@ const GetPredictResponseSchema = z.object({
   }).optional(),
 });
 
+const ConcentrationSchema = z.object({
+  active: z.number(),
+  total: z.number(),
+  nextRefillIn: z.number(),
+});
+
 const GetBalanceResponseSchema = z.object({
   stars: z.number(),
   lastPredictionAt: z.string().nullable().optional(),
+  concentration: ConcentrationSchema.optional(),
 });
 
 // Types
@@ -175,7 +182,7 @@ export async function fetchUserPredictions(limit?: number): Promise<{
  * Fetch user's star balance
  */
 export async function fetchBalance(): Promise<GetBalanceResponse> {
-  const response = await fetch('/api/credits/balance');
+  const response = await fetch('/api/credits/balance', { cache: 'no-store' });
   
   if (!response.ok) {
     if (response.status === 401) {
