@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "npx eslint \"**/*.{js,mjs,cjs}\" --max-warnings=0",
     "test": "vitest run",
@@ -17,7 +17,9 @@
     "test:db": "vitest run app/__tests__/database.test.ts",
     "test:ai": "vitest run --exclude=tests/e2e",
     "test:real-ai": "NODE_ENV=test vitest run --run tests/e2e",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "db:snapshot-prod": "chmod +x scripts/neon-snapshot-rotate.sh && ./scripts/neon-snapshot-rotate.sh",
+    "migrate:safe": "node scripts/prisma-safety-check.js && prisma migrate deploy"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.44",
