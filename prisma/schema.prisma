@@ -32,14 +32,36 @@ model User {
   referredById  String?             @map("referred_by_id")
   stars         Int                 @default(0)
   emailVerified Boolean             @default(false)
+  signupIp      String?             @map("signup_ip")
   accounts      Account[]
   transactions  CreditTransaction[]
   predictions   Prediction[]
   sessions      Session[]
   referredBy    User?               @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals     User[]              @relation("UserReferrals")
+  referralHistoryAsReferrer ReferralHistory[] @relation("ReferrerHistory")
+  referralHistoryAsReferee  ReferralHistory[] @relation("RefereeHistory")
 
   @@map("user")
+}
+
+model ReferralHistory {
+  id           String   @id @default(cuid())
+  referrerId   String   @map("referrer_id")
+  refereeId    String   @map("referee_id")
+  ipAddress    String   @map("ip_address")
+  status       String   @default("PENDING") // PENDING, GRANTED, BLOCKED
+  rewardAmount Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  referrer     User     @relation("ReferrerHistory", fields: [referrerId], references: [id])
+  referee      User     @relation("RefereeHistory", fields: [refereeId], references: [id])
+
+  @@map("referral_history")
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([ipAddress])
 }
 
 model Session {

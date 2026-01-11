@@ -5,6 +5,7 @@ import { db } from '@/lib/server/db'
 import { gatekeeperAgent } from '@/lib/server/ai/agents/gatekeeper'
 import { analystAgent } from '@/lib/server/ai/agents/analyst'
 import { mysticAgent } from '@/lib/server/ai/agents/mystic'
+import { referralService } from '@/lib/server/services/referral-service'
 
 export interface SimpleTarotReadingParams {
   question: string
@@ -112,6 +113,17 @@ export async function runSimpleTarotWorkflow(
         completedAt
       }
     })
+
+    // Anti-Fraud: Grant referral reward ONLY after first successful prediction
+    // This completes the "Delayed Reward" cycle
+    if (userId) {
+      try {
+        await referralService.grantReferralReward(userId)
+      } catch (rewardError) {
+        // Log but don't fail the prediction if reward fails
+        console.error('Failed to grant referral reward:', rewardError)
+      }
+    }
 
     return {
       success: true,

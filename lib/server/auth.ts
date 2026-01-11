@@ -8,7 +8,8 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { db } from './db';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { referralService } from './services/referral-service';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -40,33 +41,12 @@ export const auth = betterAuth({
             const cookieStore = await cookies();
             const referralCode = cookieStore.get('mmv_ref')?.value;
 
-            if (referralCode) {
-              const referrer = await db.user.findUnique({
-                where: { referralCode },
-              });
+            const headerStore = await headers();
+            const forwardedFor = headerStore.get('x-forwarded-for');
+            const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
 
-              if (referrer && referrer.id !== user.id) {
-                // Update relationships and grant rewards in a transaction
-                await db.$transaction([
-                  // Link the new user to the referrer and give 5 starter stars
-                  db.user.update({
-                    where: { id: user.id },
-                    data: { 
-                      referredById: referrer.id,
-                      stars: { increment: 5 } // Bonus for being referred
-                    },
-                  }),
-                  // Reward the referrer with 10 stars
-                  db.user.update({
-                    where: { id: referrer.id },
-                    data: {
-                      stars: { increment: 10 }
-                    },
-                  }),
-                  // Optional: Create credit transactions for history log (omitted for now to keep simple)
-                ]);
-              }
-            }
+            // Use the new robust service (No immediate reward)
+            await referralService.processReferralSignup(user as any, referralCode, ip);
           } catch (error) {
             console.error('Error in referral hook:', error);
             // Non-blocking catch to ensure user creation succeeds even if referral fails
