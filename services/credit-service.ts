@@ -1,6 +1,7 @@
 import { db } from '@/lib/server/db';
 import { TransactionType, TransactionStatus } from '@prisma/client';
 import { REFERRAL_REWARDS } from '@/constants/referral';
+import { referralService } from '@/lib/server/services/referral-service';
 
 export const CreditService = {
   /**
@@ -157,99 +158,31 @@ export const CreditService = {
   },
 
   /**
-   * Apply referral rewards to both referrer and referee
-   * Referrer gets REFERRAL_REWARDS.REFERRER stars, Referee gets REFERRAL_REWARDS.REFEREE star
-   * This is an atomic operation - both succeed or both fail
+   * Apply referral rewards (Robust Version)
+   * This method now uses the referralService to ensure anti-fraud and delayed rewards.
+   * Rewards are no longer granted immediately but are marked as PENDING until first usage.
    */
   async applyReferralReward(referralCode: string, newUserId: string): Promise<{ success: boolean; message: string }> {
     try {
-      const result = await db.$transaction(async (tx) => {
-        // Find the referrer by referral code
-        const referrer = await tx.user.findUnique({
-          where: { referralCode },
-          select: { id: true, stars: true, name: true },
-        });
+      const user = await db.user.findUnique({ where: { id: newUserId } });
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
 
-        if (!referrer) {
-          return { success: false, message: 'Invalid referral code' };
-        }
+      // Check if already referred to avoid duplicate processing
+      if (user.referredById) {
+        return { success: false, message: 'User already referred' };
+      }
 
-        // Check if trying to refer themselves
-        if (referrer.id === newUserId) {
-          return { success: false, message: 'Cannot refer yourself' };
-        }
-
-        // Check if the new user has already been referred
-        const newUser = await tx.user.findUnique({
-          where: { id: newUserId },
-          select: { referredById: true, stars: true },
-        });
-
-        if (!newUser) {
-          return { success: false, message: 'User not found' };
-        }
-
-        if (newUser.referredById) {
-          return { success: false, message: 'User has already been referred' };
-        }
-
-        // Update the new user's referredById
-        await tx.user.update({
-          where: { id: newUserId },
-          data: { referredById: referrer.id },
-        });
-
-        // Give REFERRAL_REWARDS.REFERRER stars to referrer
-        const referrerNewBalance = referrer.stars + REFERRAL_REWARDS.REFERRER;
-        await tx.user.update({
-          where: { id: referrer.id },
-          data: { stars: referrerNewBalance },
-        });
-
-        await tx.creditTransaction.create({
-          data: {
-            userId: referrer.id,
-            amount: REFERRAL_REWARDS.REFERRER,
-            balanceAfter: referrerNewBalance,
-            type: TransactionType.TOPUP,
-            status: TransactionStatus.SUCCESS,
-            metadata: {
-              source: 'referral_reward',
-              refereeId: newUserId,
-              note: 'Reward for referring a new user',
-            },
-          },
-        });
-
-        // Give REFERRAL_REWARDS.REFEREE star to new user
-        const refereeNewBalance = newUser.stars + REFERRAL_REWARDS.REFEREE;
-        await tx.user.update({
-          where: { id: newUserId },
-          data: { stars: refereeNewBalance },
-        });
-
-        await tx.creditTransaction.create({
-          data: {
-            userId: newUserId,
-            amount: REFERRAL_REWARDS.REFEREE,
-            balanceAfter: refereeNewBalance,
-            type: TransactionType.TOPUP,
-            status: TransactionStatus.SUCCESS,
-            metadata: {
-              source: 'referral_bonus',
-              referrerId: referrer.id,
-              note: 'Welcome bonus for using referral link',
-            },
-          },
-        });
-
-        return { success: true, message: 'Referral rewards applied successfully' };
-      });
-
-      return result;
+      await referralService.processReferralSignup(user, referralCode, 'unknown');
+      
+      return { 
+        success: true, 
+        message: 'Referral processed. Rewards will be granted after the first prediction.' 
+      };
     } catch (error) {
       console.error('Error applying referral reward:', error);
-      return { success: false, message: 'Failed to apply referral reward' };
+      return { success: false, message: 'Failed to process referral' };
     }
   }
 };

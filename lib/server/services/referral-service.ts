@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { REFERRAL_REWARDS, ReferralStatus } from '@/constants/referral';
-import { User } from '@prisma/client';
+import { User, TransactionType, TransactionStatus } from '@prisma/client';
 
 export const referralService = {
   async processReferralSignup(user: User, referralCode?: string, ipAddress: string = 'unknown') {
@@ -80,11 +80,43 @@ export const referralService = {
         where: { id: history.referrerId },
         data: { stars: { increment: REFERRAL_REWARDS.REFERRER } },
       }),
+      // Create Transaction Log for Referrer
+      db.creditTransaction.create({
+        data: {
+          userId: history.referrerId,
+          amount: REFERRAL_REWARDS.REFERRER,
+          balanceAfter: history.referrer.stars + REFERRAL_REWARDS.REFERRER,
+          type: TransactionType.TOPUP,
+          status: TransactionStatus.SUCCESS,
+          metadata: {
+            source: 'referral_reward',
+            refereeId: history.refereeId,
+            note: 'Reward for referring a new user (first usage)',
+          },
+        },
+      }),
+
       // 2. Give stars to Referee (Bonus)
       db.user.update({
         where: { id: history.refereeId },
         data: { stars: { increment: REFERRAL_REWARDS.REFEREE } },
       }),
+      // Create Transaction Log for Referee
+      db.creditTransaction.create({
+        data: {
+          userId: history.refereeId,
+          amount: REFERRAL_REWARDS.REFEREE,
+          balanceAfter: history.referee.stars + REFERRAL_REWARDS.REFEREE,
+          type: TransactionType.TOPUP,
+          status: TransactionStatus.SUCCESS,
+          metadata: {
+            source: 'referral_bonus',
+            referrerId: history.referrerId,
+            note: 'Welcome bonus for using referral link (first usage)',
+          },
+        },
+      }),
+
       // 3. Update History Status
       db.referralHistory.update({
         where: { id: history.id },
