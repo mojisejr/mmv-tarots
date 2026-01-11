@@ -9,8 +9,8 @@ const fontClasses = "font-sans";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://mmv-tarots.vercel.app'),
-  title: "MimiVibe - Cosmic Tarot Reader",
-  description: "AI-powered tarot reading application",
+  title: "MimiVibe: แม่หมอมีมี่ ดูดวงไพ่ยิปซีพลังจักรวาลด้วย AI",
+  description: "พบกับการดูดวงไพ่ยิปซีรูปแบบใหม่กับ \"แม่หมอมีมี่\" ที่ผสมผสานศาสตร์แห่งจักรวาลเข้ากับ AI อัจฉริยะ ค้นหาคำตอบของชีวิต ความรัก และการงาน พร้อมรับพลังบวกได้แล้ววันนี้",
   viewport: {
     width: 'device-width',
     initialScale: 1,

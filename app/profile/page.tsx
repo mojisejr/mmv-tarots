@@ -9,6 +9,7 @@ import { fetchUserPredictions } from '@/lib/client/api';
 import { TransactionHistoryList } from '@/components/features/transaction-history-list';
 import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { REFERRAL_REWARDS } from '@/constants/referral';
 
 interface Prediction {
   id: string;
@@ -119,7 +120,7 @@ function ProfilePageContent() {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
       toast.success('คัดลอกลิงก์แล้ว!', {
-        description: 'แชร์ให้เพื่อนเพื่อรับ 2 Stars',
+        description: `แชร์ให้เพื่อนเพื่อรับ ${REFERRAL_REWARDS.REFERRER} Stars`,
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -240,8 +241,8 @@ function ProfilePageContent() {
             <div className="flex-1">
               <h4 className="text-sm font-bold text-foreground mb-1">ชวนเพื่อนรับ Stars</h4>
               <p className="text-xs text-foreground/60 leading-relaxed">
-                เพื่อนคุณจะได้ <span className="text-foreground font-semibold">1 Star ฟรี</span><br />
-                คุณจะได้ <span className="text-foreground font-semibold">2 Stars</span> เมื่อเพื่อนสมัครสมาชิก
+                เพื่อนคุณจะได้ <span className="text-foreground font-semibold">{REFERRAL_REWARDS.REFEREE} Star ฟรี</span><br />
+                คุณจะได้ <span className="text-foreground font-semibold">{REFERRAL_REWARDS.REFERRER} Stars</span> เมื่อเพื่อนสมัครสมาชิก
               </p>
             </div>
           </div>
