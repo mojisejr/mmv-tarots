@@ -1,5 +1,6 @@
 import { db } from '@/lib/server/db';
 import { TransactionType, TransactionStatus } from '@prisma/client';
+import { REFERRAL_REWARDS } from '@/constants/referral';
 
 export const CreditService = {
   /**
@@ -157,7 +158,7 @@ export const CreditService = {
 
   /**
    * Apply referral rewards to both referrer and referee
-   * Referrer gets 2 stars, Referee gets 1 star
+   * Referrer gets REFERRAL_REWARDS.REFERRER stars, Referee gets REFERRAL_REWARDS.REFEREE star
    * This is an atomic operation - both succeed or both fail
    */
   async applyReferralReward(referralCode: string, newUserId: string): Promise<{ success: boolean; message: string }> {
@@ -198,8 +199,8 @@ export const CreditService = {
           data: { referredById: referrer.id },
         });
 
-        // Give 2 stars to referrer
-        const referrerNewBalance = referrer.stars + 2;
+        // Give REFERRAL_REWARDS.REFERRER stars to referrer
+        const referrerNewBalance = referrer.stars + REFERRAL_REWARDS.REFERRER;
         await tx.user.update({
           where: { id: referrer.id },
           data: { stars: referrerNewBalance },
@@ -208,7 +209,7 @@ export const CreditService = {
         await tx.creditTransaction.create({
           data: {
             userId: referrer.id,
-            amount: 2,
+            amount: REFERRAL_REWARDS.REFERRER,
             balanceAfter: referrerNewBalance,
             type: TransactionType.TOPUP,
             status: TransactionStatus.SUCCESS,
@@ -220,8 +221,8 @@ export const CreditService = {
           },
         });
 
-        // Give 1 star to new user
-        const refereeNewBalance = newUser.stars + 1;
+        // Give REFERRAL_REWARDS.REFEREE star to new user
+        const refereeNewBalance = newUser.stars + REFERRAL_REWARDS.REFEREE;
         await tx.user.update({
           where: { id: newUserId },
           data: { stars: refereeNewBalance },
@@ -230,7 +231,7 @@ export const CreditService = {
         await tx.creditTransaction.create({
           data: {
             userId: newUserId,
-            amount: 1,
+            amount: REFERRAL_REWARDS.REFEREE,
             balanceAfter: refereeNewBalance,
             type: TransactionType.TOPUP,
             status: TransactionStatus.SUCCESS,
