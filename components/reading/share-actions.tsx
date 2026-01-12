@@ -6,6 +6,7 @@ import { Share2, Link as LinkIcon, Check, Facebook, Twitter } from 'lucide-react
 import { GlassButton, GlassCard } from '@/components';
 import { toast } from 'sonner';
 import { useSession } from '@/lib/client/auth-client';
+import { ReferralUtils } from '@/lib/referral-utils';
 
 interface ShareActionsProps {
   predictionId: string;
@@ -14,28 +15,25 @@ interface ShareActionsProps {
   variant?: 'minimal' | 'card'; // minimal = just icon, card = big CTA
 }
 
+interface UserWithReferral {
+  referralCode?: string | null;
+}
+
 export function ShareActions({ predictionId, cardName, className = '', variant = 'minimal' }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const { data: session } = useSession();
 
   const getShareUrl = () => {
     if (typeof window === 'undefined') return '';
-    const baseUrl = `${window.location.origin}/share/${predictionId}`;
-    
-    // Append referral code if user is logged in
-    const referralCode = (session?.user as any)?.referralCode;
-    if (referralCode) {
-      return `${baseUrl}?ref=${referralCode}`;
-    }
-    
-    return baseUrl;
+    const user = session?.user as unknown as UserWithReferral;
+    return ReferralUtils.generateLink(window.location.origin, user?.referralCode || undefined, `/share/${predictionId}`);
   };
 
   const handleShare = async () => {
     const url = getShareUrl();
     const shareData = {
       title: 'MimiVibe Tarot Prediction',
-      text: `ฉันได้รับไพ่ "${cardName}" มาดูคำทำนายของฉันและเปิดไพ่ของคุณได้ที่นี่ ✨`,
+      text: ReferralUtils.shareText.prediction(cardName),
       url: url,
     };
 
