@@ -7,9 +7,10 @@ import { GlassCard, GlassButton, HistoryCard } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions } from '@/lib/client/api';
 import { TransactionHistoryList } from '@/components/features/transaction-history-list';
-import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check } from 'lucide-react';
+import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { REFERRAL_REWARDS } from '@/constants/referral';
+import { ReferralUtils } from '@/lib/referral-utils';
 
 interface Prediction {
   id: string;
@@ -114,18 +115,35 @@ function ProfilePageContent() {
     if (!referralCode) return;
     
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const referralLink = `${baseUrl}/?ref=${referralCode}`;
+    const referralLink = ReferralUtils.generateLink(baseUrl, referralCode);
+    const shareText = ReferralUtils.shareText.invite();
     
     try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      toast.success('คัดลอกลิงก์แล้ว!', {
-        description: `แชร์ให้เพื่อนเพื่อรับ ${REFERRAL_REWARDS.REFERRER} Stars`,
-      });
-      setTimeout(() => setCopied(false), 2000);
+      // Try to use native share if available (mobile friendly)
+      if (navigator.share) {
+         await navigator.share({
+            title: 'MimiVibe Free Reading',
+            text: shareText,
+            url: referralLink
+         });
+      } else {
+         await navigator.clipboard.writeText(referralLink);
+         setCopied(true);
+         toast.success('คัดลอกลิงก์แล้ว!', {
+           description: `แชร์ให้เพื่อนเพื่อรับ ${REFERRAL_REWARDS.REFERRER} Stars`,
+         });
+         setTimeout(() => setCopied(false), 2000);
+      }
     } catch (err) {
-      console.error('Failed to copy:', err);
-      toast.error('ไม่สามารถคัดลอกได้');
+      console.error('Failed to copy/share:', err);
+      // Fallback to clipboard if share fails (e.g. user cancelled)
+      try {
+        await navigator.clipboard.writeText(referralLink);
+        setCopied(true);
+        toast.success('คัดลอกลิงก์แล้ว!');
+      } catch (clipboardErr) {
+        toast.error('ไม่สามารถคัดลอกได้');
+      }
     }
   };
 
@@ -234,22 +252,38 @@ function ProfilePageContent() {
       {/* Referral Program Card */}
       {referralCode && (
         <GlassCard className="mb-6 glass-mimi border-accent/20">
-          <div className="flex items-start gap-3 mb-3">
+          <div className="flex items-start gap-3 mb-4">
             <div className="p-2 rounded-lg bg-accent/10">
               <Gift className="w-5 h-5 text-accent" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-foreground mb-1">ชวนเพื่อนรับ Stars</h4>
-              <p className="text-xs text-foreground/60 leading-relaxed">
-                เพื่อนคุณจะได้ <span className="text-foreground font-semibold">{REFERRAL_REWARDS.REFEREE} Star ฟรี</span><br />
-                คุณจะได้ <span className="text-foreground font-semibold">{REFERRAL_REWARDS.REFERRER} Stars</span> เมื่อเพื่อนสมัครสมาชิก
+              <h4 className="text-sm font-bold text-foreground mb-1">ชวนเพื่อนเปิดไพ่</h4>
+              <p className="text-xs text-foreground/60 leading-relaxed mb-3">
+                เพื่อนรับสิทธิ์ <span className="text-foreground font-semibold">เปิดไพ่ฟรี 3 ครั้ง</span> ทันที!<br />
+                คุณรับ <span className="text-foreground font-semibold">{REFERRAL_REWARDS.REFERRER} Stars</span> เมื่อเพื่อนอ่านไพ่จบครั้งแรก
               </p>
+
+              {/* How it works steps */}
+              <div className="bg-primary/5 rounded-lg p-3 text-[10px] space-y-2 border border-primary/5">
+                <div className="flex items-center gap-2">
+                   <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold border border-primary/10">1</div>
+                   <span className="text-foreground/70">ส่งลิงก์ให้เพื่อนสมัครสมาชิก</span>
+                </div>
+                <div className="flex items-center gap-2">
+                   <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold border border-primary/10">2</div>
+                   <span className="text-foreground/70">เพื่อนได้โบนัสทันที (อ่านฟรี 3 ครั้ง)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                   <div className="w-4 h-4 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[8px] font-bold border border-accent/20">3</div>
+                   <span className="text-foreground/80 font-medium">เพื่อนอ่านไพ่จบ = คุณได้รางวัล! ✨</span>
+                </div>
+              </div>
             </div>
           </div>
           
           <div className="flex gap-2">
             <div className="flex-1 bg-primary/5 rounded-lg px-3 py-2.5 text-xs font-mono text-foreground/80 truncate border border-primary/10">
-              {typeof window !== 'undefined' ? window.location.origin : ''}/?ref={referralCode}
+              {typeof window !== 'undefined' ? ReferralUtils.generateLink(window.location.origin, referralCode) : ''}
             </div>
             <GlassButton 
               onClick={handleCopyReferralLink}

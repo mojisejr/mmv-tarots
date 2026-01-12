@@ -49,7 +49,7 @@ export function ShareView({ data, predictionId, referrerName }: ShareViewProps) 
               <div className="flex-1">
                 <h4 className="text-sm font-bold text-foreground">คุณได้รับของขวัญจาก {referrerName}!</h4>
                 <p className="text-xs text-muted-foreground">
-                  เพื่อนส่งคำทำนายนี้ให้คุณ พร้อมสิทธิ์รับ <span className="text-accent font-bold">1 Star ฟรี</span> เมื่อสมัครสมาชิกครั้งแรก
+                  เพื่อนส่งคำทำนายนี้ให้คุณ พร้อมสิทธิ์เปิดไพ่ <span className="text-accent font-bold">ฟรี 3 ครั้ง</span> ทันทีที่สมัครสมาชิก!
                 </p>
               </div>
               <GlassButton 

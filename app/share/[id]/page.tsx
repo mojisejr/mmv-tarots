@@ -77,7 +77,7 @@ export async function generateMetadata(
   };
 }
 
-export default async function SharePage({ params }: Props) {
+export default async function SharePage({ params, searchParams }: Props) {
   const resolvedParams = await params;
   const identifier = resolvedParams.id;
   
@@ -98,7 +98,10 @@ export default async function SharePage({ params }: Props) {
 
   // Check for referral cookie to show welcome banner
   const cookieStore = await cookies();
-  const refCode = cookieStore.get('mmv_ref')?.value;
+  const resolvedSearchParams = await searchParams;
+  
+  // Priority: URL Param > Cookie (Fix for First-touch attribution)
+  const refCode = (resolvedSearchParams.ref as string) || cookieStore.get('mmv_ref')?.value;
   let referrerName = null;
 
   if (refCode) {
