@@ -98,6 +98,10 @@ export const Loader2 = createIcon(
   <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
 );
 
+export const Check = createIcon(
+  <polyline points="20 6 9 17 4 12" />
+);
+
 export const Copy = createIcon(
   <>
     <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
