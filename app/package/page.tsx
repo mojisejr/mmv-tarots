@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { GlassCard, GlassButton, Sparkles, ErrorBoundary } from '@/components';
+import { GlassCard, GlassButton, Sparkles, ErrorBoundary, Check } from '@/components';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { toast } from 'sonner';
@@ -135,7 +135,7 @@ function PackagePageContent() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
         {packages.map((pkg, index) => {
           const isPopular = index === 1; // สมมติว่าใบกลางคือยอดนิยม
           
@@ -147,6 +147,38 @@ function PackagePageContent() {
           const showPromo = isEligible && !!promoPrice;
           const activePrice = showPromo ? promoPrice! : regularPrice!;
           
+          // Calculate Savings
+          const savedAmount = showPromo && regularPrice ? regularPrice.amount - promoPrice!.amount : 0;
+          
+          // Benefits list based on package type
+          const getBenefits = (type: string) => {
+            if (type.includes('Starter')) return [
+                'ทำนายเจาะลึก 3-Agent',
+                'ดาวไม่มีวันหมดอายุ',
+            ];
+            if (type.includes('Premium')) return [
+                'ทำนายเจาะลึก 3-Agent',
+                'ดาวไม่มีวันหมดอายุ',
+                'Private & Secure',
+            ];
+            return [
+                'ทำนายเจาะลึก 3-Agent',
+                'ดาวไม่มีวันหมดอายุ',
+                'Private & Secure',
+            ];
+          };
+
+          const benefits = getBenefits(pkg.name);
+
+          // Custom CTA text
+          const getCTA = (type: string) => {
+             if (type.includes('Starter')) return 'รับสิทธิ์เริ่มต้น';
+             if (type.includes('Premium')) return 'เปิดดวงจัดเต็ม';
+             return 'เลือกความคุ้มค่า';
+          };
+
+          const ctaText = showPromo ? getCTA(pkg.name) : 'เลือกแพ็กเกจ';
+
           // Fallback if no price found (should not happen with seeded data)
           if (!activePrice) return null;
 
@@ -155,7 +187,8 @@ function PackagePageContent() {
               key={pkg.id}
               className={cn(
                 "relative overflow-hidden group transition-all duration-500 border-[0.5px] glass-mimi flex flex-col",
-                isPopular ? "scale-105 shadow-glow-primary border-primary/50 z-10" : "hover:scale-102"
+                isPopular ? "scale-105 shadow-glow-primary border-primary/50 z-10" : "hover:scale-102",
+                showPromo && "border-accent/30 shadow-glow-accent/20"
               )}
             >
               {isPopular && (
@@ -164,61 +197,82 @@ function PackagePageContent() {
                 </div>
               )}
               
-              {showPromo && promoPrice?.promoLabel && (
-                <div className="absolute top-0 left-0 bg-accent text-accent-foreground px-3 py-1 text-xs font-bold rounded-br-xl z-20 shadow-sm animate-pulse">
-                  {promoPrice.promoLabel}
+              {showPromo && (
+                <div className="absolute top-0 left-0 bg-gradient-to-r from-accent to-amber-500 text-white px-3 py-1 text-xs font-bold rounded-br-xl z-20 shadow-md">
+                   ลูกค้าใหม่
                 </div>
               )}
 
               <div className={`absolute inset-0 opacity-20 bg-gradient-to-br ${getGradient(index)} group-hover:opacity-30 transition-opacity duration-500`} />
               
-              <div className="relative z-10 flex flex-col items-center text-center p-6 space-y-6 h-full">
+              <div className="relative z-10 flex flex-col items-center text-center p-6 md:px-5 md:py-6 space-y-4 h-full">
                 <div className={cn(
-                  "w-20 h-20 rounded-full bg-surface-card flex items-center justify-center mb-2 shadow-warm border border-border-subtle group-hover:rotate-12 transition-transform duration-500",
+                  "w-14 h-14 rounded-full bg-surface-card flex items-center justify-center mb-1 shadow-warm border border-border-subtle group-hover:rotate-12 transition-transform duration-500",
                   getIconColor(index)
                 )}>
-                  <Sparkles className="w-10 h-10" />
+                  <Sparkles className="w-7 h-7" />
                 </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-serif font-bold text-foreground">{pkg.name}</h3>
-                  <p className="text-muted-foreground text-sm font-sans leading-relaxed min-h-[40px]">
-                    {pkg.description || 'แพ็กเกจพิเศษสำหรับคุณ'}
-                  </p>
+                <div className="space-y-1 w-full">
+                  <h3 className="text-xl font-serif font-bold text-foreground">{pkg.name}</h3>
+                   {/* Benefits List */}
+                   <ul className="text-left text-sm text-muted-foreground space-y-1.5 py-2 px-2 md:px-1">
+                      {benefits.map((benefit, i) => (
+                        <li key={i} className="flex items-center gap-2 whitespace-nowrap">
+                           <div className="p-0.5 rounded-full bg-emerald-500/10 text-emerald-600 shrink-0 border border-emerald-500/20">
+                             <Check className="w-3 h-3" />
+                           </div>
+                           <span className="truncate">{benefit}</span>
+                        </li>
+                      ))}
+                   </ul>
                 </div>
                 
-                <div className="flex flex-col items-center justify-center flex-grow py-4">
+                <div className="flex flex-col items-center justify-center flex-grow py-2 w-full">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-bold text-foreground tracking-tighter">{pkg.stars}</span>
-                    <span className="text-muted-foreground font-medium">Stars</span>
+                    <span className="text-4xl font-bold text-foreground tracking-tighter">{pkg.stars}</span>
+                    <span className="text-muted-foreground font-medium text-sm">Stars</span>
                   </div>
                   
-                  <div className="mt-4 flex flex-col items-center gap-1">
+                  <div className="mt-2 flex flex-col items-center gap-1 w-full">
                     {showPromo && regularPrice && (
-                      <span className="text-sm text-muted-foreground line-through decoration-destructive/50">
-                        ฿{regularPrice.amount.toFixed(0)}
-                      </span>
+                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="line-through decoration-destructive/50">
+                            ฿{regularPrice.amount.toFixed(0)}
+                          </span>
+                          <span className="text-xs bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded-md font-medium whitespace-nowrap">
+                            ประหยัด ฿{savedAmount.toFixed(0)}
+                          </span>
+                       </div>
                     )}
                     <div className={cn(
-                      "px-4 py-1 rounded-full border",
+                      "px-6 py-2 rounded-full border w-full max-w-[180px]",
                       showPromo 
-                        ? "bg-accent/10 border-accent text-accent" 
+                        ? "bg-gradient-to-r from-accent/10 to-amber-500/10 border-accent/50 text-accent-foreground shadow-inner-accent" 
                         : "bg-surface-subtle border-border-subtle text-foreground"
                     )}>
-                      <p className="text-lg font-semibold">฿{activePrice.amount.toFixed(0)}</p>
+                      <p className="text-2xl font-bold tracking-tight">฿{activePrice.amount.toFixed(0)}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="w-full pt-4">
+                <div className="w-full pt-1 space-y-2">
                   <GlassButton
                     onClick={() => handleBuy(activePrice.id)}
                     disabled={loading === activePrice.id}
                     variant={isPopular || showPromo ? "primary" : "outline"}
-                    className="w-full py-4 font-bold text-lg shadow-warm"
+                    className={cn(
+                      "w-full py-6 font-bold text-lg shadow-warm transition-all duration-300",
+                      showPromo && "bg-gradient-to-r from-primary to-primary-strong hover:brightness-110 border-none text-white shadow-glow-primary"
+                    )}
                   >
-                    {loading === activePrice.id ? 'กำลังเตรียมการ...' : `เลือกแพ็กเกจ`}
+                    {loading === activePrice.id ? 'กำลังเตรียมการ...' : ctaText}
                   </GlassButton>
+                  
+                  <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground/60">
+                    <span className="w-2 h-2 rounded-full bg-green-500/50 animate-pulse"></span>
+                    Secure payment by Stripe
+                  </div>
                 </div>
               </div>
             </GlassCard>
