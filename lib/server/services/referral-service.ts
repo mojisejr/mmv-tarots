@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { REFERRAL_REWARDS, ReferralStatus } from '@/constants/referral';
 import { User, TransactionType, TransactionStatus } from '@prisma/client';
+import { CreditService } from '@/services/credit-service';
 
 export const referralService = {
   async processReferralSignup(user: User, referralCode?: string, ipAddress: string = 'unknown') {
@@ -61,6 +62,15 @@ export const referralService = {
         },
       }),
     ]);
+
+    // Grant Referral Entry Bonus (Referee gets +1 immediately if not blocked)
+    if (!isSuspicious) {
+      try {
+        await CreditService.grantReferralEntryBonus(user.id, referrer.id);
+      } catch (error) {
+        console.error('Failed to grant referral entry bonus:', error);
+      }
+    }
   },
 
   async grantReferralReward(refereeId: string) {
