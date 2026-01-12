@@ -132,6 +132,77 @@ export const CreditService = {
   },
 
   /**
+   * Grant base onboarding stars to new user (Universal)
+   */
+  async grantOnboardingBonus(userId: string): Promise<void> {
+    const amount = REFERRAL_REWARDS.ONBOARDING;
+    
+    await db.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { stars: true },
+      });
+      
+      const currentStars = user?.stars ?? 0;
+      const newBalance = currentStars + amount;
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { stars: newBalance },
+      });
+
+      await tx.creditTransaction.create({
+        data: {
+          userId,
+          amount: amount,
+          balanceAfter: newBalance,
+          type: TransactionType.ONBOARDING,
+          status: TransactionStatus.SUCCESS,
+          metadata: {
+            note: 'Welcome bonus for new user',
+          },
+        },
+      });
+    });
+  },
+
+  /**
+   * Grant bonus stars for signing up with referral (Referral Entry Bonus)
+   */
+  async grantReferralEntryBonus(userId: string, referrerId: string): Promise<void> {
+    const amount = REFERRAL_REWARDS.REFEREE;
+
+    await db.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { stars: true },
+      });
+      
+      const currentStars = user?.stars ?? 0;
+      const newBalance = currentStars + amount;
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { stars: newBalance },
+      });
+
+      await tx.creditTransaction.create({
+        data: {
+          userId,
+          amount: amount,
+          balanceAfter: newBalance,
+          type: TransactionType.REFERRAL,
+          status: TransactionStatus.SUCCESS,
+          metadata: {
+            referrerId,
+            note: 'Bonus for signing up via referral link',
+          },
+        },
+      });
+    });
+  },
+
+  /**
    * Get transaction history for a user
    */
   async getHistory(userId: string, page: number = 1, limit: number = 10) {

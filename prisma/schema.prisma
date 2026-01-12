@@ -179,6 +179,8 @@ enum TransactionType {
   TOPUP
   PREDICTION
   REFUND
+  ONBOARDING
+  REFERRAL
 }
 
 enum TransactionStatus {
