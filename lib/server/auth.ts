@@ -10,6 +10,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { db } from './db';
 import { cookies, headers } from 'next/headers';
 import { referralService } from './services/referral-service';
+import { CreditService } from '@/services/credit-service';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -38,6 +39,9 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           try {
+            // 1. Grant Universal Onboarding Bonus (+1)
+            await CreditService.grantOnboardingBonus(user.id);
+
             const cookieStore = await cookies();
             const referralCode = cookieStore.get('mmv_ref')?.value;
 
