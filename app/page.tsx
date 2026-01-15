@@ -9,6 +9,7 @@ import {
   GlassButton,
   Sparkles,
 } from '@/components';
+import { SuggestedQuestions } from '@/components/features/suggested-questions';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { submitQuestion, saveSubmissionState, RateLimitError } from '@/lib/client/api';
 
@@ -200,6 +201,18 @@ function Home() {
               <div className="relative group">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
                 <div className="relative">
+                  {/* Suggested Question Chips */}
+                  <SuggestedQuestions 
+                    visible={!question && cooldownRemaining === 0}
+                    onSelect={(text) => {
+                      setQuestion(text);
+                      setIsInputFocused(true); // Auto-focus after selection
+                      if (textareaRef.current) {
+                        textareaRef.current.focus();
+                      }
+                    }}
+                  />
+                  
                   <QuestionInput
                     value={question}
                     onChange={setQuestion}
