@@ -200,3 +200,14 @@ model AgentConfig {
 
   @@map("agent_configs")
 }
+
+model SuggestedQuestion {
+  id        String   @id @default(cuid())
+  text      String
+  category  String   @default("general")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("suggested_questions")
+}

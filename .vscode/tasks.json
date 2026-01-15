@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "setup-branch",
+			"type": "shell",
+			"command": "git checkout staging && git pull origin staging && git checkout -b feat/suggested-questions-backend"
+		}
+	]
+}

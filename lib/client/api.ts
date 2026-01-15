@@ -44,6 +44,47 @@ const GetBalanceResponseSchema = z.object({
   concentration: ConcentrationSchema.optional(),
 });
 
+const GetSuggestedQuestionsResponseSchema = z.object({
+  data: z.array(z.object({
+    id: z.string(),
+    text: z.string(),
+    category: z.string(),
+    isActive: z.boolean(),
+  })),
+  meta: z.object({
+    count: z.number(),
+    timestamp: z.string(),
+  }).optional(),
+});
+
+export type GetSuggestedQuestionsResponse = z.infer<typeof GetSuggestedQuestionsResponseSchema>;
+
+/**
+ * Fetch suggested questions (cached)
+ */
+export async function fetchSuggestedQuestions(): Promise<GetSuggestedQuestionsResponse['data']> {
+  try {
+    const response = await fetch(`${API_BASE}/suggested-questions`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch suggested questions');
+    }
+
+    const json = await response.json();
+    const result = GetSuggestedQuestionsResponseSchema.safeParse(json);
+
+    if (!result.success) {
+      console.warn('Invalid suggested questions format:', result.error);
+      return [];
+    }
+
+    return result.data.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    return [];
+  }
+}
+
 // Types
 export type PostPredictRequest = z.infer<typeof PostPredictRequestSchema>;
 export type PostPredictResponse = z.infer<typeof PostPredictResponseSchema>;
