@@ -120,7 +120,7 @@ async function main() {
     for (let j = 0; j < line.length; j++) {
       const char = line[j];
       const prevChar = j > 0 ? line[j - 1] : '';
-      if (char === '"' && prevChar !== '\') {
+      if (char === '"' && prevChar !== '\\') {
         inQuotes = !inQuotes;
       } else if (char === ',' && !inQuotes) {
         values.push(currentValue.trim());
@@ -220,5 +220,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.();
+    await prisma.$disconnect();
   });
