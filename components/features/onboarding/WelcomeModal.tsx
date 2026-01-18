@@ -44,7 +44,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
 
             <div className="space-y-3 max-w-xs mx-auto">
               <h2 className="text-2xl font-bold text-foreground">
-                ยินดีต้อนรับนักเดินทาง
+              ยินดีตต้อนรับนี่คือแม่หมอมีมี่
               </h2>
               <p className="text-sm text-foreground/80 leading-relaxed font-secondary">
                 "แม่หมอมีมี่รอคอยที่จะได้พบคุณ... <br/>
@@ -56,7 +56,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
               onClick={() => setStep('rules')}
               className="w-full max-w-xs group"
             >
-              <span className="mr-2">เริ่มต้นพิธีกรรม</span>
+              <span className="mr-2">เริ่มต้น</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </GlassButton>
           </motion.div>
@@ -73,8 +73,8 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
             className="flex flex-col items-center text-center space-y-6"
           >
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-foreground">กฎแห่งจักรวาล</h3>
-              <p className="text-sm text-foreground/70">เพื่อความแม่นยำและสมดุลของพลังงาน</p>
+              <h3 className="text-xl font-bold text-foreground">ข้อคำถาม (Stars)</h3>
+              <p className="text-sm text-foreground/70">ค่าใช้จ่าย และ การทำงานของระบบเบื้องต้น</p>
             </div>
 
             <div className="grid gap-4 w-full">
@@ -94,7 +94,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground text-sm">การรอคอย</h4>
-                  <p className="text-xs text-foreground/70">พักจิตใจ 30 วินาที ระหว่างคำทำนาย</p>
+                  <p className="text-xs text-foreground/70">ต้องพัก 30 วินาที ระหว่างคำทำนาย</p>
                 </div>
               </GlassCard>
             </div>
@@ -104,7 +104,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
               onClick={() => setStep('gift')}
               className="w-full max-w-xs mt-4"
             >
-              <span className="mr-2">รับพรแห่งการเริ่มต้น</span>
+              <span className="mr-2">เข้าใจแล้ว</span>
               <Sparkles className="w-4 h-4" />
             </GlassButton>
           </motion.div>
@@ -138,7 +138,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
 
             <div className="space-y-2">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-500 to-primary-600 bg-clip-text text-transparent">
-                +1 Free Credit
+                +1 Free Star
               </h2>
               <p className="text-sm text-foreground/80 leading-relaxed max-w-xs mx-auto">
                 ดวงดาวแห่งการเริ่มต้นถูกประดับในดวงชะตาของคุณแล้ว... ขอให้คำทำนายแรกนำทางแสงสว่างมาสู่คุณ
@@ -150,7 +150,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
               onClick={onClose}
               className="w-full max-w-xs shadow-glow-primary hover:scale-[1.02] transition-transform"
             >
-              {isLoading ? 'กำลังเชื่อมต่อจิต...' : 'เริ่มต้นใช้งาน'}
+              {isLoading ? 'กำลังโหลด...' : 'ไปดูดวง'}
             </GlassButton>
           </motion.div>
         );
@@ -158,7 +158,7 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => {}} title="Mimi Ritual">
+    <Modal isOpen={isOpen} onClose={() => {}} title="ยินดีต้อนรับสู่ MimiVibe Tarot">
       <div className="p-2 sm:p-4 min-h-[400px] flex flex-col justify-center">
         <AnimatePresence mode="wait">
           {renderContent()}
