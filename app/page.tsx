@@ -36,7 +36,8 @@ function Home() {
   const { 
     setCurrentPage, 
     setCurrentJobId, 
-    isLoggedIn, 
+    isLoggedIn,
+    isLoggingIn, 
     stars,
     lastPredictionAt,
     concentration,
@@ -241,6 +242,7 @@ function Home() {
               <p className="text-muted-foreground text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
               <GlassButton 
                 onClick={handleLoginClick}
+                isLoading={isLoggingIn}
                 className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-white/10 hover:border-white/30 transition-all duration-300 shadow-lg glass-celestial"
               >
                 เข้าสู่ระบบด้วย LINE

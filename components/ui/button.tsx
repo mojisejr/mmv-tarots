@@ -1,6 +1,7 @@
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/shared/utils';
+import { Loader2 } from 'lucide-react';
 
 const buttonVariants = cva(
   'relative overflow-hidden px-6 py-3.5 rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-sans touch-manipulation group min-h-[44px] min-w-[44px]',
@@ -24,19 +25,23 @@ export interface GlassButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   children: React.ReactNode;
+  isLoading?: boolean;
 }
 
 export const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
-  ({ className, variant, disabled, children, ...props }, ref) => {
+  ({ className, variant, disabled, isLoading, children, ...props }, ref) => {
     return (
       <button
         className={cn(buttonVariants({ variant, className }))}
         ref={ref}
-        disabled={disabled}
+        disabled={disabled || isLoading}
         {...props}
       >
         <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-surface-hover to-transparent z-0 pointer-events-none"></div>
-        <span className="relative z-10 flex items-center gap-2">{children}</span>
+        <span className="relative z-10 flex items-center gap-2">
+          {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+          {children}
+        </span>
       </button>
     );
   }
