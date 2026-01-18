@@ -115,9 +115,9 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
         "transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1",
         colorClass
       )}>
-        <Icon className="w-5 h-5 fill-current" />
+        <Icon className="w-5 h-5" />
       </div>
-      <span className="text-[11px] text-white/90 font-medium group-hover:text-accent-300 transition-colors uppercase tracking-wider drop-shadow-sm">
+      <span className="text-[11px] text-black/50 font-medium group-hover:text-accent-300 transition-colors uppercase tracking-wider drop-shadow-sm">
         {label === 'Copy Link' ? 'Copy' : label}
       </span>
     </motion.button>
@@ -147,7 +147,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
         delay={0.3}
       />
       <SocialButton
-        icon={copied ? Check : LinkIcon}
+        icon={copied ? Check : Copy}
         onClick={handleCopyLink}
         label="Copy"
         colorClass={copied 
