@@ -117,7 +117,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
       )}>
         <Icon className="w-5 h-5 fill-current" />
       </div>
-      <span className="text-[10px] text-white/60 font-medium group-hover:text-white/90 transition-colors uppercase tracking-wider">
+      <span className="text-[11px] text-white/90 font-medium group-hover:text-accent-300 transition-colors uppercase tracking-wider drop-shadow-sm">
         {label === 'Copy Link' ? 'Copy' : label}
       </span>
     </motion.button>
