@@ -150,7 +150,10 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
         icon={copied ? Check : LinkIcon}
         onClick={handleCopyLink}
         label="Copy"
-        colorClass={copied ? "bg-green-500/80" : "bg-white/10 hover:bg-white/20"}
+        colorClass={copied 
+          ? "bg-green-500/90 shadow-green-500/20" 
+          : "bg-gradient-to-br from-[#d4af37] to-[#b58d28] shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100"
+        }
         delay={0.4}
       />
     </div>
