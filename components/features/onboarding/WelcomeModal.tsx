@@ -12,11 +12,12 @@ interface WelcomeModalProps {
   isOpen: boolean;
   onClose: () => void;
   isLoading?: boolean;
+  hasReferral?: boolean;
 }
 
 type Step = 'greeting' | 'rules' | 'gift';
 
-export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) {
+export function WelcomeModal({ isOpen, onClose, isLoading, hasReferral = false }: WelcomeModalProps) {
   const [step, setStep] = useState<Step>('greeting');
 
   const containerVariants = {
@@ -123,7 +124,14 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
             <div className="relative">
               <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full" />
               <div className="relative p-6 bg-gradient-to-br from-accent/20 to-primary/20 rounded-full border border-white/20 shadow-glow-accent">
-                <Star className="w-16 h-16 text-accent-500 fill-accent-500 animate-pulse" />
+                {hasReferral ? (
+                  <div className="flex gap-1 justify-center">
+                     <Star className="w-12 h-12 text-accent-500 fill-accent-500 animate-pulse delay-75" />
+                     <Star className="w-16 h-16 text-yellow-400 fill-yellow-400 animate-pulse" />
+                  </div>
+                ) : (
+                  <Star className="w-16 h-16 text-accent-500 fill-accent-500 animate-pulse" />
+                )}
               </div>
               <motion.div 
                 initial={{ scale: 0, opacity: 0 }}
@@ -138,10 +146,12 @@ export function WelcomeModal({ isOpen, onClose, isLoading }: WelcomeModalProps) 
 
             <div className="space-y-2">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-500 to-primary-600 bg-clip-text text-transparent">
-                +1 Free Star
+                {hasReferral ? '+2 Free Stars' : '+1 Free Star'}
               </h2>
               <p className="text-sm text-foreground/80 leading-relaxed max-w-xs mx-auto">
-                ดวงดาวแห่งการเริ่มต้นถูกประดับในดวงชะตาของคุณแล้ว... ขอให้คำทำนายแรกนำทางแสงสว่างมาสู่คุณ
+                {hasReferral 
+                  ? "ยินดีด้วย! คุณได้รับ 1 ดาวจากแม่หมอ และอีก 1 ดาวจากคำแนะนำของเพื่อน... ขอให้สนุกกับการทำนาย"
+                  : "ดวงดาวแห่งการเริ่มต้นถูกประดับในดวงชะตาของคุณแล้ว... ขอให้คำทำนายแรกนำทางแสงสว่างมาสู่คุณ"}
               </p>
             </div>
 
