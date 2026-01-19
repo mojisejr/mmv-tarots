@@ -1,5 +1,5 @@
 import { db } from '@/lib/server/db';
-import { TransactionType, TransactionStatus } from '@prisma/client';
+import { TransactionType, TransactionStatus, Prisma } from '@prisma/client';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { referralService } from '@/lib/server/services/referral-service';
 
@@ -27,9 +27,9 @@ export const CreditService = {
    * Deduct 1 star from user's balance with transaction log
    * Should be called only when prediction is successfully completed
    */
-  async deductStar(userId: string, metadata?: any): Promise<void> {
-    await db.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
+  async deductStar(userId: string, metadata?: any, tx?: Prisma.TransactionClient): Promise<void> {
+    const execute = async (prisma: Prisma.TransactionClient) => {
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },
       });
@@ -40,12 +40,12 @@ export const CreditService = {
 
       const newBalance = user.stars - 1;
 
-      await tx.user.update({
+      await prisma.user.update({
         where: { id: userId },
         data: { stars: newBalance },
       });
 
-      await tx.creditTransaction.create({
+      await prisma.creditTransaction.create({
         data: {
           userId,
           amount: -1,
@@ -55,20 +55,26 @@ export const CreditService = {
           metadata: metadata ?? {},
         },
       });
-    });
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await db.$transaction(execute);
+    }
   },
 
   /**
    * Add stars to user's balance with transaction log
    * Used for package purchases
    */
-  async addStars(userId: string, amount: number, metadata?: any): Promise<void> {
+  async addStars(userId: string, amount: number, metadata?: any, tx?: Prisma.TransactionClient): Promise<void> {
     if (amount <= 0) {
       throw new Error('Amount must be positive');
     }
 
-    await db.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
+    const execute = async (prisma: Prisma.TransactionClient) => {
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },
       });
@@ -76,12 +82,12 @@ export const CreditService = {
       const currentStars = user?.stars ?? 0;
       const newBalance = currentStars + amount;
 
-      await tx.user.update({
+      await prisma.user.update({
         where: { id: userId },
         data: { stars: newBalance },
       });
 
-      await tx.creditTransaction.create({
+      await prisma.creditTransaction.create({
         data: {
           userId,
           amount: amount,
@@ -92,20 +98,26 @@ export const CreditService = {
           metadata: metadata ?? {},
         },
       });
-    });
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await db.$transaction(execute);
+    }
   },
 
   /**
    * Refund stars to user with transaction log
    * Used when system error occurs after deduction
    */
-  async refundStar(userId: string, amount: number, reason: string, metadata?: any): Promise<void> {
+  async refundStar(userId: string, amount: number, reason: string, metadata?: any, tx?: Prisma.TransactionClient): Promise<void> {
     if (amount <= 0) {
       throw new Error('Amount must be positive');
     }
 
-    await db.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
+    const execute = async (prisma: Prisma.TransactionClient) => {
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },
       });
@@ -113,12 +125,12 @@ export const CreditService = {
       const currentStars = user?.stars ?? 0;
       const newBalance = currentStars + amount;
 
-      await tx.user.update({
+      await prisma.user.update({
         where: { id: userId },
         data: { stars: newBalance },
       });
 
-      await tx.creditTransaction.create({
+      await prisma.creditTransaction.create({
         data: {
           userId,
           amount: amount,
@@ -128,17 +140,23 @@ export const CreditService = {
           metadata: { ...metadata, reason },
         },
       });
-    });
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await db.$transaction(execute);
+    }
   },
 
   /**
    * Grant base onboarding stars to new user (Universal)
    */
-  async grantOnboardingBonus(userId: string): Promise<void> {
+  async grantOnboardingBonus(userId: string, tx?: Prisma.TransactionClient): Promise<void> {
     const amount = REFERRAL_REWARDS.ONBOARDING;
     
-    await db.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
+    const execute = async (prisma: Prisma.TransactionClient) => {
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },
       });
@@ -146,12 +164,12 @@ export const CreditService = {
       const currentStars = user?.stars ?? 0;
       const newBalance = currentStars + amount;
 
-      await tx.user.update({
+      await prisma.user.update({
         where: { id: userId },
         data: { stars: newBalance },
       });
 
-      await tx.creditTransaction.create({
+      await prisma.creditTransaction.create({
         data: {
           userId,
           amount: amount,
@@ -163,17 +181,23 @@ export const CreditService = {
           },
         },
       });
-    });
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await db.$transaction(execute);
+    }
   },
 
   /**
    * Grant bonus stars for signing up with referral (Referral Entry Bonus)
    */
-  async grantReferralEntryBonus(userId: string, referrerId: string): Promise<void> {
+  async grantReferralEntryBonus(userId: string, referrerId: string, tx?: Prisma.TransactionClient): Promise<void> {
     const amount = REFERRAL_REWARDS.REFEREE;
 
-    await db.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
+    const execute = async (prisma: Prisma.TransactionClient) => {
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },
       });
@@ -181,12 +205,12 @@ export const CreditService = {
       const currentStars = user?.stars ?? 0;
       const newBalance = currentStars + amount;
 
-      await tx.user.update({
+      await prisma.user.update({
         where: { id: userId },
         data: { stars: newBalance },
       });
 
-      await tx.creditTransaction.create({
+      await prisma.creditTransaction.create({
         data: {
           userId,
           amount: amount,
@@ -199,7 +223,13 @@ export const CreditService = {
           },
         },
       });
-    });
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await db.$transaction(execute);
+    }
   },
 
   /**

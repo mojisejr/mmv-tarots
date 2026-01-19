@@ -40,7 +40,7 @@ export async function PATCH(req: Request) {
       });
 
       // 2.2 Grant Onboarding Bonus (Must be robust)
-      await CreditService.grantOnboardingBonus(user.id);
+      await CreditService.grantOnboardingBonus(user.id, tx);
       
       // 2.3 Process Pending Referral (from Phase 1 metadata)
       // Check if we have pending execution logic needed here
