@@ -58,21 +58,32 @@ export async function PATCH(req: Request) {
     }
 
     // 2. Perform The Ritual (Transaction)
-    // - Mark onboarding completed
+    // - Mark onboarding completed (ATOMIC LOCK)
     // - Grant "Onboarding Bonus" (1 Star)
     // - Grant "Referral Bonus" (if applicable)
-    await db.$transaction(async (tx) => {
-      // 2.1 Mark as Completed
-      await tx.user.update({
-        where: { id: user.id },
+    // We use a transaction to ensure no race conditions allow double-rewarding.
+    const result = await db.$transaction(async (tx) => {
+      // 2.1 Mark as Completed (ATOMIC CHECK-AND-SET)
+      // This updateMany acts as a mutex. Only one request can successfully update 'false' to 'true'.
+      const updateResult = await tx.user.updateMany({
+        where: { 
+          id: user.id, 
+          onboardingCompleted: false 
+        },
         data: { onboardingCompleted: true }
       });
 
+      if (updateResult.count === 0) {
+        // Did not update anything -> Already completed by another concurrent request
+        return { completed: false };
+      }
+
+      // If we are here, we own the 'Onboarding' event.
       // 2.2 Grant Onboarding Bonus (Must be robust)
       await CreditService.grantOnboardingBonus(user.id, tx);
       
       // 2.3 Process Guaranteed Referral Bonus
-      // If the user has a referrer (linked in Phase 1 Auth Hook), they deserve a star now.
+      // If the user has a referrer (linked in Phase 1 Auth Hook or Healing), they deserve a star now.
       if (currentUser?.referredById) {
          try {
            await CreditService.grantReferralEntryBonus(user.id, currentUser.referredById, tx);
@@ -81,7 +92,12 @@ export async function PATCH(req: Request) {
            // We don't block the onboarding completion if referral fails, but we log it.
          }
       }
+      return { completed: true };
     });
+
+    if (result && !result.completed) {
+         return NextResponse.json({ success: true, message: 'Already completed', reward: 0 });  
+    }
 
     return NextResponse.json({ 
       success: true, 
