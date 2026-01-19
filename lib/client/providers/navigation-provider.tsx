@@ -17,6 +17,7 @@ interface NavigationContextType {
   isLoggedIn: boolean;
   isPending: boolean;
   isInitialLoading: boolean;
+  isLoggingIn: boolean; // Added
   stars: number | null;
   lastPredictionAt: string | null;
   concentration: Concentration | null;
@@ -45,6 +46,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [lastPredictionAt, setLastPredictionAt] = useState<string | null>(null);
   const [concentration, setConcentration] = useState<Concentration | null>(null);
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // Added state
 
   // Sync currentPage with pathname
   useEffect(() => {
@@ -149,12 +151,14 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const handleLoginClick = async () => {
     // Redirect to Line Login using Better Auth Client
     try {
+      setIsLoggingIn(true);
       await signIn.social({
         provider: 'line',
         callbackURL: '/', // Redirect back to home after login
       });
     } catch (error) {
       console.error('Login failed:', error);
+      setIsLoggingIn(false);
     }
   };
 
@@ -179,6 +183,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         isLoggedIn,
         isPending,
         isInitialLoading,
+        isLoggingIn,
         stars,
         lastPredictionAt,
         concentration,
