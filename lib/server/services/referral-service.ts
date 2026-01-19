@@ -38,6 +38,16 @@ export const referralService = {
       },
     });
 
+    // Idempotency: Check if this user has already been processed for referral (Prevent double recording)
+    const existingHistory = await db.referralHistory.findFirst({
+        where: { refereeId: user.id }
+    });
+
+    if (existingHistory) {
+        // Already recorded, skip to prevent duplicate logic
+        return; 
+    }
+
     const isSuspicious = existingReferralsFromIp >= 3; // Limit 3 referrals per IP per day
     const initialStatus = isSuspicious ? ReferralStatus.BLOCKED : ReferralStatus.PENDING;
 

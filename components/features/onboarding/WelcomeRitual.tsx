@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useSession } from '@/lib/client/auth-client';
 import { WelcomeModal } from './WelcomeModal';
 import { toast } from 'sonner';
+import { useNavigation } from '@/lib/client/providers/navigation-provider';
 
 export function WelcomeRitual() {
   const { data: session } = useSession();
+  const { refreshBalance } = useNavigation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
@@ -51,7 +53,9 @@ export function WelcomeRitual() {
 
       toast.success(message);
       
-      // Ideally we refresh the session here, but for now the UI state is sufficient
+      // Force UI Sync: Update local balance immediately
+      await refreshBalance();
+      
     } catch (error) {
       console.error('Onboarding error:', error);
       toast.error('เกิดขัดข้องเล็กน้อย แต่คุณสามารถใช้งานต่อได้เลยครับ');
