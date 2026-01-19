@@ -59,9 +59,11 @@ export const auth = betterAuth({
             // - Credit transactions
             // - Referral validation
             // - User updates
+
+            // Phase 2 Update: STOP granting onboarding bonus here!
+            // We only process referral recording (linking user to referrer)
+            // The actual star granting happens at the Ritual Gate (Onboarding API)
             Promise.allSettled([
-               // Phase 1: We still try to process best-effort, but we don't block
-               CreditService.grantOnboardingBonus(user.id),
                referralService.processReferralSignup(user as any, referralCode, ip)
             ]).catch(err => {
                // Silent fail log - we will rely on Phase 2 (Ritual) for guaranteed delivery later

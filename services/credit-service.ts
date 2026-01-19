@@ -151,11 +151,25 @@ export const CreditService = {
 
   /**
    * Grant base onboarding stars to new user (Universal)
+   * With Idempotency Check
    */
   async grantOnboardingBonus(userId: string, tx?: Prisma.TransactionClient): Promise<void> {
     const amount = REFERRAL_REWARDS.ONBOARDING;
     
     const execute = async (prisma: Prisma.TransactionClient) => {
+      // Idempotency Check: Has this user already received ONBOARDING bonus?
+      const existingTx = await prisma.creditTransaction.findFirst({
+        where: {
+          userId,
+          type: TransactionType.ONBOARDING
+        }
+      });
+
+      if (existingTx) {
+        // Already granted, do nothing
+        return;
+      }
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },
@@ -192,11 +206,25 @@ export const CreditService = {
 
   /**
    * Grant bonus stars for signing up with referral (Referral Entry Bonus)
+   * With Idempotency Check
    */
   async grantReferralEntryBonus(userId: string, referrerId: string, tx?: Prisma.TransactionClient): Promise<void> {
     const amount = REFERRAL_REWARDS.REFEREE;
 
     const execute = async (prisma: Prisma.TransactionClient) => {
+      // Idempotency Check: Has this user already received REFERRAL bonus?
+      const existingTx = await prisma.creditTransaction.findFirst({
+        where: {
+          userId,
+          type: TransactionType.REFERRAL
+        }
+      });
+
+      if (existingTx) {
+        // Already granted, do nothing
+        return;
+      }
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { stars: true },

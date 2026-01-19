@@ -41,6 +41,9 @@ export const referralService = {
     const isSuspicious = existingReferralsFromIp >= 3; // Limit 3 referrals per IP per day
     const initialStatus = isSuspicious ? ReferralStatus.BLOCKED : ReferralStatus.PENDING;
 
+    // Phase 2: Record Intent ONLY (No reward granting here)
+    // We just link the user and create the history record.
+    // The actual reward for the referee will be granted at the Ritual Gate (Onboarding API).
     await db.$transaction([
       // Link user to referrer
       db.user.update({
@@ -62,15 +65,6 @@ export const referralService = {
         },
       }),
     ]);
-
-    // Grant Referral Entry Bonus (Referee gets +1 immediately if not blocked)
-    if (!isSuspicious) {
-      try {
-        await CreditService.grantReferralEntryBonus(user.id, referrer.id);
-      } catch (error) {
-        console.error('Failed to grant referral entry bonus:', error);
-      }
-    }
   },
 
   async grantReferralReward(refereeId: string) {

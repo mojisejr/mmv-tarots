@@ -42,20 +42,23 @@ export async function PATCH(req: Request) {
       // 2.2 Grant Onboarding Bonus (Must be robust)
       await CreditService.grantOnboardingBonus(user.id, tx);
       
-      // 2.3 Process Pending Referral (from Phase 1 metadata)
-      // Check if we have pending execution logic needed here
-      // For now, simpler is better: if we skipped it in auth hook, we might need a catch-up here.
-      // But based on Phase 1 "Fire & Forget", the auth hook TRIED to process it.
-      // So here we primarily confirm the status.
-      
-      // Future-proofing: If we move referral logic FULLY here later, this is the spot.
+      // 2.3 Process Guaranteed Referral Bonus
+      // If the user has a referrer (linked in Phase 1 Auth Hook), they deserve a star now.
+      if (currentUser?.referredById) {
+         try {
+           await CreditService.grantReferralEntryBonus(user.id, currentUser.referredById, tx);
+         } catch (error) {
+           console.error('[Ritual Gate] Failed to grant referral bonus:', error);
+           // We don't block the onboarding completion if referral fails, but we log it.
+         }
+      }
     });
 
     return NextResponse.json({ 
       success: true, 
       onboardingCompleted: true,
       ritual: 'completed',
-      reward: 1 // Default onboarding reward
+      reward: currentUser?.referredById ? 2 : 1 // Accurate reward feedback
     });
   } catch (error) {
     console.error('Ritual Gate error:', error);
