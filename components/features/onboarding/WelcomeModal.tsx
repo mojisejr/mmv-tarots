@@ -12,13 +12,26 @@ interface WelcomeModalProps {
   isOpen: boolean;
   onClose: () => void;
   isLoading?: boolean;
+  isError?: boolean;
   hasReferral?: boolean;
 }
 
 type Step = 'greeting' | 'rules' | 'gift';
 
-export function WelcomeModal({ isOpen, onClose, isLoading, hasReferral = false }: WelcomeModalProps) {
+export function WelcomeModal({ 
+  isOpen, 
+  onClose, 
+  isLoading, 
+  isError = false,
+  hasReferral = false 
+}: WelcomeModalProps) {
   const [step, setStep] = useState<Step>('greeting');
+  
+  // Hard Gate Protocol: Prevent closing by accidental clicks or ESC
+  const handleNoOpClose = () => {
+    // Intentionally empty to prevent closing via backdrop or standard methods
+    // We only allow closing via the explicit completion action
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, scale: 0.95 },
@@ -148,19 +161,26 @@ export function WelcomeModal({ isOpen, onClose, isLoading, hasReferral = false }
               <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-500 to-primary-600 bg-clip-text text-transparent">
                 {hasReferral ? '+2 Free Stars' : '+1 Free Star'}
               </h2>
-              <p className="text-sm text-foreground/80 leading-relaxed max-w-xs mx-auto">
-                {hasReferral 
-                  ? "ยินดีด้วย! คุณได้รับ 1 ดาวจากแม่หมอ และอีก 1 ดาวจากคำแนะนำของเพื่อน... ขอให้สนุกกับการทำนาย"
-                  : "ดวงดาวแห่งการเริ่มต้นถูกประดับในดวงชะตาของคุณแล้ว... ขอให้คำทำนายแรกนำทางแสงสว่างมาสู่คุณ"}
-              </p>
+              {isError ? (
+                <p className="text-sm text-destructive font-medium animate-pulse">
+                  เกิดข้อขัดแย้งในการทำพิธี กรุณาลองใหม่อีกครั้งครับ
+                </p>
+              ) : (
+                <p className="text-sm text-foreground/80 leading-relaxed max-w-xs mx-auto">
+                  {hasReferral 
+                    ? "ยินดีด้วย! คุณได้รับ 1 ดาวจากแม่หมอ และอีก 1 ดาวจากคำแนะนำของเพื่อน... ขอให้สนุกกับการทำนาย"
+                    : "ดวงดาวแห่งการเริ่มต้นถูกประดับในดวงชะตาของคุณแล้ว... ขอให้คำทำนายแรกนำทางแสงสว่างมาสู่คุณ"}
+                </p>
+              )}
             </div>
 
             <GlassButton 
               disabled={isLoading}
               onClick={onClose}
-              className="w-full max-w-xs shadow-glow-primary hover:scale-[1.02] transition-transform"
+              variant={isError ? "outline" : "line"}
+              className={`w-full max-w-xs transition-transform ${!isError && 'shadow-glow-primary hover:scale-[1.02]'}`}
             >
-              {isLoading ? 'กำลังโหลด...' : 'ไปดูดวง'}
+              {isLoading ? 'กำลังทำพิธี...' : (isError ? 'ลองใหม่อีกครั้ง' : 'ไปดูดวง')}
             </GlassButton>
           </motion.div>
         );
@@ -168,7 +188,12 @@ export function WelcomeModal({ isOpen, onClose, isLoading, hasReferral = false }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => {}} title="ยินดีต้อนรับสู่ MimiVibe Tarot">
+    <Modal 
+       isOpen={isOpen} 
+       onClose={handleNoOpClose} 
+       title="ยินดีต้อนรับสู่ MimiVibe Tarot"
+       hideCloseButton={true} // @ts-ignore - Will implement in Modal next
+    >
       <div className="p-2 sm:p-4 min-h-[400px] flex flex-col justify-center">
         <AnimatePresence mode="wait">
           {renderContent()}

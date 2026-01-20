@@ -11,6 +11,7 @@ export function WelcomeRitual() {
   const { refreshBalance } = useNavigation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
   const [hasReferral, setHasReferral] = useState(false);
 
@@ -35,6 +36,7 @@ export function WelcomeRitual() {
 
   const handleComplete = async () => {
     setIsLoading(true);
+    setIsError(false);
     try {
       const res = await fetch('/api/user/onboarding', { method: 'PATCH' });
       const data = await res.json();
@@ -43,6 +45,7 @@ export function WelcomeRitual() {
         throw new Error('Failed to complete onboarding');
       }
       
+      // Success Path
       setIsOpen(false);
       
       // Dynamic Toast based on actual server response if available, or fallback
@@ -58,8 +61,9 @@ export function WelcomeRitual() {
       
     } catch (error) {
       console.error('Onboarding error:', error);
-      toast.error('เกิดขัดข้องเล็กน้อย แต่คุณสามารถใช้งานต่อได้เลยครับ');
-      setIsOpen(false); // Close anyway to not block user
+      setIsError(true);
+      toast.error('เกิดขัดข้องในการทำพิธี กรุณาลองใหม่ครับ');
+      // DO NOT close modal here - enforce the hard gate
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +76,7 @@ export function WelcomeRitual() {
       isOpen={isOpen} 
       onClose={handleComplete}
       isLoading={isLoading}
+      isError={isError}
       hasReferral={hasReferral}
     />
   );
