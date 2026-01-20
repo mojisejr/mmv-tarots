@@ -10,17 +10,19 @@ interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
+  hideCloseButton?: boolean;
 }
 
-export function Modal({ isOpen, onClose, children, title }: ModalProps) {
+export function Modal({ isOpen, onClose, children, title, hideCloseButton = false }: ModalProps) {
   // Close on ESC key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      // Hard Gate: Disable ESC if hideCloseButton is true
+      if (e.key === 'Escape' && !hideCloseButton) onClose();
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+  }, [onClose, hideCloseButton]);
 
   // Prevent scrolling when modal is open
   useEffect(() => {
@@ -43,7 +45,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={hideCloseButton ? undefined : onClose}
             className="absolute inset-0 bg-primary-950/40 backdrop-blur-[2px] z-[-1]"
           />
 
@@ -60,6 +62,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                 <h2 className="text-lg sm:text-2xl font-serif text-foreground line-clamp-1">
                   {title}
                 </h2>
+                {!hideCloseButton && (
                 <button
                   onClick={onClose}
                   className="p-1.5 sm:p-2 rounded-full hover:bg-surface-hover transition-colors text-muted-foreground hover:text-foreground"
@@ -67,6 +70,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
                 >
                   <X className="w-5 h-5 sm:w-6 h-6" />
                 </button>
+                )}
               </div>
 
               {/* Body */}

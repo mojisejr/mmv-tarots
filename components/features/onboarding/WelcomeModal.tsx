@@ -19,6 +19,12 @@ type Step = 'greeting' | 'rules' | 'gift';
 
 export function WelcomeModal({ isOpen, onClose, isLoading, hasReferral = false }: WelcomeModalProps) {
   const [step, setStep] = useState<Step>('greeting');
+  
+  // Hard Gate Protocol: Prevent closing by accidental clicks or ESC
+  const handleNoOpClose = () => {
+    // Intentionally empty to prevent closing via backdrop or standard methods
+    // We only allow closing via the explicit completion action
+  };
 
   const containerVariants = {
     hidden: { opacity: 0, scale: 0.95 },
@@ -168,7 +174,12 @@ export function WelcomeModal({ isOpen, onClose, isLoading, hasReferral = false }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => {}} title="ยินดีต้อนรับสู่ MimiVibe Tarot">
+    <Modal 
+       isOpen={isOpen} 
+       onClose={handleNoOpClose} 
+       title="ยินดีต้อนรับสู่ MimiVibe Tarot"
+       hideCloseButton={true} // @ts-ignore - Will implement in Modal next
+    >
       <div className="p-2 sm:p-4 min-h-[400px] flex flex-col justify-center">
         <AnimatePresence mode="wait">
           {renderContent()}
