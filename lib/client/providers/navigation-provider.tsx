@@ -152,9 +152,17 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     // Redirect to Line Login using Better Auth Client
     try {
       setIsLoggingIn(true);
+      
+      // Capture referral code from current URL to persist through OAuth flow
+      // This ensures the referral code survives browser switching (e.g. LINE IAB -> Safari)
+      // We rely on URL parameters because Cookies/LocalStorage are isolated between IAB and System Browser
+      const searchParams = new URLSearchParams(window.location.search);
+      const ref = searchParams.get('ref');
+      const callbackURL = ref ? `/?ref=${ref}` : '/';
+
       await signIn.social({
         provider: 'line',
-        callbackURL: '/', // Redirect back to home after login
+        callbackURL, // Redirect back to home after login with referral code if present
       });
     } catch (error) {
       console.error('Login failed:', error);
