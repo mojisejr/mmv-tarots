@@ -82,6 +82,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: false, // Disable email/password authentication
   },
+
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['line', 'google'],
+    },
+  },
   
   socialProviders: {
     line: {
@@ -93,6 +100,17 @@ export const auth = betterAuth({
           name: profile.name || 'LINE User',
           image: profile.picture,
           email: profile.email || `${profile.sub || 'unknown'}@mimivibe.com`,
+        };
+      },
+    },
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      mapProfileToUser: (profile) => {
+        return {
+          name: profile.name,
+          image: profile.picture,
+          email: profile.email,
         };
       },
     },

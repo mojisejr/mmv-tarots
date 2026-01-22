@@ -27,7 +27,7 @@ export function MainNavigation() {
       onHomeClick={handleHomeClick}
       onProfileClick={handleProfileClick}
       onBackClick={handleBackClick}
-      onLoginClick={handleLoginClick}
+      onLoginClick={() => handleLoginClick('line')}
       onLogoutClick={handleLogoutClick}
     />
   );

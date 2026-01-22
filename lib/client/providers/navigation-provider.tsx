@@ -6,6 +6,7 @@ import { useSession, signIn, signOut } from '@/lib/client/auth-client';
 import { fetchBalance } from '@/lib/client/api';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
+export type SocialProvider = 'line' | 'google';
 
 interface Concentration {
   active: number;
@@ -17,7 +18,8 @@ interface NavigationContextType {
   isLoggedIn: boolean;
   isPending: boolean;
   isInitialLoading: boolean;
-  isLoggingIn: boolean; // Added
+  isLoggingIn: boolean; // Computed from loggingProvider
+  loggingProvider: SocialProvider | null; // Specific provider feedback
   stars: number | null;
   lastPredictionAt: string | null;
   concentration: Concentration | null;
@@ -29,7 +31,7 @@ interface NavigationContextType {
   handleHomeClick: () => void;
   handleProfileClick: () => void;
   handleBackClick: () => void;
-  handleLoginClick: () => void;
+  handleLoginClick: (provider: SocialProvider) => void;
   handleLogoutClick: () => void;
   refreshBalance: () => Promise<void>;
 }
@@ -46,7 +48,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [lastPredictionAt, setLastPredictionAt] = useState<string | null>(null);
   const [concentration, setConcentration] = useState<Concentration | null>(null);
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false); // Added state
+  const [loggingProvider, setLoggingProvider] = useState<SocialProvider | null>(null);
+  const isLoggingIn = !!loggingProvider;
 
   // Sync currentPage with pathname
   useEffect(() => {
@@ -148,10 +151,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleLoginClick = async () => {
+  const handleLoginClick = async (provider: SocialProvider) => {
     // Redirect to Line Login using Better Auth Client
     try {
-      setIsLoggingIn(true);
+      setLoggingProvider(provider);
       
       // Capture referral code from current URL to persist through OAuth flow
       // This ensures the referral code survives browser switching (e.g. LINE IAB -> Safari)
@@ -161,12 +164,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const callbackURL = ref ? `/?ref=${ref}` : '/';
 
       await signIn.social({
-        provider: 'line',
+        provider: provider,
         callbackURL, // Redirect back to home after login with referral code if present
       });
     } catch (error) {
       console.error('Login failed:', error);
-      setIsLoggingIn(false);
+      setLoggingProvider(null);
     }
   };
 
@@ -192,6 +195,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         isPending,
         isInitialLoading,
         isLoggingIn,
+        loggingProvider,
         stars,
         lastPredictionAt,
         concentration,

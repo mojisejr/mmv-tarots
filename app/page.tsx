@@ -38,6 +38,7 @@ function Home() {
     setCurrentJobId, 
     isLoggedIn,
     isLoggingIn, 
+    loggingProvider,
     stars,
     lastPredictionAt,
     concentration,
@@ -238,12 +239,29 @@ function Home() {
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center space-y-4 animate-fade-in pb-4">
-              <p className="text-muted-foreground text-sm font-medium">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
+            <div className="flex flex-col items-center space-y-3 animate-fade-in pb-4 w-full max-w-xs mx-auto">
+              <p className="text-muted-foreground text-sm font-medium mb-1">เข้าสู่ระบบเพื่อเริ่มการทำนาย</p>
+              
               <GlassButton 
-                onClick={handleLoginClick}
-                isLoading={isLoggingIn}
-                className="w-full sm:w-auto px-8 py-3 text-base font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-white/10 hover:border-white/30 transition-all duration-300 shadow-lg glass-celestial"
+                onClick={() => handleLoginClick('google')}
+                isLoading={loggingProvider === 'google'}
+                disabled={isLoggingIn}
+                className="w-full px-8 py-3 text-base font-medium bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 shadow-lg glass-celestial"
+              >
+                เข้าสู่ระบบด้วย Google
+              </GlassButton>
+
+              <div className="flex items-center w-full px-2 opacity-50">
+                <div className="flex-1 h-px bg-white/10"></div>
+                <span className="px-2 text-[10px] text-muted-foreground font-light uppercase tracking-wider">or</span>
+                <div className="flex-1 h-px bg-white/10"></div>
+              </div>
+
+              <GlassButton 
+                onClick={() => handleLoginClick('line')}
+                isLoading={loggingProvider === 'line'}
+                disabled={isLoggingIn}
+                className="w-full px-8 py-3 text-base font-medium bg-[#06C755]/10 border-[#06C755]/20 hover:bg-[#06C755]/20 hover:border-[#06C755]/30 transition-all duration-300 shadow-lg glass-celestial text-[#06C755]"
               >
                 เข้าสู่ระบบด้วย LINE
               </GlassButton>
