@@ -3,11 +3,11 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from '@/lib/client/auth-client';
-import { GlassCard, GlassButton, HistoryCard } from '@/components';
+import { GlassCard, GlassButton, HistoryCard, Modal } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { fetchUserPredictions } from '@/lib/client/api';
 import { TransactionHistoryList } from '@/components/features/transaction-history-list';
-import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info } from 'lucide-react';
+import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info, HelpCircle, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { ReferralUtils } from '@/lib/referral-utils';
@@ -33,6 +33,54 @@ function ProfilePageContent() {
   const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
   const [referralCode, setReferralCode] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  
+  // Support System State
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportMessage, setSupportMessage] = useState('');
+  const [isSendingSupport, setIsSendingSupport] = useState(false);
+
+  const handleSupportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportMessage.trim()) return;
+
+    setIsSendingSupport(true);
+    try {
+      const context = {
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        resolution: `${window.innerWidth}x${window.innerHeight}`,
+      };
+
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: supportMessage,
+          context,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+
+      toast.success('ส่งข้อความเรียบร้อยแล้ว', {
+        description: 'ทีมงานจะรีบตรวจสอบและดำเนินการแก้ไขให้เร็วที่สุดครับ',
+      });
+      setSupportMessage('');
+      setSupportOpen(false);
+    } catch (error) {
+      toast.error('ส่งข้อความไม่สำเร็จ', {
+        description: error instanceof Error ? error.message : 'กรุณาลองใหม่อีกครั้ง',
+      });
+    } finally {
+      setIsSendingSupport(false);
+    }
+  };
 
   useEffect(() => {
     setCurrentPage('profile');
@@ -346,7 +394,18 @@ function ProfilePageContent() {
         <TransactionHistoryList />
       )}
 
-      <div className="mt-12 flex justify-center">
+      {/* Support Section */}
+      <div className="mt-8 mb-4">
+        <GlassButton
+          onClick={() => setSupportOpen(true)}
+          className="w-full bg-accent/5 border-accent/20 hover:bg-accent/10 text-accent group py-3"
+        >
+          <HelpCircle className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+          แจ้งปัญหา / ติดต่อ Support
+        </GlassButton>
+      </div>
+
+      <div className="mt-4 flex justify-center">
         <button
           onClick={handleSignOut}
           className="flex items-center gap-2 text-destructive/60 hover:text-destructive transition-colors text-sm font-medium uppercase tracking-widest"
@@ -355,6 +414,51 @@ function ProfilePageContent() {
           Sign Out
         </button>
       </div>
+
+      <Modal
+        isOpen={supportOpen}
+        onClose={() => !isSendingSupport && setSupportOpen(false)}
+        title="แจ้งปัญหา / ติดต่อทีมงาน"
+      >
+        <div className="p-1">
+          <p className="text-sm text-foreground/70 mb-4 leading-relaxed">
+            พบปัญหาการใช้งาน เติมเงินไม่เข้า หรือมีข้อเสนอแนะ? <br/>
+            แจ้งให้เรารู้ได้เลยครับ (ระบบจะบันทึกข้อมูลเครื่องอัตโนมัติ)
+          </p>
+          <form onSubmit={handleSupportSubmit} className="space-y-4">
+            <textarea
+              value={supportMessage}
+              onChange={(e) => setSupportMessage(e.target.value)}
+              placeholder="รายละเอียดปัญหา หรือสิ่งที่ต้องการแจ้ง..."
+              className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-foreground placeholder:text-foreground/30 focus:outline-none focus:border-accent/40 resize-none transition-colors"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSupportOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                disabled={isSendingSupport}
+              >
+                ยกเลิก
+              </button>
+              <GlassButton
+                type="submit"
+                className="bg-accent text-white hover:bg-accent/90 min-w-[110px] justify-center"
+                disabled={isSendingSupport || !supportMessage.trim()}
+              >
+                {isSendingSupport ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    ส่งข้อมูล
+                  </>
+                )}
+              </GlassButton>
+            </div>
+          </form>
+        </div>
+      </Modal>
     </div>
   );
 }
