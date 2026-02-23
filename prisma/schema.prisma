@@ -142,6 +142,8 @@ model CreditTransaction {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   stripeSessionId String?           @unique
+  omiseChargeId   String?           @unique
+  paymentMethod   PaymentMethod?
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("credit_transactions")
@@ -164,6 +166,7 @@ model PackagePrice {
   id            String      @id @default(cuid())
   packageId     String
   stripePriceId String      @unique
+  omiseSourceId String?     @unique
   amount        Float
   currency      String      @default("thb")
   active        Boolean     @default(true)
@@ -188,6 +191,11 @@ enum TransactionStatus {
   SUCCESS
   FAILED
   PENDING
+}
+
+enum PaymentMethod {
+  CARD
+  PROMPTPAY
 }
 
 model AgentConfig {
