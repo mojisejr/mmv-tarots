@@ -3,13 +3,29 @@ import Stripe from 'stripe';
 import { db } from '@/lib/server/db';
 import { CreditService } from '@/services/credit-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-12-15.clover',
-});
+function getStripeClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+  if (!secretKey) {
+    return null;
+  }
+
+  return new Stripe(secretKey, {
+    apiVersion: '2025-12-15.clover',
+  });
+}
 
 export async function POST(req: NextRequest) {
+  const stripe = getStripeClient();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!stripe || !webhookSecret) {
+    return NextResponse.json(
+      { error: 'Stripe webhook is not configured' },
+      { status: 500 }
+    );
+  }
+
   const body = await req.text();
   const signature = req.headers.get('stripe-signature');
 
