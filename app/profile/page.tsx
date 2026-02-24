@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useSession } from '@/lib/client/auth-client';
 import { GlassCard, GlassButton, HistoryCard, Modal } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
@@ -393,6 +394,40 @@ function ProfilePageContent() {
       ) : (
         <TransactionHistoryList />
       )}
+
+      <GlassCard className="mt-8 border-primary/10 bg-primary/5">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Info className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-bold text-foreground">ข้อมูลทางกฎหมายและนโยบาย</h4>
+            <p className="mt-1 text-xs text-foreground/60 leading-relaxed">
+              ตรวจสอบรายละเอียดการใช้งาน การคืนเงิน และความเป็นส่วนตัวได้ที่นี่
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <Link
+                href="/policy/refund"
+                className="rounded-full border border-white/15 bg-white/60 px-3 py-1.5 text-foreground/80 transition-colors hover:text-foreground"
+              >
+                Refund Policy
+              </Link>
+              <Link
+                href="/policy/terms"
+                className="rounded-full border border-white/15 bg-white/60 px-3 py-1.5 text-foreground/80 transition-colors hover:text-foreground"
+              >
+                Terms
+              </Link>
+              <Link
+                href="/policy/privacy"
+                className="rounded-full border border-white/15 bg-white/60 px-3 py-1.5 text-foreground/80 transition-colors hover:text-foreground"
+              >
+                Privacy
+              </Link>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
 
       {/* Support Section */}
       <div className="mt-8 mb-4">
