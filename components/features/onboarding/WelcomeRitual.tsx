@@ -52,7 +52,7 @@ export function WelcomeRitual() {
       const rewardAmount = data.reward || (hasReferral ? 2 : 1);
       const message = rewardAmount > 1 
          ? 'ได้รับพรแห่งการเริ่มต้น (+1) และมิตรภาพ (+1) แล้ว!' 
-         : 'ได้รับพรแห่งการเริ่มต้นแล้ว! ขอให้มีความสุขกับการทำนายครับ';
+        : 'ได้รับพรแห่งการเริ่มต้นแล้ว! ขอให้มีความสุขกับการรับคำแนะนำครับ';
 
       toast.success(message);
       

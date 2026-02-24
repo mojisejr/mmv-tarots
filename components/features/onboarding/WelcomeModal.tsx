@@ -65,11 +65,11 @@ export function WelcomeModal({
 
             <div className="space-y-3 max-w-xs mx-auto">
               <h2 className="text-2xl font-bold text-foreground">
-              ยินดีตต้อนรับนี่คือแม่หมอมีมี่
+              ยินดีต้อนรับ นี่คือ Mimi Guide มีมี่
               </h2>
               <p className="text-sm text-foreground/80 leading-relaxed font-secondary">
-                "แม่หมอมีมี่รอคอยที่จะได้พบคุณ... <br/>
-                จักรวาลมีคำตอบสำหรับทุกคำถามของคุณเสมอ"
+                "มีมี่พร้อมต้อนรับคุณสู่เส้นทางการสะท้อนใจ... <br/>
+                ทุกคำถามของคุณมีพื้นที่สำหรับคำแนะนำที่อ่อนโยนเสมอ"
               </p>
             </div>
 
@@ -94,8 +94,8 @@ export function WelcomeModal({
             className="flex flex-col items-center text-center space-y-6"
           >
             <div className="space-y-2">
-              <h3 className="text-xl font-bold text-foreground">ข้อคำถาม (Stars)</h3>
-              <p className="text-sm text-foreground/70">ค่าใช้จ่าย และ การทำงานของระบบเบื้องต้น</p>
+              <h3 className="text-xl font-bold text-foreground">พลังงานการใช้งาน (Stars)</h3>
+              <p className="text-sm text-foreground/70">ค่าใช้จ่าย และการทำงานของระบบเบื้องต้น</p>
             </div>
 
             <div className="grid gap-4 w-full">
@@ -105,7 +105,7 @@ export function WelcomeModal({
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground text-sm">การแลกเปลี่ยน</h4>
-                  <p className="text-xs text-foreground/70">1 คำทำนาย แลกเปลี่ยนด้วย 1 ดวงดาว</p>
+                  <p className="text-xs text-foreground/70">1 คำแนะนำส่วนบุคคล แลกเปลี่ยนด้วย 1 ดวงดาว</p>
                 </div>
               </GlassCard>
 
@@ -115,7 +115,7 @@ export function WelcomeModal({
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground text-sm">การรอคอย</h4>
-                  <p className="text-xs text-foreground/70">ต้องพัก 30 วินาที ระหว่างคำทำนาย</p>
+                  <p className="text-xs text-foreground/70">ต้องพัก 30 วินาที ระหว่างการรับคำแนะนำ</p>
                 </div>
               </GlassCard>
             </div>
@@ -175,8 +175,8 @@ export function WelcomeModal({
               ) : (
                 <p className="text-sm text-foreground/80 leading-relaxed max-w-xs mx-auto">
                   {hasReferral 
-                    ? "ยินดีด้วย! คุณได้รับ 1 ดาวจากแม่หมอ และอีก 1 ดาวจากคำแนะนำของเพื่อน... ขอให้สนุกกับการทำนาย"
-                    : "ดวงดาวแห่งการเริ่มต้นถูกประดับในดวงชะตาของคุณแล้ว... ขอให้คำทำนายแรกนำทางแสงสว่างมาสู่คุณ"}
+                    ? "ยินดีด้วย! คุณได้รับ 1 ดาวจากมีมี่ และอีก 1 ดาวจากคำแนะนำของเพื่อน... ขอให้สนุกกับการสำรวจตัวเอง"
+                    : "พลังงานแห่งการเริ่มต้นกำลังนำทางคุณแล้ว... ขอให้คำแนะนำแรกช่วยเติมความชัดเจนในใจคุณ"}
                 </p>
               )}
             </div>
@@ -221,6 +221,8 @@ export function WelcomeModal({
                 <Link
                   key={policy.key}
                   href={policy.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-xs rounded-full border border-white/20 bg-white/40 px-3 py-1.5 text-foreground/80 hover:text-foreground transition-colors"
                 >
                   {policy.label}
@@ -259,7 +261,7 @@ export function WelcomeModal({
               variant={isError ? 'outline' : 'line'}
               className="w-full max-w-xs mx-auto"
             >
-              {isLoading ? 'กำลังทำพิธี...' : isError ? 'ลองใหม่อีกครั้ง' : 'ไปดูดวง'}
+              {isLoading ? 'กำลังทำพิธี...' : isError ? 'ลองใหม่อีกครั้ง' : 'เริ่มรับคำแนะนำ'}
             </GlassButton>
           </motion.div>
         );
@@ -270,7 +272,7 @@ export function WelcomeModal({
     <Modal 
        isOpen={isOpen} 
        onClose={handleNoOpClose} 
-       title="ยินดีต้อนรับสู่ MimiVibe Tarot"
+       title="ยินดีต้อนรับสู่ MimiVibe: Your Persona Guidance"
        hideCloseButton={true} // @ts-ignore - Will implement in Modal next
     >
       <div className="p-2 sm:p-4 min-h-[400px] flex flex-col justify-center">
