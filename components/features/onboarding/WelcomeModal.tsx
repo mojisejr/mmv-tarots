@@ -1,12 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Modal } from '@/components/ui/modal';
 import { GlassCard } from '@/components/ui/card';
 import { GlassButton } from '@/components/ui/button';
 import { MimiLoadingAvatar } from '@/components/features/avatar/mimi-loading-avatar';
 import { Star, Clock, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  COVENANT_ACCEPTANCE_LABEL,
+  COVENANT_POLICY_LINKS,
+  COVENANT_SUMMARY_ITEMS,
+} from '@/constants/covenant-summary';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -16,7 +22,7 @@ interface WelcomeModalProps {
   hasReferral?: boolean;
 }
 
-type Step = 'greeting' | 'rules' | 'gift';
+type Step = 'greeting' | 'rules' | 'gift' | 'covenant';
 
 export function WelcomeModal({ 
   isOpen, 
@@ -26,6 +32,7 @@ export function WelcomeModal({
   hasReferral = false 
 }: WelcomeModalProps) {
   const [step, setStep] = useState<Step>('greeting');
+  const [covenantAccepted, setCovenantAccepted] = useState(false);
   
   // Hard Gate Protocol: Prevent closing by accidental clicks or ESC
   const handleNoOpClose = () => {
@@ -176,11 +183,83 @@ export function WelcomeModal({
 
             <GlassButton 
               disabled={isLoading}
-              onClick={onClose}
+              onClick={() => setStep('covenant')}
               variant={isError ? "outline" : "line"}
               className={`w-full max-w-xs transition-transform ${!isError && 'shadow-glow-primary hover:scale-[1.02]'}`}
             >
-              {isLoading ? 'กำลังทำพิธี...' : (isError ? 'ลองใหม่อีกครั้ง' : 'ไปดูดวง')}
+              ต่อไป
+            </GlassButton>
+          </motion.div>
+        );
+
+      case 'covenant':
+        return (
+          <motion.div
+            key="covenant"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={containerVariants}
+            className="flex flex-col text-left space-y-4"
+          >
+            <div className="text-center space-y-1">
+              <h3 className="text-xl font-bold text-foreground">พันธสัญญาแห่งดวงดาว</h3>
+              <p className="text-xs text-foreground/70">โปรดอ่านสรุปข้อตกลงก่อนเริ่มใช้งาน</p>
+            </div>
+
+            <GlassCard className="p-4 max-h-[220px] overflow-y-auto space-y-3">
+              {COVENANT_SUMMARY_ITEMS.map((item) => (
+                <div key={item.key} className="space-y-1">
+                  <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
+                  <p className="text-xs leading-relaxed text-foreground/70">{item.description}</p>
+                </div>
+              ))}
+            </GlassCard>
+
+            <div className="flex flex-wrap gap-2 justify-center">
+              {COVENANT_POLICY_LINKS.map((policy) => (
+                <Link
+                  key={policy.key}
+                  href={policy.href}
+                  className="text-xs rounded-full border border-white/20 bg-white/40 px-3 py-1.5 text-foreground/80 hover:text-foreground transition-colors"
+                >
+                  {policy.label}
+                </Link>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCovenantAccepted((prev) => !prev)}
+              className="w-full rounded-xl border border-white/20 bg-white/40 p-3 text-left text-xs text-foreground/80 hover:border-primary/40 transition-colors"
+            >
+              <span className="inline-flex items-start gap-2">
+                <span
+                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                    covenantAccepted
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-foreground/30 bg-transparent text-transparent'
+                  }`}
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                </span>
+                <span>{COVENANT_ACCEPTANCE_LABEL}</span>
+              </span>
+            </button>
+
+            {isError && (
+              <p className="text-center text-xs text-destructive font-medium">
+                เกิดข้อขัดข้องในการบันทึกการยอมรับ กรุณาลองอีกครั้ง
+              </p>
+            )}
+
+            <GlassButton
+              disabled={!covenantAccepted || isLoading}
+              onClick={onClose}
+              variant={isError ? 'outline' : 'line'}
+              className="w-full max-w-xs mx-auto"
+            >
+              {isLoading ? 'กำลังทำพิธี...' : isError ? 'ลองใหม่อีกครั้ง' : 'ไปดูดวง'}
             </GlassButton>
           </motion.div>
         );
@@ -201,12 +280,12 @@ export function WelcomeModal({
         
         {/* Step Indicator */}
         <div className="flex justify-center gap-2 mt-8">
-          {(['greeting', 'rules', 'gift'] as Step[]).map((s, i) => (
+          {(['greeting', 'rules', 'gift', 'covenant'] as Step[]).map((s, i) => (
             <div 
               key={s}
               className={`h-1.5 rounded-full transition-all duration-500 ${
                 step === s ? 'w-8 bg-primary' : 
-                (['greeting', 'rules', 'gift'].indexOf(step) > i) ? 'w-2 bg-primary/50' : 'w-2 bg-border-medium'
+                (['greeting', 'rules', 'gift', 'covenant'].indexOf(step) > i) ? 'w-2 bg-primary/50' : 'w-2 bg-border-medium'
               }`}
             />
           ))}
