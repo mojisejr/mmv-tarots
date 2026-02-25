@@ -18,12 +18,16 @@ import {
   emitPaymentEvent,
   notifyPaymentAlert,
 } from '@/lib/server/payment-observability';
+import { paymentDebug } from '@/lib/server/payment-debug';
 
 export async function GET(req: NextRequest) {
   try {
+    paymentDebug('omise.status', 'request.received');
+
     const omise = getOmiseClient();
 
     if (!omise) {
+      paymentDebug('omise.status', 'gateway.not_ready');
       return NextResponse.json(
         { error: 'Payment gateway is not configured' },
         { status: 503 }
@@ -34,11 +38,19 @@ export async function GET(req: NextRequest) {
     const chargeId = searchParams.get('chargeId');
 
     if (!chargeId) {
+      paymentDebug('omise.status', 'request.missing_charge_id');
       return NextResponse.json({ error: 'chargeId is required' }, { status: 400 });
     }
 
+    paymentDebug('omise.status', 'request.validated', { chargeId });
+
     // Fetch latest charge status from Omise
     const charge = await omise.charges.retrieve(chargeId);
+    paymentDebug('omise.status', 'charge.retrieved', {
+      chargeId: charge.id,
+      status: charge.status,
+      paid: charge.paid,
+    });
 
     // ── Phase 3.3: Transaction Lock (Double-spend prevention) ─────────────────
     // Check if we already credited this charge (from Webhook or previous poll)
@@ -46,11 +58,22 @@ export async function GET(req: NextRequest) {
       where: { omiseChargeId: chargeId },
     });
 
+    paymentDebug('omise.status', 'credit.lookup', {
+      chargeId,
+      alreadyCredited: Boolean(existing),
+    });
+
     if (charge.status === 'successful' && !existing) {
       // Credit stars — idempotent: only runs if not yet credited
       const { userId, stars, paymentMethod, priceId } = charge.metadata;
 
       if (userId && stars) {
+        paymentDebug('omise.status', 'credit.apply.start', {
+          chargeId,
+          userId,
+          stars,
+          paymentMethod: paymentMethod ?? 'PROMPTPAY',
+        });
         await CreditService.addStars(userId, parseInt(stars, 10), {
           omiseChargeId:  chargeId,
           omiseSourceId:  charge.source?.id ?? null,
@@ -58,6 +81,11 @@ export async function GET(req: NextRequest) {
           packageId:      priceId ?? null,
           amount:         charge.amount / 100,
           creditedVia:    'status-poll',
+        });
+        paymentDebug('omise.status', 'credit.apply.success', {
+          chargeId,
+          userId,
+          stars: parseInt(stars, 10),
         });
         emitPaymentEvent('omise.poll.credited', {
           chargeId,
@@ -69,6 +97,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (charge.status === 'failed') {
+      paymentDebug('omise.status', 'charge.failed', {
+        chargeId,
+        failureCode: charge.failure_code ?? 'unknown',
+      });
       emitPaymentEvent('omise.poll.failed', {
         chargeId,
         failureCode: charge.failure_code ?? 'unknown',
@@ -88,6 +120,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
+    paymentDebug('omise.status', 'request.exception', { message });
     capturePaymentException('omise.status.poll', error);
     await notifyPaymentAlert({
       title: 'Omise status polling failed',
