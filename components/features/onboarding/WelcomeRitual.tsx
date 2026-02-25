@@ -5,10 +5,13 @@ import { useSession } from '@/lib/client/auth-client';
 import { WelcomeModal } from './WelcomeModal';
 import { toast } from 'sonner';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
+import { usePathname } from 'next/navigation';
 
 export function WelcomeRitual() {
   const { data: session } = useSession();
   const { refreshBalance } = useNavigation();
+  const pathname = usePathname();
+  const isPolicyRoute = pathname?.startsWith('/policy') ?? false;
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -16,6 +19,11 @@ export function WelcomeRitual() {
   const [hasReferral, setHasReferral] = useState(false);
 
   useEffect(() => {
+    if (isPolicyRoute) {
+      setIsOpen(false);
+      return;
+    }
+
     // Check if user is loaded and onboarding status
     if (session?.user) {
       // Check for referral cookie (client-side check for UI only)
@@ -32,7 +40,7 @@ export function WelcomeRitual() {
         setHasChecked(true); // Prevent re-opening in this session instance if closed manually (though we enforce API call)
       }
     }
-  }, [session, hasChecked]);
+  }, [session, hasChecked, isPolicyRoute]);
 
   const handleComplete = async () => {
     setIsLoading(true);
@@ -52,7 +60,7 @@ export function WelcomeRitual() {
       const rewardAmount = data.reward || (hasReferral ? 2 : 1);
       const message = rewardAmount > 1 
          ? 'ได้รับพรแห่งการเริ่มต้น (+1) และมิตรภาพ (+1) แล้ว!' 
-         : 'ได้รับพรแห่งการเริ่มต้นแล้ว! ขอให้มีความสุขกับการทำนายครับ';
+        : 'ได้รับพรแห่งการเริ่มต้นแล้ว! ขอให้มีความสุขกับการรับคำแนะนำครับ';
 
       toast.success(message);
       
@@ -69,7 +77,7 @@ export function WelcomeRitual() {
     }
   };
 
-  if (!isOpen) return null;
+  if (isPolicyRoute || !isOpen) return null;
 
   return (
     <WelcomeModal 

@@ -3,3 +3,4 @@ export { MainNavigation } from './main-navigation';
 export { BottomNav } from './bottom-nav';
 export { ProfileDropdown } from './profile-dropdown';
 export { GlobalLoading } from './global-loading';
+export { SiteFooter } from './site-footer';
