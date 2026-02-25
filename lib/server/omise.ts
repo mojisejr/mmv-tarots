@@ -13,19 +13,70 @@ type OmiseClient = ReturnType<typeof omise>;
 
 let _client: OmiseClient | null = null;
 
-export function getOmiseClient(): OmiseClient | null {
-  const secretKey = process.env.OMISE_SECRET_KEY;
+export interface OmiseConfigState {
+  ready: boolean;
+  reason?: string;
+}
 
-  if (!secretKey) {
-    console.warn('[Omise] OMISE_SECRET_KEY is not configured');
+function validateOmiseKey(key: string | undefined, prefix: 'skey_' | 'pkey_'): boolean {
+  if (!key) {
+    return false;
+  }
+
+  return key.startsWith(prefix) && key.length > prefix.length + 8;
+}
+
+export function getOmiseConfigState(): OmiseConfigState {
+  const secretKey = process.env.OMISE_SECRET_KEY;
+  const publicKey = process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY;
+
+  if (!validateOmiseKey(secretKey, 'skey_')) {
+    return {
+      ready: false,
+      reason: 'OMISE_SECRET_KEY is missing or invalid format',
+    };
+  }
+
+  if (!validateOmiseKey(publicKey, 'pkey_')) {
+    return {
+      ready: false,
+      reason: 'NEXT_PUBLIC_OMISE_PUBLIC_KEY is missing or invalid format',
+    };
+  }
+
+  const mode = (process.env.OMISE_CONFIG_MODE ?? 'test').toLowerCase();
+  const expectedPrefix = mode === 'live' ? 'skey_live_' : 'skey_test_';
+
+  if (!secretKey!.startsWith(expectedPrefix)) {
+    return {
+      ready: false,
+      reason: `OMISE_SECRET_KEY does not match OMISE_CONFIG_MODE=${mode}`,
+    };
+  }
+
+  return { ready: true };
+}
+
+export function getOmiseClient(): OmiseClient | null {
+  const state = getOmiseConfigState();
+  if (!state.ready) {
+    console.warn(`[Omise] ${state.reason}`);
     return null;
   }
+
+  const secretKey = process.env.OMISE_SECRET_KEY!;
 
   // Reuse existing instance (connection pooling)
   if (_client) return _client;
 
-  _client = omise({ secretKey });
-  return _client;
+  try {
+    _client = omise({ secretKey });
+    return _client;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to initialize Omise client';
+    console.error('[Omise] Client init failed:', message);
+    return null;
+  }
 }
 
 /**

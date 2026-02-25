@@ -7,6 +7,23 @@ function asError(error: unknown): Error {
     return error;
   }
 
+  if (typeof error === 'object' && error !== null) {
+    const maybeMessage =
+      (error as { message?: unknown }).message ??
+      (error as { error?: { message?: unknown } }).error?.message;
+    const maybeCode =
+      (error as { code?: unknown }).code ??
+      (error as { error?: { code?: unknown } }).error?.code;
+
+    if (typeof maybeMessage === 'string' && maybeMessage.length > 0) {
+      const err = new Error(maybeMessage);
+      if (typeof maybeCode === 'string') {
+        err.name = maybeCode;
+      }
+      return err;
+    }
+  }
+
   return new Error(typeof error === 'string' ? error : 'Unknown error');
 }
 

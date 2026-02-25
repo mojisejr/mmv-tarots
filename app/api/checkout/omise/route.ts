@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/server/db';
-import { getOmiseClient, toSatang } from '@/lib/server/omise';
+import { getOmiseClient, getOmiseConfigState, toSatang } from '@/lib/server/omise';
 import {
   capturePaymentException,
   emitPaymentEvent,
@@ -32,11 +32,15 @@ const CheckoutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const omiseConfigState = getOmiseConfigState();
     const omise = getOmiseClient();
 
-    if (!omise) {
+    if (!omise || !omiseConfigState.ready) {
       return NextResponse.json(
-        { error: 'Payment gateway is not configured' },
+        {
+          error: 'Payment gateway is not configured',
+          reason: omiseConfigState.reason ?? 'Omise client initialization failed',
+        },
         { status: 503 }
       );
     }
@@ -89,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     const amountSatang = toSatang(price.amount);
-    const currency = price.currency.toUpperCase();
+    const currency = price.currency.toLowerCase();
     const description = `${price.package.name} — ${price.package.stars} Stars`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
 
