@@ -15,6 +15,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/server/db';
 import { CreditService } from '@/services/credit-service';
+import {
+  capturePaymentException,
+  emitPaymentEvent,
+  notifyPaymentAlert,
+} from '@/lib/server/payment-observability';
 
 interface OmiseWebhookEvent {
   object:     string;
@@ -60,7 +65,12 @@ export async function POST(req: NextRequest) {
   }
 
   const chargeId = charge.id;
-  console.log(`[Omise Webhook] 🔔 charge.complete — chargeId: ${chargeId}, status: ${charge.status}`);
+  emitPaymentEvent('omise.webhook.received', {
+    key: event.key,
+    chargeId,
+    status: charge.status,
+    paid: charge.paid,
+  });
 
   // Only process successful charges
   if (charge.status !== 'successful' || !charge.paid) {
@@ -75,7 +85,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
-      console.log(`[Omise Webhook] ✅ Already processed — chargeId: ${chargeId}`);
+      emitPaymentEvent('omise.webhook.already_processed', { chargeId });
       return NextResponse.json({ received: true, action: 'already_processed' });
     }
 
@@ -83,7 +93,11 @@ export async function POST(req: NextRequest) {
     const { userId, stars, paymentMethod, priceId } = charge.metadata;
 
     if (!userId || !stars) {
-      console.error(`[Omise Webhook] ❌ Missing metadata — chargeId: ${chargeId}`);
+      await notifyPaymentAlert({
+        title: 'Missing Omise webhook metadata',
+        severity: 'critical',
+        details: { chargeId, hasUserId: !!userId, hasStars: !!stars },
+      });
       return NextResponse.json(
         { error: 'Missing required metadata: userId or stars' },
         { status: 422 }
@@ -100,9 +114,12 @@ export async function POST(req: NextRequest) {
       creditedVia:   'webhook',
     });
 
-    console.log(
-      `[Omise Webhook] 🚀 Stars credited — chargeId: ${chargeId}, userId: ${userId}, stars: ${stars}`
-    );
+    emitPaymentEvent('omise.webhook.credited', {
+      chargeId,
+      userId,
+      stars: parseInt(stars, 10),
+      paymentMethod: paymentMethod ?? 'PROMPTPAY',
+    });
 
     return NextResponse.json({
       received: true,
@@ -114,7 +131,12 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
-    console.error(`[Omise Webhook] ❌ Processing error — chargeId: ${chargeId}:`, message);
+    capturePaymentException('omise.webhook.process', error, { chargeId });
+    await notifyPaymentAlert({
+      title: 'Omise webhook processing failed',
+      severity: 'critical',
+      details: { chargeId, message },
+    });
     // Return 500 so Omise retries the webhook
     return NextResponse.json({ error: message }, { status: 500 });
   }

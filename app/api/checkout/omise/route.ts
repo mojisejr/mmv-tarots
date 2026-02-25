@@ -13,6 +13,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/server/db';
 import { getOmiseClient, toSatang } from '@/lib/server/omise';
+import {
+  capturePaymentException,
+  emitPaymentEvent,
+  notifyPaymentAlert,
+} from '@/lib/server/payment-observability';
 
 // ── Request schema ─────────────────────────────────────────────────────────────
 const CheckoutSchema = z.object({
@@ -122,6 +127,14 @@ export async function POST(req: NextRequest) {
       const qrImageUrl =
         source.scannable_code?.image?.download_uri ?? null;
 
+      emitPaymentEvent('omise.charge.created', {
+        paymentMethod,
+        chargeId: charge.id,
+        userId,
+        priceId,
+        status: charge.status,
+      });
+
       return NextResponse.json({
         success:      charge.status !== 'failed',
         chargeId:     charge.id,
@@ -151,6 +164,12 @@ export async function POST(req: NextRequest) {
 
       // 3DS redirect required
       if (charge.authorize_uri) {
+        emitPaymentEvent('omise.card.requires_3ds', {
+          chargeId: charge.id,
+          userId,
+          priceId,
+        });
+
         return NextResponse.json({
           success:      false,
           requires3DS:  true,
@@ -161,6 +180,12 @@ export async function POST(req: NextRequest) {
 
       // Immediate success (no 3DS)
       if (charge.status === 'successful' && charge.paid) {
+        emitPaymentEvent('omise.card.success', {
+          chargeId: charge.id,
+          userId,
+          priceId,
+        });
+
         return NextResponse.json({
           success:      true,
           chargeId:     charge.id,
@@ -171,6 +196,24 @@ export async function POST(req: NextRequest) {
       }
 
       // Failed
+      emitPaymentEvent('omise.card.failed', {
+        chargeId: charge.id,
+        userId,
+        priceId,
+        failureCode: charge.failure_code ?? 'unknown',
+      });
+
+      await notifyPaymentAlert({
+        title: 'Omise card charge failed',
+        severity: 'warning',
+        details: {
+          chargeId: charge.id,
+          userId,
+          priceId,
+          failureCode: charge.failure_code ?? 'unknown',
+        },
+      });
+
       return NextResponse.json({
         success:        false,
         chargeId:       charge.id,
@@ -184,7 +227,12 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
-    console.error('[/api/checkout/omise] Error:', message);
+    capturePaymentException('omise.checkout.create_charge', error);
+    await notifyPaymentAlert({
+      title: 'Omise checkout API error',
+      severity: 'critical',
+      details: { message },
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

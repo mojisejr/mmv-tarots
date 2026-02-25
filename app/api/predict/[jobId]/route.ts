@@ -10,6 +10,7 @@ import {
   createErrorResponse
 } from '@/lib/server/errors'
 import type { GetPredictResponse } from '@/types/api'
+import { emitDeliveryProof } from '@/lib/server/payment-observability'
 
 /**
  * GET /api/predict/[jobId]
@@ -109,6 +110,13 @@ export async function GET(
 
         if (adaptedReading) {
           result.reading = adaptedReading
+
+          emitDeliveryProof({
+            jobId,
+            userId: prediction.userIdentifier,
+            predictionId: prediction.id,
+            completedAt: prediction.completedAt ? prediction.completedAt.toISOString() : null,
+          })
         }
       }
 

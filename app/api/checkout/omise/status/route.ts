@@ -13,6 +13,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/server/db';
 import { CreditService } from '@/services/credit-service';
 import { getOmiseClient } from '@/lib/server/omise';
+import {
+  capturePaymentException,
+  emitPaymentEvent,
+  notifyPaymentAlert,
+} from '@/lib/server/payment-observability';
 
 export async function GET(req: NextRequest) {
   try {
@@ -54,8 +59,20 @@ export async function GET(req: NextRequest) {
           amount:         charge.amount / 100,
           creditedVia:    'status-poll',
         });
-        console.log(`[Omise Status] ✅ Stars credited via poll — chargeId: ${chargeId}, userId: ${userId}`);
+        emitPaymentEvent('omise.poll.credited', {
+          chargeId,
+          userId,
+          stars: parseInt(stars, 10),
+          paymentMethod: paymentMethod ?? 'PROMPTPAY',
+        });
       }
+    }
+
+    if (charge.status === 'failed') {
+      emitPaymentEvent('omise.poll.failed', {
+        chargeId,
+        failureCode: charge.failure_code ?? 'unknown',
+      });
     }
 
     return NextResponse.json({
@@ -71,7 +88,12 @@ export async function GET(req: NextRequest) {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
-    console.error('[/api/checkout/omise/status] Error:', message);
+    capturePaymentException('omise.status.poll', error);
+    await notifyPaymentAlert({
+      title: 'Omise status polling failed',
+      severity: 'warning',
+      details: { message },
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
