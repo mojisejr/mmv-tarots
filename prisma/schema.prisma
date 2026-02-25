@@ -165,8 +165,8 @@ model StarPackage {
 model PackagePrice {
   id            String      @id @default(cuid())
   packageId     String
-  stripePriceId String      @unique
-  omiseSourceId String?     @unique
+  stripePriceId String?     @unique
+  omisePriceId  String?     @unique
   amount        Float
   currency      String      @default("thb")
   active        Boolean     @default(true)
@@ -187,15 +187,17 @@ enum TransactionType {
   REFERRAL
 }
 
+enum PaymentMethod {
+  CARD
+  PROMPTPAY
+  STRIPE
+  MANUAL
+}
+
 enum TransactionStatus {
   SUCCESS
   FAILED
   PENDING
-}
-
-enum PaymentMethod {
-  CARD
-  PROMPTPAY
 }
 
 model AgentConfig {
