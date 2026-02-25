@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { GlassCard, GlassButton, Sparkles, ErrorBoundary, Check } from '@/components';
+import { PaymentModal } from '@/components/features/payment';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { toast } from 'sonner';
@@ -28,14 +29,16 @@ interface StarPackage {
 }
 
 function PackagePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { setCurrentPage } = useNavigation();
-  const [loading, setLoading] = useState<string | null>(null);
   const [packages, setPackages] = useState<StarPackage[]>([]);
   const [isEligible, setIsEligible] = useState<boolean>(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+
+  // ── Payment Modal state ────────────────────────────────────────────────
+  const [modalOpen,   setModalOpen]   = useState(false);
+  const [modalPrice,  setModalPrice]  = useState<{ priceId: string; name: string; stars: number; amount: number } | null>(null);
 
   useEffect(() => {
     setCurrentPage('package');
@@ -71,46 +74,17 @@ function PackagePageContent() {
     }
   }, [session]);
 
-  const handleBuy = async (priceId: string) => {
+  const handleBuy = (priceId: string, pkgName: string, pkgStars: number, pkgAmount: number) => {
     if (!consentAccepted) {
       toast.error('กรุณายอมรับเงื่อนไขก่อนชำระเงิน');
       return;
     }
-
     if (!session?.user) {
       toast.error('กรุณา Login ก่อนซื้อแพ็กเกจ');
-      // Optional: Redirect to login
       return;
     }
-
-    setLoading(priceId);
-    try {
-      const res = await fetch('/api/checkout/stripe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          priceId, 
-          userId: session.user.id 
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to create checkout session');
-      }
-
-      const data = await res.json();
-      
-      // Redirect ไปยังหน้า Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
-    } finally {
-      setLoading(null);
-    }
+    setModalPrice({ priceId, name: pkgName, stars: pkgStars, amount: pkgAmount });
+    setModalOpen(true);
   };
 
   const getGradient = (index: number) => {
@@ -132,6 +106,7 @@ function PackagePageContent() {
   };
 
   return (
+    <>
     <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
       <div className="text-center mb-12 animate-fade-in-down">
         <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">
@@ -290,15 +265,15 @@ function PackagePageContent() {
 
                 <div className="w-full pt-1 space-y-2">
                   <GlassButton
-                    onClick={() => handleBuy(activePrice.id)}
-                    disabled={loading === activePrice.id || !consentAccepted}
+                    onClick={() => handleBuy(activePrice.id, pkg.name, pkg.stars, activePrice.amount)}
+                    disabled={!consentAccepted || modalOpen}
                     variant={isPopular || showPromo ? "primary" : "outline"}
                     className={cn(
                       "w-full py-6 font-bold text-lg shadow-warm transition-all duration-300",
-                      showPromo && "bg-gradient-to-r from-primary to-primary-strong hover:brightness-110 border-none text-white shadow-glow-primary"
+                        showPromo && "bg-gradient-to-r from-primary to-primary-strong hover:brightness-110 border-none text-white shadow-glow-primary"
                     )}
                   >
-                    {loading === activePrice.id ? 'กำลังเตรียมการ...' : ctaText}
+                    {ctaText}
                   </GlassButton>
                   
                   <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground/60">
@@ -312,6 +287,20 @@ function PackagePageContent() {
         })}
       </div>
     </div>
+
+    {/* Payment Modal */}
+    {modalPrice && session?.user && (
+      <PaymentModal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setModalPrice(null); }}
+        priceId={modalPrice.priceId}
+        userId={session.user.id}
+        packageName={modalPrice.name}
+        stars={modalPrice.stars}
+        amount={modalPrice.amount}
+      />
+    )}
+    </>
   );
 }
 

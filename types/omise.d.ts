@@ -117,3 +117,44 @@ declare module 'omise' {
   function omise(config: OmiseConfig): OmiseClient;
   export = omise;
 }
+
+// ── Omise.js Browser API (CDN) ──────────────────────────────────────────────
+declare interface OmiseCardTokenData {
+  name: string;
+  number: string;
+  expiration_month: number | string;
+  expiration_year: number | string;
+  security_code: string;
+}
+
+declare interface OmiseTokenObject {
+  id: string;
+  object: 'token';
+  card: {
+    id: string;
+    last_digits: string;
+    brand: string;
+    expiration_month: number;
+    expiration_year: number;
+  };
+}
+
+declare interface OmiseTokenResponse {
+  code: 'OK' | string;
+  message?: string;
+  object?: OmiseTokenObject;
+}
+
+declare interface OmiseJsBrowser {
+  setPublicKey(key: string): void;
+  createToken(
+    type: 'card',
+    cardData: OmiseCardTokenData,
+    callback: (statusCode: number, response: OmiseTokenResponse) => void,
+  ): void;
+}
+
+declare interface Window {
+  Omise: OmiseJsBrowser | undefined;
+  OmiseCard: unknown; // Omise hosted fields — not used (we use custom form)
+}
