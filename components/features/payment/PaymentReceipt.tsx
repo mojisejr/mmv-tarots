@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { GlassButton } from '@/components';
 
 interface PaymentReceiptProps {
@@ -16,6 +17,7 @@ interface PaymentReceiptProps {
 export function PaymentReceipt({
   chargeId, packageName, stars, amount, method, paidAt, onClose,
 }: PaymentReceiptProps) {
+  const router = useRouter();
   const methodLabel = method === 'PROMPTPAY' ? 'PromptPay' : 'บัตรเครดิต/เดบิต';
 
   const rows: Array<{ label: string; value: string }> = [
@@ -64,11 +66,14 @@ export function PaymentReceipt({
       </div>
 
       <GlassButton
-        onClick={onClose}
+        onClick={() => {
+          onClose();
+          router.push('/');
+        }}
         variant="primary"
         className="w-full py-5 font-bold text-base"
       >
-        ไปอ่านผลทำนาย →
+        ไปดูดวงเลย →
       </GlassButton>
     </div>
   );
