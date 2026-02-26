@@ -61,6 +61,13 @@ const validCardPayload = {
   token: 'tokn_test_1234',
 }
 
+const validPromptPayPayload = {
+  priceId: 'price_001',
+  userId: 'user_001',
+  paymentMethod: 'PROMPTPAY',
+  ownerName: 'Test User',
+}
+
 describe('POST /api/checkout/omise integration', () => {
   const mockOmise = {
     sources: {
@@ -205,7 +212,10 @@ describe('POST /api/checkout/omise integration', () => {
   })
 
   it('returns 500 and captures exception when upstream omise call fails', async () => {
-    mockOmise.charges.create.mockRejectedValue(new Error('authentication failed'))
+    mockOmise.charges.create.mockRejectedValue({
+      message: 'authentication failed',
+      code: 'authentication_failure',
+    })
 
     const request = new Request('http://localhost/api/checkout/omise', {
       method: 'POST',
@@ -217,15 +227,70 @@ describe('POST /api/checkout/omise integration', () => {
     const body = await response.json()
 
     expect(response.status).toBe(500)
-    expect(body).toEqual({ error: 'authentication failed' })
+    expect(body).toEqual({
+      error: 'authentication failed',
+      code: 'authentication_failure',
+    })
     expect(capturePaymentException).toHaveBeenCalledWith(
       'omise.checkout.create_charge',
-      expect.any(Error)
+      expect.objectContaining({
+        message: 'authentication failed',
+        code: 'authentication_failure',
+      })
     )
     expect(notifyPaymentAlert).toHaveBeenCalledWith({
       title: 'Omise checkout API error',
       severity: 'critical',
-      details: { message: 'authentication failed' },
+      details: {
+        message: 'authentication failed',
+        omiseCode: 'authentication_failure',
+      },
+    })
+  })
+
+  it('creates promptpay source and charge successfully', async () => {
+    mockOmise.sources.create.mockResolvedValue({
+      id: 'src_test_promptpay',
+      scannable_code: {
+        image: {
+          download_uri: 'https://cdn.omise.co/qr.png',
+        },
+      },
+    })
+
+    mockOmise.charges.create.mockResolvedValue({
+      id: 'chrg_test_promptpay',
+      status: 'pending',
+      expires_at: '2026-03-01T00:00:00Z',
+    })
+
+    const request = new Request('http://localhost/api/checkout/omise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validPromptPayPayload),
+    })
+
+    const response = await POST(request as any)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(mockOmise.sources.create).toHaveBeenCalledWith({
+      type: 'promptpay',
+      amount: 9900,
+      currency: 'thb',
+      name: 'Test User',
+    })
+    expect(mockOmise.charges.create).toHaveBeenCalled()
+    expect(body).toEqual({
+      success: true,
+      chargeId: 'chrg_test_promptpay',
+      chargeStatus: 'pending',
+      qrImageUrl: 'https://cdn.omise.co/qr.png',
+      amount: 99,
+      currency: 'THB',
+      packageName: 'Starter Pack',
+      stars: 50,
+      expiresAt: '2026-03-01T00:00:00Z',
     })
   })
 })

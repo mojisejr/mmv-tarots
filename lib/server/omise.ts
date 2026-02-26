@@ -18,6 +18,14 @@ export interface OmiseConfigState {
   reason?: string;
 }
 
+function redactKey(key: string): string {
+  if (key.length <= 8) {
+    return '***';
+  }
+
+  return `${key.slice(0, 10)}...${key.slice(-4)}`;
+}
+
 function validateOmiseKey(key: string | undefined, prefix: 'skey_' | 'pkey_'): boolean {
   if (!key) {
     return false;
@@ -45,12 +53,20 @@ export function getOmiseConfigState(): OmiseConfigState {
   }
 
   const mode = (process.env.OMISE_CONFIG_MODE ?? 'test').toLowerCase();
-  const expectedPrefix = mode === 'live' ? 'skey_live_' : 'skey_test_';
+  const expectedSecretPrefix = mode === 'live' ? 'skey_live_' : 'skey_test_';
+  const expectedPublicPrefix = mode === 'live' ? 'pkey_live_' : 'pkey_test_';
 
-  if (!secretKey!.startsWith(expectedPrefix)) {
+  if (!secretKey!.startsWith(expectedSecretPrefix)) {
     return {
       ready: false,
       reason: `OMISE_SECRET_KEY does not match OMISE_CONFIG_MODE=${mode}`,
+    };
+  }
+
+  if (!publicKey!.startsWith(expectedPublicPrefix)) {
+    return {
+      ready: false,
+      reason: `NEXT_PUBLIC_OMISE_PUBLIC_KEY does not match OMISE_CONFIG_MODE=${mode}`,
     };
   }
 
@@ -65,12 +81,25 @@ export function getOmiseClient(): OmiseClient | null {
   }
 
   const secretKey = process.env.OMISE_SECRET_KEY!;
+  const publicKey = process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY!;
+  const mode = (process.env.OMISE_CONFIG_MODE ?? 'test').toLowerCase();
 
   // Reuse existing instance (connection pooling)
   if (_client) return _client;
 
   try {
-    _client = omise({ secretKey });
+    console.info('[Omise] Initializing client', {
+      mode,
+      hasSecretKey: Boolean(secretKey),
+      hasPublicKey: Boolean(publicKey),
+      secretKey: redactKey(secretKey),
+      publicKey: redactKey(publicKey),
+    });
+
+    _client = omise({
+      secretKey,
+      publicKey,
+    });
     return _client;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to initialize Omise client';

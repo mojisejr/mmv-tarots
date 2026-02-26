@@ -59,6 +59,18 @@ describe('lib/server/omise', () => {
       expect(state.reason).toBe('OMISE_SECRET_KEY does not match OMISE_CONFIG_MODE=live')
     })
 
+    it('returns not ready when public key mode mismatches config mode', async () => {
+      process.env.OMISE_CONFIG_MODE = 'live'
+      process.env.OMISE_SECRET_KEY = 'skey_live_1234567890'
+      process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY = 'pkey_test_1234567890'
+
+      const { getOmiseConfigState } = await loadOmiseModule()
+      const state = getOmiseConfigState()
+
+      expect(state.ready).toBe(false)
+      expect(state.reason).toBe('NEXT_PUBLIC_OMISE_PUBLIC_KEY does not match OMISE_CONFIG_MODE=live')
+    })
+
     it('returns ready with valid test keys', async () => {
       process.env.OMISE_SECRET_KEY = 'skey_test_1234567890'
       process.env.NEXT_PUBLIC_OMISE_PUBLIC_KEY = 'pkey_test_1234567890'
@@ -98,7 +110,10 @@ describe('lib/server/omise', () => {
       expect(first).toBe(fakeClient)
       expect(second).toBe(fakeClient)
       expect(omiseFactory).toHaveBeenCalledTimes(1)
-      expect(omiseFactory).toHaveBeenCalledWith({ secretKey: 'skey_test_1234567890' })
+      expect(omiseFactory).toHaveBeenCalledWith({
+        secretKey: 'skey_test_1234567890',
+        publicKey: 'pkey_test_1234567890',
+      })
     })
 
     it('returns null and logs error when factory throws', async () => {
