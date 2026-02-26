@@ -62,12 +62,16 @@ export function CardForm({ onToken, onBack, loading }: CardFormProps) {
           security_code:    data.security_code,
         },
         async (statusCode, response) => {
-          if (statusCode !== 200 || !response.object) {
+          const tokenId =
+            response.id ??
+            (typeof response.object === 'object' ? response.object.id : undefined);
+
+          if (statusCode !== 200 || !tokenId) {
             setTokenizing(false);
             return;
           }
           try {
-            await onToken(response.object.id);
+            await onToken(tokenId);
           } finally {
             setTokenizing(false);
           }

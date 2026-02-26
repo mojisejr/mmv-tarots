@@ -140,9 +140,10 @@ declare interface OmiseTokenObject {
 }
 
 declare interface OmiseTokenResponse {
+  id?: string;
   code: 'OK' | string;
   message?: string;
-  object?: OmiseTokenObject;
+  object?: OmiseTokenObject | 'token';
 }
 
 declare interface OmiseJsBrowser {
