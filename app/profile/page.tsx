@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from '@/lib/client/auth-client';
@@ -39,6 +39,7 @@ function ProfilePageContent() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
   const [isSendingSupport, setIsSendingSupport] = useState(false);
+  const handledChargeIdsRef = useRef<Set<string>>(new Set());
 
   const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,18 +86,79 @@ function ProfilePageContent() {
 
   useEffect(() => {
     setCurrentPage('profile');
-    
-    // Check for payment status
-    const success = searchParams?.get('success');
-    if (success === 'true') {
+  }, [setCurrentPage, searchParams]);
+
+  useEffect(() => {
+    const paymentStatus = searchParams?.get('payment');
+    const chargeId = searchParams?.get('chargeId');
+    const legacySuccess = searchParams?.get('success');
+
+    if (paymentStatus === 'success' && chargeId) {
+      if (handledChargeIdsRef.current.has(chargeId)) {
+        return;
+      }
+      handledChargeIdsRef.current.add(chargeId);
+
+      let isCancelled = false;
+
+      const reconcilePayment = async () => {
+        try {
+          const statusRes = await fetch(
+            `/api/checkout/omise/status?chargeId=${encodeURIComponent(chargeId)}`,
+            { cache: 'no-store' }
+          );
+          const statusData = await statusRes.json();
+
+          if (!statusRes.ok) {
+            throw new Error(statusData.error ?? 'Payment status check failed');
+          }
+
+          if (isCancelled) return;
+
+          if (statusData.status === 'successful' && statusData.paid) {
+            toast.success('เติม Star สำเร็จ!', {
+              description: 'ยอด Star ของคุณได้รับการอัปเดตแล้ว',
+              duration: 5000,
+            });
+
+            const balanceRes = await fetch('/api/credits/balance', { cache: 'no-store' });
+            if (balanceRes.ok) {
+              const balanceData = await balanceRes.json();
+              setStars(balanceData.stars);
+            }
+          } else if (statusData.status === 'failed') {
+            toast.error('การชำระเงินไม่สำเร็จ', {
+              description: 'กรุณาลองใหม่อีกครั้ง',
+            });
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            toast.error('ไม่สามารถยืนยันสถานะการชำระเงินได้', {
+              description: error instanceof Error ? error.message : 'กรุณาลองรีเฟรชหน้าอีกครั้ง',
+            });
+          }
+        } finally {
+          if (!isCancelled) {
+            window.history.replaceState({}, '', '/profile');
+          }
+        }
+      };
+
+      void reconcilePayment();
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
+    if (legacySuccess === 'true') {
       toast.success('เติม Star สำเร็จ!', {
         description: 'ยอด Star ของคุณได้รับการอัปเดตแล้ว',
         duration: 5000,
       });
-      // Clear the query param
       window.history.replaceState({}, '', '/profile');
     }
-  }, [setCurrentPage, searchParams]);
+  }, [searchParams]);
 
   useEffect(() => {
     // Redirect to home if not authenticated

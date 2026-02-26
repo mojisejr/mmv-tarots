@@ -165,6 +165,45 @@ describe('POST /api/checkout/omise integration', () => {
     })
   })
 
+  it('prioritizes direct fulfillment when charge is successful even with authorize_uri', async () => {
+    mockOmise.charges.create.mockResolvedValue({
+      id: 'chrg_test_success_with_authorize_uri',
+      authorize_uri: 'https://3ds.omise.co/session/legacy',
+      status: 'successful',
+      paid: true,
+    })
+
+    const request = new Request('http://localhost/api/checkout/omise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validCardPayload),
+    })
+
+    const response = await POST(request as any)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      success: true,
+      chargeId: 'chrg_test_success_with_authorize_uri',
+      chargeStatus: 'successful',
+      stars: 50,
+      packageName: 'Starter Pack',
+    })
+    expect(CreditService.addStars).toHaveBeenCalledWith('user_001', 50, {
+      omiseChargeId: 'chrg_test_success_with_authorize_uri',
+      paymentMethod: 'CARD',
+      packageId: 'price_001',
+      amount: 99,
+      creditedVia: 'direct_checkout',
+    })
+    expect(emitPaymentEvent).toHaveBeenCalledWith('omise.card.success', {
+      chargeId: 'chrg_test_success_with_authorize_uri',
+      userId: 'user_001',
+      priceId: 'price_001',
+    })
+  })
+
   it('returns 500 and captures exception when upstream omise call fails', async () => {
     mockOmise.charges.create.mockRejectedValue(new Error('authentication failed'))
 

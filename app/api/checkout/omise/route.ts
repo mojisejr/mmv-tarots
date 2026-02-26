@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
         currency:    currency,
         card:        token!, // Client-side Omise.js token
         description: description,
-        return_uri:  `${appUrl}/profile?payment=success`,
+        return_uri:  `${appUrl}/profile?payment=success&chargeId=${'{charge_id}'}`,
         metadata:    chargeMetadata,
         capture:     true,
       });
@@ -236,28 +236,7 @@ export async function POST(req: NextRequest) {
         hasAuthorizeUri: Boolean(charge.authorize_uri),
       });
 
-      // 3DS redirect required
-      if (charge.authorize_uri) {
-        paymentDebug('omise.checkout.card', 'charge.requires_3ds', {
-          chargeId: charge.id,
-          userId,
-          priceId,
-        });
-        emitPaymentEvent('omise.card.requires_3ds', {
-          chargeId: charge.id,
-          userId,
-          priceId,
-        });
-
-        return NextResponse.json({
-          success:      false,
-          requires3DS:  true,
-          authorizeUri: charge.authorize_uri,
-          chargeId:     charge.id,
-        });
-      }
-
-      // Immediate success (no 3DS)
+      // Immediate success (prioritized even if authorize_uri exists in test mode)
       if (charge.status === 'successful' && charge.paid) {
         paymentDebug('omise.checkout.card', 'charge.success', {
           chargeId: charge.id,
@@ -305,6 +284,27 @@ export async function POST(req: NextRequest) {
           chargeStatus: charge.status,
           stars:        price.package.stars,
           packageName:  price.package.name,
+        });
+      }
+
+      // 3DS redirect required
+      if (charge.authorize_uri) {
+        paymentDebug('omise.checkout.card', 'charge.requires_3ds', {
+          chargeId: charge.id,
+          userId,
+          priceId,
+        });
+        emitPaymentEvent('omise.card.requires_3ds', {
+          chargeId: charge.id,
+          userId,
+          priceId,
+        });
+
+        return NextResponse.json({
+          success:      false,
+          requires3DS:  true,
+          authorizeUri: charge.authorize_uri,
+          chargeId:     charge.id,
         });
       }
 

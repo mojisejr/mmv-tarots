@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/server/db';
 import { CreditService } from '@/services/credit-service';
 import { getOmiseClient } from '@/lib/server/omise';
@@ -74,25 +75,39 @@ export async function GET(req: NextRequest) {
           stars,
           paymentMethod: paymentMethod ?? 'PROMPTPAY',
         });
-        await CreditService.addStars(userId, parseInt(stars, 10), {
-          omiseChargeId:  chargeId,
-          omiseSourceId:  charge.source?.id ?? null,
-          paymentMethod:  paymentMethod ?? 'PROMPTPAY',
-          packageId:      priceId ?? null,
-          amount:         charge.amount / 100,
-          creditedVia:    'status-poll',
-        });
-        paymentDebug('omise.status', 'credit.apply.success', {
-          chargeId,
-          userId,
-          stars: parseInt(stars, 10),
-        });
-        emitPaymentEvent('omise.poll.credited', {
-          chargeId,
-          userId,
-          stars: parseInt(stars, 10),
-          paymentMethod: paymentMethod ?? 'PROMPTPAY',
-        });
+        try {
+          await CreditService.addStars(userId, parseInt(stars, 10), {
+            omiseChargeId:  chargeId,
+            omiseSourceId:  charge.source?.id ?? null,
+            paymentMethod:  paymentMethod ?? 'PROMPTPAY',
+            packageId:      priceId ?? null,
+            amount:         charge.amount / 100,
+            creditedVia:    'status-poll',
+          });
+          paymentDebug('omise.status', 'credit.apply.success', {
+            chargeId,
+            userId,
+            stars: parseInt(stars, 10),
+          });
+          emitPaymentEvent('omise.poll.credited', {
+            chargeId,
+            userId,
+            stars: parseInt(stars, 10),
+            paymentMethod: paymentMethod ?? 'PROMPTPAY',
+          });
+        } catch (creditError: unknown) {
+          if (
+            creditError instanceof Prisma.PrismaClientKnownRequestError &&
+            creditError.code === 'P2002'
+          ) {
+            paymentDebug('omise.status', 'credit.already_processed', {
+              chargeId,
+              userId,
+            });
+          } else {
+            throw creditError;
+          }
+        }
       }
     }
 
