@@ -293,4 +293,36 @@ describe('POST /api/checkout/omise integration', () => {
       expiresAt: '2026-03-01T00:00:00Z',
     })
   })
+
+  it('falls back to charge source QR when source response has no image', async () => {
+    mockOmise.sources.create.mockResolvedValue({
+      id: 'src_test_promptpay_no_image',
+      scannable_code: null,
+    })
+
+    mockOmise.charges.create.mockResolvedValue({
+      id: 'chrg_test_promptpay_fallback_qr',
+      status: 'pending',
+      expires_at: '2026-03-01T00:00:00Z',
+      source: {
+        scannable_code: {
+          image: {
+            download_uri: 'https://cdn.omise.co/qr-fallback.png',
+          },
+        },
+      },
+    })
+
+    const request = new Request('http://localhost/api/checkout/omise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validPromptPayPayload),
+    })
+
+    const response = await POST(request as any)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.qrImageUrl).toBe('https://cdn.omise.co/qr-fallback.png')
+  })
 })

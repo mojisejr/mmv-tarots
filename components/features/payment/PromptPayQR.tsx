@@ -58,6 +58,9 @@ export function PromptPayQR({
   const poll = useCallback(async () => {
     try {
       const res  = await fetch(`/api/checkout/omise/status?chargeId=${chargeId}`);
+      if (!res.ok) {
+        return;
+      }
       const data: StatusResponse = await res.json();
 
       setStatus(data.status);
@@ -82,7 +85,7 @@ export function PromptPayQR({
   useEffect(() => {
     if (status !== 'pending') return;
     if (pollCount >= MAX_POLLS) { onExpired(); return; }
-    if (remaining <= 0)         { onExpired(); return; }
+    if (Date.now() >= new Date(expiresAt).getTime()) { onExpired(); return; }
 
     const id = setTimeout(async () => {
       await poll();
@@ -90,7 +93,13 @@ export function PromptPayQR({
     }, POLL_INTERVAL_MS);
 
     return () => clearTimeout(id);
-  }, [poll, pollCount, status, remaining, onExpired]);
+  }, [poll, pollCount, status, onExpired, expiresAt]);
+
+  useEffect(() => {
+    if (status === 'pending' && remaining <= 0) {
+      onExpired();
+    }
+  }, [remaining, status, onExpired]);
 
   return (
     <div className="space-y-4">

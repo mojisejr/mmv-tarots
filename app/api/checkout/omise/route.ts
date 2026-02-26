@@ -180,11 +180,16 @@ export async function POST(req: NextRequest) {
       paymentDebug('omise.checkout.promptpay', 'charge.create.success', {
         chargeId: charge.id,
         status: charge.status,
-        hasQrImageUrl: Boolean(source.scannable_code?.image?.download_uri),
+        hasQrImageUrl: Boolean(
+          source.scannable_code?.image?.download_uri ??
+          charge.source?.scannable_code?.image?.download_uri
+        ),
       });
 
       const qrImageUrl =
-        source.scannable_code?.image?.download_uri ?? null;
+        source.scannable_code?.image?.download_uri ??
+        charge.source?.scannable_code?.image?.download_uri ??
+        null;
 
       emitPaymentEvent('omise.charge.created', {
         paymentMethod,
