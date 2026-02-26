@@ -23,6 +23,12 @@ vi.mock('@/lib/server/payment-observability', () => ({
   notifyPaymentAlert: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('@/services/credit-service', () => ({
+  CreditService: {
+    addStars: vi.fn(),
+  },
+}))
+
 import { POST } from '@/app/api/checkout/omise/route'
 import { db } from '@/lib/server/db'
 import { getOmiseClient, getOmiseConfigState } from '@/lib/server/omise'
@@ -31,6 +37,7 @@ import {
   emitPaymentEvent,
   notifyPaymentAlert,
 } from '@/lib/server/payment-observability'
+import { CreditService } from '@/services/credit-service'
 
 const mockPrice = {
   id: 'price_001',
@@ -117,6 +124,45 @@ describe('POST /api/checkout/omise integration', () => {
     expect(response.status).toBe(400)
     expect(body.error).toBe('Invalid request')
     expect(db.packagePrice.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('credits stars immediately when card charge is successful without 3DS', async () => {
+    mockOmise.charges.create.mockResolvedValue({
+      id: 'chrg_test_success',
+      authorize_uri: null,
+      status: 'successful',
+      paid: true,
+    })
+
+    const request = new Request('http://localhost/api/checkout/omise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validCardPayload),
+    })
+
+    const response = await POST(request as any)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({
+      success: true,
+      chargeId: 'chrg_test_success',
+      chargeStatus: 'successful',
+      stars: 50,
+      packageName: 'Starter Pack',
+    })
+    expect(CreditService.addStars).toHaveBeenCalledWith('user_001', 50, {
+      omiseChargeId: 'chrg_test_success',
+      paymentMethod: 'CARD',
+      packageId: 'price_001',
+      amount: 99,
+      creditedVia: 'direct_checkout',
+    })
+    expect(emitPaymentEvent).toHaveBeenCalledWith('omise.card.success', {
+      chargeId: 'chrg_test_success',
+      userId: 'user_001',
+      priceId: 'price_001',
+    })
   })
 
   it('returns 500 and captures exception when upstream omise call fails', async () => {

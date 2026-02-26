@@ -11,8 +11,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/server/db';
 import { getOmiseClient, getOmiseConfigState, toSatang } from '@/lib/server/omise';
+import { CreditService } from '@/services/credit-service';
 import {
   capturePaymentException,
   emitPaymentEvent,
@@ -262,6 +264,35 @@ export async function POST(req: NextRequest) {
           userId,
           priceId,
         });
+
+        try {
+          await CreditService.addStars(userId, price.package.stars, {
+            omiseChargeId: charge.id,
+            paymentMethod: 'CARD',
+            packageId: price.id,
+            amount: price.amount,
+            creditedVia: 'direct_checkout',
+          });
+
+          paymentDebug('omise.checkout.card', 'credit.success', {
+            chargeId: charge.id,
+            userId,
+            stars: price.package.stars,
+          });
+        } catch (creditError: unknown) {
+          if (
+            creditError instanceof Prisma.PrismaClientKnownRequestError &&
+            creditError.code === 'P2002'
+          ) {
+            paymentDebug('omise.checkout.card', 'credit.already_processed', {
+              chargeId: charge.id,
+              userId,
+            });
+          } else {
+            throw creditError;
+          }
+        }
+
         emitPaymentEvent('omise.card.success', {
           chargeId: charge.id,
           userId,

@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/server/db';
 import { CreditService } from '@/services/credit-service';
 import {
@@ -130,6 +131,14 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      emitPaymentEvent('omise.webhook.already_processed', { chargeId });
+      return NextResponse.json({ received: true, action: 'already_processed' });
+    }
+
     const message = error instanceof Error ? error.message : 'Unexpected error';
     capturePaymentException('omise.webhook.process', error, { chargeId });
     await notifyPaymentAlert({
