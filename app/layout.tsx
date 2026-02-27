@@ -4,14 +4,40 @@ import { LiquidBackground, MainNavigation, BottomNav, GlobalLoading } from "@/co
 import { WelcomeRitual } from "@/components/features/onboarding";
 import { NavigationProvider } from "@/lib/client/providers/navigation-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { getSiteUrl, resolveAbsoluteUrl } from "@/lib/shared/seo";
 
 // Use fallback system fonts for now
 const fontClasses = "font-sans";
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://mmv-tarots.vercel.app'),
+  metadataBase: new URL(siteUrl),
   title: "MimiVibe: Personal Insight & Wellness Experience",
   description: "Digital insight experience for personal reflection and wellness guidance. Purchase digital tokens to unlock private readings and support content.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName: "MimiVibe",
+    title: "MimiVibe: Personal Insight & Wellness Experience",
+    description: "Digital insight experience for personal reflection and wellness guidance. Purchase digital tokens to unlock private readings and support content.",
+    images: [
+      {
+        url: resolveAbsoluteUrl("/opengraph-image"),
+        width: 1200,
+        height: 630,
+        alt: "MimiVibe personal insight and wellness",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MimiVibe: Personal Insight & Wellness Experience",
+    description: "Digital insight experience for personal reflection and wellness guidance. Purchase digital tokens to unlock private readings and support content.",
+    images: [resolveAbsoluteUrl("/opengraph-image")],
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,
