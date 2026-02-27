@@ -1,5 +1,5 @@
 import { db } from '@/lib/server/db';
-import { TransactionType, TransactionStatus, Prisma } from '@prisma/client';
+import { TransactionType, TransactionStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { referralService } from '@/lib/server/services/referral-service';
 
@@ -95,6 +95,8 @@ export const CreditService = {
           type: TransactionType.TOPUP,
           status: TransactionStatus.SUCCESS,
           stripeSessionId: metadata?.stripeSessionId ?? null,
+          omiseChargeId:  metadata?.omiseChargeId  ?? null,
+          paymentMethod:  (metadata?.paymentMethod as PaymentMethod) ?? null,
           metadata: metadata ?? {},
         },
       });

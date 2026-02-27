@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { GlassCard, GlassButton, Sparkles, ErrorBoundary, Check } from '@/components';
+import { PaymentModal } from '@/components/features/payment';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { toast } from 'sonner';
@@ -27,13 +29,16 @@ interface StarPackage {
 }
 
 function PackagePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { setCurrentPage } = useNavigation();
-  const [loading, setLoading] = useState<string | null>(null);
   const [packages, setPackages] = useState<StarPackage[]>([]);
   const [isEligible, setIsEligible] = useState<boolean>(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+
+  // ── Payment Modal state ────────────────────────────────────────────────
+  const [modalOpen,   setModalOpen]   = useState(false);
+  const [modalPrice,  setModalPrice]  = useState<{ priceId: string; name: string; stars: number; amount: number } | null>(null);
 
   useEffect(() => {
     setCurrentPage('package');
@@ -69,41 +74,17 @@ function PackagePageContent() {
     }
   }, [session]);
 
-  const handleBuy = async (priceId: string) => {
-    if (!session?.user) {
-      toast.error('กรุณา Login ก่อนซื้อแพ็กเกจ');
-      // Optional: Redirect to login
+  const handleBuy = (priceId: string, pkgName: string, pkgStars: number, pkgAmount: number) => {
+    if (!consentAccepted) {
+      toast.error('กรุณายอมรับเงื่อนไขก่อนชำระเงิน');
       return;
     }
-
-    setLoading(priceId);
-    try {
-      const res = await fetch('/api/checkout/stripe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          priceId, 
-          userId: session.user.id 
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to create checkout session');
-      }
-
-      const data = await res.json();
-      
-      // Redirect ไปยังหน้า Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการสร้างการชำระเงิน');
-    } finally {
-      setLoading(null);
+    if (!session?.user) {
+      toast.error('กรุณา Login ก่อนซื้อแพ็กเกจ');
+      return;
     }
+    setModalPrice({ priceId, name: pkgName, stars: pkgStars, amount: pkgAmount });
+    setModalOpen(true);
   };
 
   const getGradient = (index: number) => {
@@ -125,14 +106,40 @@ function PackagePageContent() {
   };
 
   return (
+    <>
     <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
       <div className="text-center mb-12 animate-fade-in-down">
         <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">
-          เติม Star
+          เติม Digital Token
         </h1>
         <p className="text-muted-foreground text-lg font-sans">
-          เลือกแพ็กเกจที่เหมาะกับคุณเพื่อเปิดคำทำนาย
+          เลือกแพ็กเกจที่เหมาะกับคุณเพื่อปลดล็อกเนื้อหาเชิงลึกแบบส่วนตัว
         </p>
+        <div className="mt-5 mx-auto max-w-2xl rounded-2xl border border-white/10 bg-white/50 backdrop-blur-xl p-4 text-left">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentAccepted}
+              onChange={(event) => setConsentAccepted(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border-subtle"
+            />
+            <span className="text-sm text-foreground/80 leading-relaxed">
+              I agree purchasing digital tokens is non-refundable once delivered or consumed.
+              {' '}
+              <Link href="/policy/refund" className="underline underline-offset-2 hover:text-foreground">
+                Refund Policy
+              </Link>
+              {' · '}
+              <Link href="/policy/terms" className="underline underline-offset-2 hover:text-foreground">
+                Terms
+              </Link>
+              {' · '}
+              <Link href="/policy/privacy" className="underline underline-offset-2 hover:text-foreground">
+                Privacy
+              </Link>
+            </span>
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
@@ -258,20 +265,20 @@ function PackagePageContent() {
 
                 <div className="w-full pt-1 space-y-2">
                   <GlassButton
-                    onClick={() => handleBuy(activePrice.id)}
-                    disabled={loading === activePrice.id}
+                    onClick={() => handleBuy(activePrice.id, pkg.name, pkg.stars, activePrice.amount)}
+                    disabled={!consentAccepted || modalOpen}
                     variant={isPopular || showPromo ? "primary" : "outline"}
                     className={cn(
                       "w-full py-6 font-bold text-lg shadow-warm transition-all duration-300",
-                      showPromo && "bg-gradient-to-r from-primary to-primary-strong hover:brightness-110 border-none text-white shadow-glow-primary"
+                        showPromo && "bg-gradient-to-r from-primary to-primary-strong hover:brightness-110 border-none text-white shadow-glow-primary"
                     )}
                   >
-                    {loading === activePrice.id ? 'กำลังเตรียมการ...' : ctaText}
+                    {ctaText}
                   </GlassButton>
                   
                   <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground/60">
                     <span className="w-2 h-2 rounded-full bg-green-500/50 animate-pulse"></span>
-                    Secure payment by Stripe
+                    Secure payment processing
                   </div>
                 </div>
               </div>
@@ -280,6 +287,20 @@ function PackagePageContent() {
         })}
       </div>
     </div>
+
+    {/* Payment Modal */}
+    {modalPrice && session?.user && (
+      <PaymentModal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setModalPrice(null); }}
+        priceId={modalPrice.priceId}
+        userId={session.user.id}
+        packageName={modalPrice.name}
+        stars={modalPrice.stars}
+        amount={modalPrice.amount}
+      />
+    )}
+    </>
   );
 }
 
