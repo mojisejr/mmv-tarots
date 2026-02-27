@@ -10,14 +10,9 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  // Attempt to load a Thai-compatible font (e.g., Noto Sans Thai)
-  // If this fails securely (e.g., no internet), we fallback to system font which might not render Thai perfectly on all environments,
-  // but for Vercel/Next.js OG, a font file is usually required for non-Latin.
-  // We will use a standard fetch for Noto Sans Thai from Google Fonts CDN or GitHub raw.
-  const notoBold = await fetch(
-    new URL("https://github.com/google/fonts/raw/main/ofl/notosansthai/NotoSansThai-Bold.ttf", import.meta.url)
-  ).then((res) => res.arrayBuffer());
-
+  // We use standard font or can load a specific one if needed. 
+  // For English, the default Vercel OG font is usually sufficient and safe.
+  
   return new ImageResponse(
     (
       <div
@@ -30,63 +25,56 @@ export default async function OpenGraphImage() {
           alignItems: "center",
           textAlign: "center",
           padding: "48px",
-          // Mystic Warm Gradient: Deep Purple to Rose Gold/Soft Red
-          background: "linear-gradient(135deg, #2B234A 0%, #5E366A 45%, #F27669 100%)",
+          // Serene Gradient: Deep Indigo to Soft Lavender/Wellness vibe
+          background: "linear-gradient(135deg, #1A1A2E 0%, #4A4E69 50%, #9A8C98 100%)",
           color: "#FFFFFF",
         }}
       >
         {/* Brand Name */}
         <div 
           style={{ 
-            fontSize: 72, 
+            fontSize: 80, 
             fontWeight: 700, 
-            marginBottom: 16,
-            textShadow: "0 4px 12px rgba(0,0,0,0.3)"
+            marginBottom: 24,
+            letterSpacing: '-2px',
+            textShadow: "0 4px 12px rgba(0,0,0,0.2)"
           }}
         >
-          แม่หมอมีมี่
+          MimiVibe
         </div>
 
-        {/* Subtitle */}
+        {/* Subtitle - Focus on Wellness/Sanctuary */}
         <div 
           style={{ 
-            fontSize: 36, 
+            fontSize: 32, 
             opacity: 0.9, 
-            marginBottom: 40,
-            fontWeight: 400
+            marginBottom: 48,
+            fontWeight: 400,
+            maxWidth: '800px',
+            lineHeight: 1.4
           }}
         >
-          ไพ่ทาโรต์ฮีลใจ ไขคำตอบชีวิต
+          Sanctuary for Inner Clarity & Healing
         </div>
 
-        {/* URL Badge */}
+        {/* Visual Pill / Badge */}
         <div
           style={{
-            background: "rgba(255, 255, 255, 0.15)",
-            padding: "12px 32px",
-            borderRadius: "50px",
-            border: "1px solid rgba(255, 255, 255, 0.3)",
+            background: "rgba(255, 255, 255, 0.1)",
+            padding: "16px 40px",
+            borderRadius: "100px",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
             fontSize: 24,
-            fontWeight: 500,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            opacity: 0.8,
+            letterSpacing: '1px'
           }}
         >
-          maemormimi.com
+          mimivibe.com
         </div>
       </div>
     ),
     {
       ...size,
-      fonts: [
-        {
-          name: "Noto Sans Thai",
-          data: notoBold,
-          style: "normal",
-          weight: 700,
-        },
-      ],
     }
   );
 }

@@ -20,31 +20,31 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "แม่หมอมีมี่ (Maemormimi) - ไพ่ทาโรต์ฮีลใจ ไขคำตอบชีวิต",
-  description: "ปรึกษาดวงชะตา ไพ่ทาโรต์ออนไลน์ กับ 'แม่หมอมีมี่' ชัดเจน ตรงประเด็น! เพื่อนคู่คิด มิตรคู่ใจ พร้อมฮีลใจให้คุณก้าวต่อไป",
-  keywords: ["ดูดวง", "ไพ่ทาโรต์", "ไพ่ยิปซี", "ความรัก", "แม่หมอมีมี่", "Maemormimi", "Tarot", "Horoscope", "ดูดวงออนไลน์"],
+  title: "MimiVibe: Sanctuary for Inner Clarity & Healing",
+  description: "Explore your inner world with MimiVibe. A digital sanctuary for personal reflection, emotional wellness, and intuitive guidance. Find clarity, not just answers.",
+  keywords: ["Wellness", "Mindfulness", "Personal Growth", "Self-Reflection", "Inner Peace", "Healing", "Guidance", "MimiVibe", "Insight"],
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
     url: siteUrl,
-    siteName: "Maemormimi (แม่หมอมีมี่)",
-    title: "แม่หมอมีมี่ (Maemormimi) - ไพ่ทาโรต์ฮีลใจ ไขคำตอบชีวิต",
-    description: "ปรึกษาดวงชะตา ไพ่ทาโรต์ออนไลน์ กับ 'แม่หมอมีมี่' ชัดเจน ตรงประเด็น! เพื่อนคู่คิด มิตรคู่ใจ พร้อมฮีลใจให้คุณก้าวต่อไป",
+    siteName: "MimiVibe",
+    title: "MimiVibe: Sanctuary for Inner Clarity & Healing",
+    description: "Explore your inner world with MimiVibe. A digital sanctuary for personal reflection, emotional wellness, and intuitive guidance. Find clarity, not just answers.",
     images: [
       {
         url: resolveAbsoluteUrl("/opengraph-image"),
         width: 1200,
         height: 630,
-        alt: "แม่หมอมีมี่ (Maemormimi) - ไพ่ทาโรต์ฮีลใจ ไขคำตอบชีวิต",
+        alt: "MimiVibe - Inner Clarity & Healing",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "แม่หมอมีมี่ (Maemormimi) - ไพ่ทาโรต์ฮีลใจ ไขคำตอบชีวิต",
-    description: "ปรึกษาดวงชะตา ไพ่ทาโรต์ออนไลน์ กับ 'แม่หมอมีมี่' ชัดเจน ตรงประเด็น! เพื่อนคู่คิด มิตรคู่ใจ พร้อมฮีลใจให้คุณก้าวต่อไป",
+    title: "MimiVibe: Sanctuary for Inner Clarity & Healing",
+    description: "Explore your inner world with MimiVibe. A digital sanctuary for personal reflection, emotional wellness, and intuitive guidance. Find clarity, not just answers.",
     images: [resolveAbsoluteUrl("/opengraph-image")],
   },
 };
