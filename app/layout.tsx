@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LiquidBackground, MainNavigation, BottomNav, GlobalLoading } from "@/components";
 import { WelcomeRitual } from "@/components/features/onboarding";
@@ -10,10 +10,19 @@ import { getSiteUrl, resolveAbsoluteUrl } from "@/lib/shared/seo";
 const fontClasses = "font-sans";
 const siteUrl = getSiteUrl();
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "MimiVibe: Personal Insight & Wellness Experience",
-  description: "Digital insight experience for personal reflection and wellness guidance. Purchase digital tokens to unlock private readings and support content.",
+  title: "MimiVibe: Sanctuary for Inner Clarity & Healing",
+  description: "Explore your inner world with MimiVibe. A digital sanctuary for personal reflection, emotional wellness, and intuitive guidance. Find clarity, not just answers.",
+  keywords: ["Wellness", "Mindfulness", "Personal Growth", "Self-Reflection", "Inner Peace", "Healing", "Guidance", "MimiVibe", "Insight"],
   alternates: {
     canonical: "/",
   },
@@ -21,29 +30,22 @@ export const metadata: Metadata = {
     type: "website",
     url: siteUrl,
     siteName: "MimiVibe",
-    title: "MimiVibe: Personal Insight & Wellness Experience",
-    description: "Digital insight experience for personal reflection and wellness guidance. Purchase digital tokens to unlock private readings and support content.",
+    title: "MimiVibe: Sanctuary for Inner Clarity & Healing",
+    description: "Explore your inner world with MimiVibe. A digital sanctuary for personal reflection, emotional wellness, and intuitive guidance. Find clarity, not just answers.",
     images: [
       {
         url: resolveAbsoluteUrl("/opengraph-image"),
         width: 1200,
         height: 630,
-        alt: "MimiVibe personal insight and wellness",
+        alt: "MimiVibe - Inner Clarity & Healing",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MimiVibe: Personal Insight & Wellness Experience",
-    description: "Digital insight experience for personal reflection and wellness guidance. Purchase digital tokens to unlock private readings and support content.",
+    title: "MimiVibe: Sanctuary for Inner Clarity & Healing",
+    description: "Explore your inner world with MimiVibe. A digital sanctuary for personal reflection, emotional wellness, and intuitive guidance. Find clarity, not just answers.",
     images: [resolveAbsoluteUrl("/opengraph-image")],
-  },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: 'cover',
   },
 };
 
