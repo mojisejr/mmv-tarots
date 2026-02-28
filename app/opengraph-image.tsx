@@ -25,11 +25,37 @@ export default async function OpenGraphImage() {
           alignItems: "center",
           textAlign: "center",
           padding: "48px",
-          // Serene Gradient: Deep Indigo to Soft Lavender/Wellness vibe
-          background: "linear-gradient(135deg, #1A1A2E 0%, #4A4E69 50%, #9A8C98 100%)",
-          color: "#FFFFFF",
+          // Pink Theme (System Colors): Background #FFF0F0 -> Primary #FFD6D1
+          background: "linear-gradient(135deg, #FFF0F0 0%, #FFE4E1 50%, #FFD6D1 100%)",
+          color: "#592E2E", // Foreground Color (Deep Red-Brown)
         }}
       >
+        {/* Decorative Elements */}
+        <div
+          style={{
+            position: "absolute",
+            top: -100,
+            left: -100,
+            width: 400,
+            height: 400,
+            background: "rgba(212, 175, 55, 0.1)", // Accent Gold
+            filter: "blur(80px)",
+            borderRadius: "50%",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: -50,
+            right: -50,
+            width: 300,
+            height: 300,
+            background: "rgba(242, 118, 105, 0.15)", // Primary 500
+            filter: "blur(60px)",
+            borderRadius: "50%",
+          }}
+        />
+
         {/* Brand Name */}
         <div 
           style={{ 
@@ -37,7 +63,8 @@ export default async function OpenGraphImage() {
             fontWeight: 700, 
             marginBottom: 24,
             letterSpacing: '-2px',
-            textShadow: "0 4px 12px rgba(0,0,0,0.2)"
+            textShadow: "0 2px 10px rgba(89, 46, 46, 0.1)",
+            zIndex: 10
           }}
         >
           MimiVibe
@@ -49,9 +76,11 @@ export default async function OpenGraphImage() {
             fontSize: 32, 
             opacity: 0.9, 
             marginBottom: 48,
-            fontWeight: 400,
+            fontWeight: 500,
             maxWidth: '800px',
-            lineHeight: 1.4
+            lineHeight: 1.4,
+            color: "#8C6B6B", // Muted Foreground
+            zIndex: 10
           }}
         >
           Sanctuary for Inner Clarity & Healing
@@ -60,13 +89,16 @@ export default async function OpenGraphImage() {
         {/* Visual Pill / Badge */}
         <div
           style={{
-            background: "rgba(255, 255, 255, 0.1)",
+            background: "rgba(255, 255, 255, 0.4)",
             padding: "16px 40px",
             borderRadius: "100px",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
+            border: "1px solid rgba(255, 255, 255, 0.6)",
             fontSize: 24,
-            opacity: 0.8,
-            letterSpacing: '1px'
+            fontWeight: 600,
+            letterSpacing: '1px',
+            color: "#592E2E",
+            boxShadow: "0 4px 20px rgba(89, 46, 46, 0.05)",
+            zIndex: 10
           }}
         >
           mimivibe.com
