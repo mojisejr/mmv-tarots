@@ -26,6 +26,7 @@
     "@ai-sdk/google": "^2.0.44",
     "@ai-sdk/openai": "^2.0.80",
     "@hookform/resolvers": "^5.2.2",
+    "@line/liff": "^2.27.3",
     "@prisma/client": "^5.22.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
