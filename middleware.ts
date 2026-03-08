@@ -4,13 +4,6 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  const host = request.headers.get('host') ?? request.nextUrl.host;
-  if (host.toLowerCase().startsWith('www.')) {
-    const normalizedUrl = request.nextUrl.clone();
-    normalizedUrl.host = host.replace(/^www\./i, '');
-    return NextResponse.redirect(normalizedUrl, 301);
-  }
-
   const response = NextResponse.next();
 
   // 1. Referral Logic
@@ -32,8 +25,9 @@ export function middleware(request: NextRequest) {
   // 2. Auth Enforcer (Protected Routes)
   const protectedRoutes = ['/profile', '/history', '/package', '/submitted'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isLiffRoute = pathname.startsWith('/liff');
 
-  if (isProtectedRoute) {
+  if (isProtectedRoute && !isLiffRoute) {
     const sessionToken = request.cookies.get('mmv_auth.session_token') || 
                          request.cookies.get('__Secure-mmv_auth.session_token');
     
