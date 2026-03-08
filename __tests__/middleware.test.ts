@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { NextRequest, NextResponse } from 'next/server';
+import { describe, it, expect } from 'vitest';
+import { NextRequest } from 'next/server';
 import { middleware } from '../middleware';
 
 // Helper to create a request
@@ -15,13 +15,13 @@ function createRequest(url: string, cookies: Record<string, string> = {}) {
 }
 
 describe('Middleware Auth Enforcer', () => {
-  it('should normalize www domain to root domain and preserve path/query', () => {
+  it('should leave www-domain normalization to infrastructure-level redirects', () => {
     const request = createRequest('https://www.maemormimi.com/liff?ref=FRIEND123&from=line');
     const response = middleware(request);
 
-    expect(response?.status).toBe(301);
-    const location = response?.headers.get('location');
-    expect(location).toBe('https://maemormimi.com/liff?ref=FRIEND123&from=line');
+    // App middleware should not issue host normalization redirects.
+    expect(response?.status).not.toBe(301);
+    expect(response?.headers.get('location')).toBeNull();
   });
 
   it('should redirect unprotected access to protected routes to /liff', () => {
@@ -88,6 +88,14 @@ describe('Middleware Auth Enforcer', () => {
     const location = response?.headers.get('location');
     expect(location).toContain('/liff');
     expect(location).toContain('liff.state=%2Fhistory%3Ftab%3Dall%26from%3Dline');
+  });
+
+  it('should allow /liff route without redirect loop even when session is missing', () => {
+    const request = createRequest('/liff?liff.state=%2Fprofile');
+    const response = middleware(request);
+
+    expect(response?.status).not.toBe(307);
+    expect(response?.headers.get('location')).toBeNull();
   });
 
   it('should keep first-touch referral cookie when mmv_ref already exists', () => {
