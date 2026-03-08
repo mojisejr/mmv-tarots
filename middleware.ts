@@ -3,6 +3,14 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  const host = request.headers.get('host') ?? request.nextUrl.host;
+  if (host.toLowerCase().startsWith('www.')) {
+    const normalizedUrl = request.nextUrl.clone();
+    normalizedUrl.host = host.replace(/^www\./i, '');
+    return NextResponse.redirect(normalizedUrl, 301);
+  }
+
   const response = NextResponse.next();
 
   // 1. Referral Logic

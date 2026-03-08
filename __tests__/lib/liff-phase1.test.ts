@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildLiffGatewayPath } from '@/lib/client/providers/navigation-provider';
-import { resolveLiffStateTarget } from '@/app/liff/page';
+import { buildGatewayTarget, resolveLiffStateTarget } from '@/app/liff/page';
 
 describe('Phase 5.1 LIFF gateway helpers', () => {
   it('builds /liff url with encoded liff.state from pathname + query', () => {
@@ -20,5 +20,14 @@ describe('Phase 5.1 LIFF gateway helpers', () => {
   it('falls back to home for invalid target', () => {
     expect(resolveLiffStateTarget('https%3A%2F%2Fevil.com')).toBe('/');
     expect(resolveLiffStateTarget(null)).toBe('/');
+  });
+
+  it('falls back to home for malformed URI sequence', () => {
+    expect(resolveLiffStateTarget('%E0%A4%A')).toBe('/');
+  });
+
+  it('keeps target when referral already exists and appends when missing', () => {
+    expect(buildGatewayTarget('%2Fhistory%3Fref%3DOLD', 'NEW')).toBe('/history?ref=OLD');
+    expect(buildGatewayTarget('%2Fhistory', 'NEW')).toBe('/history?ref=NEW');
   });
 });

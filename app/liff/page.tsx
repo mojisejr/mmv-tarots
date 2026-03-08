@@ -8,7 +8,13 @@ type LiffModule = typeof import('@line/liff');
 export function resolveLiffStateTarget(rawState: string | null): string {
   if (!rawState) return '/';
 
-  const decodedState = decodeURIComponent(rawState);
+  let decodedState = '/';
+  try {
+    decodedState = decodeURIComponent(rawState);
+  } catch {
+    return '/';
+  }
+
   if (!decodedState.startsWith('/')) {
     return '/';
   }
