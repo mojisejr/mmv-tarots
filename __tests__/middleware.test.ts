@@ -4,7 +4,10 @@ import { middleware } from '../middleware';
 
 // Helper to create a request
 function createRequest(url: string, cookies: Record<string, string> = {}) {
-  const request = new NextRequest(new URL(url, 'http://localhost:3000'));
+  const resolvedUrl = /^https?:\/\//i.test(url)
+    ? url
+    : new URL(url, 'http://localhost:3000').toString();
+  const request = new NextRequest(resolvedUrl);
   Object.entries(cookies).forEach(([name, value]) => {
     request.cookies.set(name, value);
   });
@@ -12,6 +15,15 @@ function createRequest(url: string, cookies: Record<string, string> = {}) {
 }
 
 describe('Middleware Auth Enforcer', () => {
+  it('should normalize www domain to root domain and preserve path/query', () => {
+    const request = createRequest('https://www.maemormimi.com/liff?ref=FRIEND123&from=line');
+    const response = middleware(request);
+
+    expect(response?.status).toBe(301);
+    const location = response?.headers.get('location');
+    expect(location).toBe('https://maemormimi.com/liff?ref=FRIEND123&from=line');
+  });
+
   it('should redirect unprotected access to protected routes to /liff', () => {
     const protectedPaths = ['/profile', '/history', '/package', '/submitted'];
     
