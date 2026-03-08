@@ -31,6 +31,14 @@ describe('Phase 5.2 referral hardening', () => {
     expect(link).toBe('https://maemormimi.com/history?ref=FALLBACK');
   });
 
+  it('keeps LIFF wrapped path without ref when referral code is not provided', () => {
+    process.env.NEXT_PUBLIC_LIFF_ID = '1234567890-abcDEF';
+
+    const link = ReferralUtils.generateLink('https://maemormimi.com', undefined, '/package?tier=gold');
+
+    expect(link).toBe('https://liff.line.me/1234567890-abcDEF/package?tier=gold');
+  });
+
   it('forwards ref query from /liff to target when liff.state has no ref', () => {
     const target = buildGatewayTarget('/profile', 'PROMO999');
     expect(target).toBe('/profile?ref=PROMO999');
@@ -39,5 +47,10 @@ describe('Phase 5.2 referral hardening', () => {
   it('does not overwrite existing ref in liff.state target', () => {
     const target = buildGatewayTarget('/profile?ref=EXISTING', 'NEWCODE');
     expect(target).toBe('/profile?ref=EXISTING');
+  });
+
+  it('forwards ref while preserving existing query params in liff.state target', () => {
+    const target = buildGatewayTarget('/submitted?job=abc123&from=liff', 'PROMO888');
+    expect(target).toBe('/submitted?job=abc123&from=liff&ref=PROMO888');
   });
 });

@@ -67,4 +67,24 @@ describe('Middleware Auth Enforcer', () => {
     const refCookie = cookies?.get('mmv_ref');
     expect(refCookie?.value).toBe('FRIEND123');
   });
+
+  it('should preserve original query in liff.state when redirecting protected route', () => {
+    const request = createRequest('/history?tab=all&from=line');
+    const response = middleware(request);
+
+    expect(response?.status).toBe(307);
+    const location = response?.headers.get('location');
+    expect(location).toContain('/liff');
+    expect(location).toContain('liff.state=%2Fhistory%3Ftab%3Dall%26from%3Dline');
+  });
+
+  it('should keep first-touch referral cookie when mmv_ref already exists', () => {
+    const request = createRequest('/?ref=NEWCODE', {
+      mmv_ref: 'EXISTINGCODE',
+    });
+    const response = middleware(request);
+
+    const refCookie = response?.cookies.get('mmv_ref');
+    expect(refCookie).toBeUndefined();
+  });
 });
