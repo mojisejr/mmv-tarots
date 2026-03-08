@@ -3,6 +3,8 @@
 ## 🌟 Philosophy
 **MMV Tarots** (Mimi Vibe Tarots) คือแพลตฟอร์มพยากรณ์ไพ่ยิปซีด้วย AI ที่เน้นประสบการณ์ผู้ใช้ที่นุ่มนวล ทันสมัย และมีความเป็นส่วนตัว (Mimi Vibe) โดยใช้เทคโนโลยี AI (Google/OpenAI) ในการตีความความหมายไพ่ให้เข้ากับบริบทคำถามของผู้ใช้แต่ละคน พร้อมระบบสะสมแต้ม (Stars) และการชำระเงินผ่าน Omise
 
+**Production URL**: [https://maemormimi.com](https://maemormimi.com)
+
 ## 📍 Key Landmarks
 -   **`app/`**: Next.js App Router (Main UI logic)
     -   `page.tsx`: หน้าแรกสำหรับกรอกคำถาม

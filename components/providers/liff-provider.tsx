@@ -56,7 +56,19 @@ export function LiffProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         if (!cancelled && data?.ok) {
           window.sessionStorage.setItem(tokenSyncKey, '1');
-          window.location.reload();
+          
+          // Use router replace instead of location reload for smoother transition
+          const liff: LiffModule['default'] = (await import('@line/liff')).default;
+          const permanentLink = liff.permanentLink?.createUrl();
+          const state = permanentLink 
+            ? new URL(permanentLink).searchParams.get('liff.state') 
+            : null;
+          
+          if (state) {
+            window.location.href = state;
+          } else {
+            window.location.reload();
+          }
         }
       } catch (error) {
         console.error('[LIFF] bootstrap failed:', error);
