@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useSession, signIn, signOut } from '@/lib/client/auth-client';
+import { useSession, signOut } from '@/lib/client/auth-client';
 import { fetchBalance } from '@/lib/client/api';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
@@ -35,6 +35,15 @@ interface NavigationContextType {
 }
 
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
+
+export function buildLiffGatewayPath(currentPathname: string, currentSearch: string): string {
+  const pathname = currentPathname || '/';
+  const search = currentSearch || '';
+  const state = `${pathname}${search}`;
+  const params = new URLSearchParams();
+  params.set('liff.state', state);
+  return `/liff?${params.toString()}`;
+}
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -149,21 +158,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   };
 
   const handleLoginClick = async () => {
-    // Redirect to Line Login using Better Auth Client
     try {
       setIsLoggingIn(true);
-      
-      // Capture referral code from current URL to persist through OAuth flow
-      // This ensures the referral code survives browser switching (e.g. LINE IAB -> Safari)
-      // We rely on URL parameters because Cookies/LocalStorage are isolated between IAB and System Browser
-      const searchParams = new URLSearchParams(window.location.search);
-      const ref = searchParams.get('ref');
-      const callbackURL = ref ? `/?ref=${ref}` : '/';
-
-      await signIn.social({
-        provider: 'line',
-        callbackURL, // Redirect back to home after login with referral code if present
-      });
+      const nextPath = buildLiffGatewayPath(window.location.pathname, window.location.search);
+      router.push(nextPath);
     } catch (error) {
       console.error('Login failed:', error);
       setIsLoggingIn(false);
