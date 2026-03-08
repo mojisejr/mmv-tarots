@@ -6,9 +6,21 @@ export const ReferralUtils = {
    * @param path - Optional specific path (e.g. '/share/123'), defaults to home '/'
    */
   generateLink: (origin: string, referralCode?: string, path: string = '/') => {
-    if (!referralCode) return `${origin}${path}`;
-    const separator = path.includes('?') ? '&' : '?';
-    return `${origin}${path}${separator}ref=${referralCode}`;
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+    const parsedPath = new URL(normalizedPath, 'https://local.mimi');
+    if (referralCode) {
+      parsedPath.searchParams.set('ref', referralCode);
+    }
+
+    const pathWithQuery = `${parsedPath.pathname}${parsedPath.search}`;
+
+    if (liffId) {
+      return `https://liff.line.me/${liffId}${pathWithQuery}`;
+    }
+
+    return `${origin}${pathWithQuery}`;
   },
 
   /**

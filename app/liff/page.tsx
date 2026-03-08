@@ -16,6 +16,19 @@ export function resolveLiffStateTarget(rawState: string | null): string {
   return decodedState;
 }
 
+export function buildGatewayTarget(rawState: string | null, referralCode: string | null): string {
+  const target = resolveLiffStateTarget(rawState);
+
+  if (!referralCode || target.includes('ref=')) {
+    return target;
+  }
+
+  const parsedTarget = new URL(target, 'https://local.mimi');
+  parsedTarget.searchParams.set('ref', referralCode);
+
+  return `${parsedTarget.pathname}${parsedTarget.search}`;
+}
+
 function LiffGatewayLoading() {
   return (
     <main className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-black to-neutral-900 text-white px-6">
@@ -34,7 +47,7 @@ function LiffGatewayClient() {
 
   useEffect(() => {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    const target = resolveLiffStateTarget(searchParams.get('liff.state'));
+    const target = buildGatewayTarget(searchParams.get('liff.state'), searchParams.get('ref'));
 
     if (!liffId) {
       router.replace(target);
