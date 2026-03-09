@@ -1,17 +1,20 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSession } from '@/lib/client/auth-client';
 
 type LiffModule = typeof import('@line/liff');
 
 export function LiffProvider({ children }: { children: ReactNode }) {
   const { data: session, isPending } = useSession();
+  const pathname = usePathname();
 
   useEffect(() => {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
 
-    if (!liffId || isPending || session?.user) {
+    // /liff uses dedicated gateway bootstrap flow; skip global bootstrap to avoid race.
+    if (!liffId || isPending || session?.user || pathname === '/liff') {
       return;
     }
 
@@ -79,7 +82,7 @@ export function LiffProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isPending, session?.user]);
+  }, [isPending, session?.user, pathname]);
 
   return <>{children}</>;
 }
