@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomBytes } from 'crypto';
 import { z } from 'zod';
-import { serializeSignedCookie } from 'better-call';
-import { db } from '@/lib/server/db';
+import { createInternalContext } from 'better-call';
+import { getCookies } from 'better-auth/cookies';
+import { auth } from '@/lib/server/auth';
 
 const requestSchema = z.object({
   accessToken: z.string().min(1),
@@ -19,8 +19,6 @@ const lineProfileSchema = z.object({
   displayName: z.string().optional(),
   pictureUrl: z.string().optional(),
 });
-
-const SESSION_COOKIE_NAME = 'mmv_auth.session_token';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,100 +78,69 @@ export async function POST(request: NextRequest) {
     const displayName = profile.data.displayName || 'LINE User';
     const avatar = profile.data.pictureUrl;
 
-    let user = await db.user.findFirst({
-      where: {
-        OR: [
-          {
-            accounts: {
-              some: {
-                providerId: 'line',
-                accountId: lineUserId,
-              },
-            },
-          },
-          { email: fallbackEmail },
-        ],
-      },
-    });
+    const authContext = await auth.$context;
+    const existingAccount = await authContext.internalAdapter.findAccountByProviderId(lineUserId, 'line');
+
+    let user = existingAccount
+      ? await authContext.internalAdapter.findUserById(existingAccount.userId)
+      : null;
 
     if (!user) {
-      user = await db.user.create({
-        data: {
+      const foundByEmail = await authContext.internalAdapter.findUserByEmail(fallbackEmail, {
+        includeAccounts: true,
+      });
+      user = foundByEmail?.user ?? null;
+    }
+
+    if (!user) {
+      const created = await authContext.internalAdapter.createOAuthUser(
+        {
           email: fallbackEmail,
           emailVerified: true,
           name: displayName,
           image: avatar,
         },
-      });
-    }
-
-    const linkedAccount = await db.account.findFirst({
-      where: {
-        providerId: 'line',
-        accountId: lineUserId,
-      },
-    });
-
-    if (!linkedAccount) {
-      await db.account.create({
-        data: {
-          userId: user.id,
+        {
           providerId: 'line',
           accountId: lineUserId,
           accessToken,
-        },
+        }
+      );
+      user = created.user;
+    } else if (!existingAccount) {
+      await authContext.internalAdapter.linkAccount({
+        userId: user.id,
+        providerId: 'line',
+        accountId: lineUserId,
+        accessToken,
       });
-    } else if (linkedAccount.userId !== user.id) {
+    } else if (existingAccount.userId !== user.id) {
       return NextResponse.json({ ok: false, error: 'Conflicting LINE account link' }, { status: 409 });
     }
 
-    const sessionToken = randomBytes(32).toString('base64url');
-    const sessionMaxAgeSeconds = 60 * 60 * 24 * 7;
-    const expiresAt = new Date(Date.now() + sessionMaxAgeSeconds * 1000);
-
-    await db.session.create({
-      data: {
-        userId: user.id,
-        token: sessionToken,
-        expiresAt,
-        userAgent: request.headers.get('user-agent') || undefined,
-        ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || undefined,
-      },
-    });
-
-    const authSecret = process.env.BETTER_AUTH_SECRET;
-    if (!authSecret) {
-      return NextResponse.json({ ok: false, error: 'Missing BETTER_AUTH_SECRET' }, { status: 500 });
+    const session = await authContext.internalAdapter.createSession(user.id);
+    if (!session?.token) {
+      return NextResponse.json({ ok: false, error: 'Failed to create auth session' }, { status: 500 });
     }
-
-    const isProduction = process.env.NODE_ENV === 'production';
-    const cookieOptions = {
-      httpOnly: true,
-      path: '/',
-      sameSite: 'lax' as const,
-      secure: isProduction,
-      maxAge: sessionMaxAgeSeconds,
-    };
 
     const response = NextResponse.json({ ok: true });
-    const signedCookie = await serializeSignedCookie(
-      SESSION_COOKIE_NAME,
-      sessionToken,
-      authSecret,
-      cookieOptions
+    const authCookies = getCookies(auth.options);
+    const endpointContext = await createInternalContext(
+      { request, headers: request.headers },
+      { options: { method: 'POST' } }
     );
 
-    response.headers.append('set-cookie', signedCookie);
+    const signedSessionCookie = await endpointContext.setSignedCookie(
+      authCookies.sessionToken.name,
+      session.token,
+      authContext.secret,
+      {
+        ...authCookies.sessionToken.options,
+        maxAge: authContext.sessionConfig.expiresIn,
+      }
+    );
 
-    if (isProduction) {
-      const secureSignedCookie = await serializeSignedCookie(
-        `__Secure-${SESSION_COOKIE_NAME}`,
-        sessionToken,
-        authSecret,
-        { ...cookieOptions, secure: true }
-      );
-      response.headers.append('set-cookie', secureSignedCookie);
-    }
+    response.headers.append('set-cookie', signedSessionCookie);
 
     return response;
   } catch (error) {
