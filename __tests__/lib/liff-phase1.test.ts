@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildLiffGatewayPath } from '@/lib/client/providers/navigation-provider';
-import { buildGatewayTarget, resolveLiffStateTarget } from '@/app/liff/page';
+import { buildGatewayTarget, resolveDurableGatewayTarget, resolveLiffStateTarget } from '@/app/liff/page';
 
 describe('Phase 5.1 LIFF gateway helpers', () => {
   it('builds /liff url with encoded mmv_next from pathname + query', () => {
@@ -29,5 +29,13 @@ describe('Phase 5.1 LIFF gateway helpers', () => {
   it('keeps target when referral already exists and appends when missing', () => {
     expect(buildGatewayTarget('%2Fhistory%3Fref%3DOLD', 'NEW')).toBe('/history?ref=OLD');
     expect(buildGatewayTarget('%2Fhistory', 'NEW')).toBe('/history?ref=NEW');
+  });
+
+  it('recovers from persisted target when mmv_next is missing', () => {
+    expect(resolveDurableGatewayTarget(null, null, '/profile?tab=saved')).toBe('/profile?tab=saved');
+  });
+
+  it('uses persisted target when mmv_next is malformed', () => {
+    expect(resolveDurableGatewayTarget('https%3A%2F%2Fevil.com', 'PROMO1', '/history?from=liff')).toBe('/history?from=liff&ref=PROMO1');
   });
 });

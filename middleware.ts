@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getSessionCookie } from 'better-auth/cookies';
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -28,8 +29,9 @@ export function middleware(request: NextRequest) {
   const isLiffRoute = pathname.startsWith('/liff');
 
   if (isProtectedRoute && !isLiffRoute) {
-    const sessionToken = request.cookies.get('mmv_auth.session_token') || 
-                         request.cookies.get('__Secure-mmv_auth.session_token');
+    const sessionToken = getSessionCookie(request.headers, {
+      cookiePrefix: 'mmv_auth',
+    });
     
     if (!sessionToken) {
       // Missing session, redirect to /liff entry with current path as state
