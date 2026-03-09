@@ -4,6 +4,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from 'react
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signOut } from '@/lib/client/auth-client';
 import { fetchBalance } from '@/lib/client/api';
+import { LIFF_TARGET_STORAGE_KEY } from '@/app/liff/page';
 
 type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
 
@@ -160,6 +161,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const handleLoginClick = async () => {
     try {
       setIsLoggingIn(true);
+      const rawTarget = `${window.location.pathname}${window.location.search}`;
+      if (rawTarget.startsWith('/')) {
+        window.localStorage.setItem(LIFF_TARGET_STORAGE_KEY, rawTarget);
+      }
       const nextPath = buildLiffGatewayPath(window.location.pathname, window.location.search);
       router.push(nextPath);
     } catch (error) {

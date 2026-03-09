@@ -4,6 +4,7 @@ import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type LiffModule = typeof import('@line/liff');
+export const LIFF_TARGET_STORAGE_KEY = 'mmv_target';
 
 export function resolveLiffStateTarget(rawState: string | null): string {
   if (!rawState) return '/';
@@ -35,6 +36,32 @@ export function buildGatewayTarget(rawState: string | null, referralCode: string
   return `${parsedTarget.pathname}${parsedTarget.search}`;
 }
 
+export function resolveDurableGatewayTarget(
+  rawState: string | null,
+  referralCode: string | null,
+  persistedTarget: string | null
+): string {
+  if (rawState) {
+    const resolvedRaw = resolveLiffStateTarget(rawState);
+    let isExplicitRootState = false;
+    try {
+      isExplicitRootState = decodeURIComponent(rawState) === '/';
+    } catch {
+      isExplicitRootState = false;
+    }
+
+    if (resolvedRaw !== '/' || isExplicitRootState) {
+      return buildGatewayTarget(rawState, referralCode);
+    }
+  }
+
+  if (persistedTarget) {
+    return buildGatewayTarget(persistedTarget, referralCode);
+  }
+
+  return buildGatewayTarget(rawState, referralCode);
+}
+
 function LiffGatewayLoading() {
   return (
     <main className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-black to-neutral-900 text-white px-6">
@@ -53,7 +80,14 @@ function LiffGatewayClient() {
 
   useEffect(() => {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    const target = buildGatewayTarget(searchParams.get('mmv_next'), searchParams.get('ref'));
+    const rawState = searchParams.get('mmv_next');
+    const referralCode = searchParams.get('ref');
+    const persistedTarget = window.localStorage.getItem(LIFF_TARGET_STORAGE_KEY);
+    const target = resolveDurableGatewayTarget(rawState, referralCode, persistedTarget);
+
+    if (target !== '/') {
+      window.localStorage.setItem(LIFF_TARGET_STORAGE_KEY, target);
+    }
 
     if (!liffId) {
       router.replace(target);
@@ -80,6 +114,7 @@ function LiffGatewayClient() {
 
         const tokenSyncKey = `mmv_liff_verified_${accessToken.slice(0, 16)}`;
         if (window.sessionStorage.getItem(tokenSyncKey) === '1') {
+          window.localStorage.removeItem(LIFF_TARGET_STORAGE_KEY);
           router.replace(target);
           return;
         }
@@ -100,6 +135,7 @@ function LiffGatewayClient() {
         const data = await response.json();
         if (!cancelled && data?.ok) {
           window.sessionStorage.setItem(tokenSyncKey, '1');
+          window.localStorage.removeItem(LIFF_TARGET_STORAGE_KEY);
           router.replace(target);
           return;
         }
