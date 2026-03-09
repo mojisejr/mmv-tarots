@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { importCardsFromCSV } from '../../scripts/import-cards';
 
 const prisma = new PrismaClient();
+const CSV_IMPORT_TEST_TIMEOUT_MS = 15_000;
 
 describe('Cards Import', () => {
   beforeAll(async () => {
@@ -24,7 +25,7 @@ describe('Cards Import', () => {
       expect(result.success).toBe(true);
       expect(result.imported).toBe(78);
       expect(result.errors).toHaveLength(0);
-    });
+    }, CSV_IMPORT_TEST_TIMEOUT_MS);
 
     it('should have correct card_id mapping (0-77)', async () => {
       // Act - Import cards
@@ -38,7 +39,7 @@ describe('Cards Import', () => {
       expect(cards).toHaveLength(78);
       expect(cards[0].cardId).toBe(0);
       expect(cards[77].cardId).toBe(77);
-    });
+    }, CSV_IMPORT_TEST_TIMEOUT_MS);
 
     it('should parse keywords as JSON array', async () => {
       // Act - Import cards

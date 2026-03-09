@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { NextRequest } from 'next/server';
+import { getCookies } from 'better-auth/cookies';
 import { middleware } from '../middleware';
+import { auth } from '@/lib/server/auth';
+
+const authCookies = getCookies(auth.options);
+const sessionCookieName = authCookies.sessionToken.name;
+const secureSessionCookieName = `__Secure-${sessionCookieName}`;
 
 // Helper to create a request
 function createRequest(url: string, cookies: Record<string, string> = {}) {
@@ -41,7 +47,7 @@ describe('Middleware Auth Enforcer', () => {
 
   it('should allow access to protected routes if session token exists', () => {
     const request = createRequest('/profile', {
-      'mmv_auth.session_token': 'valid-token'
+      [sessionCookieName]: 'valid-token'
     });
     const response = middleware(request);
     
@@ -52,7 +58,7 @@ describe('Middleware Auth Enforcer', () => {
 
   it('should allow access to protected routes if secure session token exists', () => {
     const request = createRequest('/history', {
-      '__Secure-mmv_auth.session_token': 'valid-secure-token'
+      [secureSessionCookieName]: 'valid-secure-token'
     });
     const response = middleware(request);
     
