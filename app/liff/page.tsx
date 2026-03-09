@@ -67,7 +67,7 @@ function LiffGatewayClient() {
         const liff: LiffModule['default'] = (await import('@line/liff')).default;
         await liff.init({ liffId });
 
-        if (liff.isInClient() && !liff.isLoggedIn()) {
+        if (!liff.isLoggedIn()) {
           liff.login({ redirectUri: window.location.href });
           return;
         }

@@ -23,10 +23,9 @@ export function LiffProvider({ children }: { children: ReactNode }) {
 
         await liff.init({ liffId });
 
-        const isInClient = liff.isInClient();
         liff.getOS();
 
-        if (isInClient && !liff.isLoggedIn()) {
+        if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
