@@ -4,7 +4,6 @@ import { LiquidBackground, MainNavigation, BottomNav, GlobalLoading } from "@/co
 import { WelcomeRitual } from "@/components/features/onboarding";
 import { NavigationProvider } from "@/lib/client/providers/navigation-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
-import { LiffProvider } from "@/components/providers/liff-provider";
 import { getSiteUrl, resolveAbsoluteUrl } from "@/lib/shared/seo";
 
 // Use fallback system fonts for now
@@ -68,17 +67,15 @@ export default function RootLayout({
       >
         <LiquidBackground />
         <ToastProvider />
-        <LiffProvider>
-          <NavigationProvider>
-            <GlobalLoading />
-            <WelcomeRitual />
-            <MainNavigation />
-            <main className="flex-1 pt-16 md:pt-20 relative z-10 pb-[env(safe-area-inset-bottom)]">
-              {children}
-            </main>
-            <BottomNav />
-          </NavigationProvider>
-        </LiffProvider>
+        <NavigationProvider>
+          <GlobalLoading />
+          <WelcomeRitual />
+          <MainNavigation />
+          <main className="flex-1 pt-16 md:pt-20 relative z-10 pb-[env(safe-area-inset-bottom)]">
+            {children}
+          </main>
+          <BottomNav />
+        </NavigationProvider>
       </body>
     </html>
   );
