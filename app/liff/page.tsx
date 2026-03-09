@@ -53,7 +53,7 @@ function LiffGatewayClient() {
 
   useEffect(() => {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    const target = buildGatewayTarget(searchParams.get('liff.state'), searchParams.get('ref'));
+    const target = buildGatewayTarget(searchParams.get('mmv_next'), searchParams.get('ref'));
 
     if (!liffId) {
       router.replace(target);
@@ -67,7 +67,7 @@ function LiffGatewayClient() {
         const liff: LiffModule['default'] = (await import('@line/liff')).default;
         await liff.init({ liffId });
 
-        if (liff.isInClient() && !liff.isLoggedIn()) {
+        if (!liff.isLoggedIn()) {
           liff.login({ redirectUri: window.location.href });
           return;
         }

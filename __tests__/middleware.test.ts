@@ -35,7 +35,7 @@ describe('Middleware Auth Enforcer', () => {
       expect(response?.status).toBe(307); // NextResponse.redirect uses 307 by default
       const location = response?.headers.get('location');
       expect(location).toContain('/liff');
-      expect(location).toContain(`liff.state=${encodeURIComponent(path)}`);
+      expect(location).toContain(`mmv_next=${encodeURIComponent(path)}`);
     });
   });
 
@@ -80,18 +80,18 @@ describe('Middleware Auth Enforcer', () => {
     expect(refCookie?.value).toBe('FRIEND123');
   });
 
-  it('should preserve original query in liff.state when redirecting protected route', () => {
+  it('should preserve original query in mmv_next when redirecting protected route', () => {
     const request = createRequest('/history?tab=all&from=line');
     const response = middleware(request);
 
     expect(response?.status).toBe(307);
     const location = response?.headers.get('location');
     expect(location).toContain('/liff');
-    expect(location).toContain('liff.state=%2Fhistory%3Ftab%3Dall%26from%3Dline');
+    expect(location).toContain('mmv_next=%2Fhistory%3Ftab%3Dall%26from%3Dline');
   });
 
   it('should allow /liff route without redirect loop even when session is missing', () => {
-    const request = createRequest('/liff?liff.state=%2Fprofile');
+    const request = createRequest('/liff?mmv_next=%2Fprofile');
     const response = middleware(request);
 
     expect(response?.status).not.toBe(307);

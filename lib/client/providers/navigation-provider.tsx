@@ -41,7 +41,7 @@ export function buildLiffGatewayPath(currentPathname: string, currentSearch: str
   const search = currentSearch || '';
   const state = `${pathname}${search}`;
   const params = new URLSearchParams();
-  params.set('liff.state', state);
+  params.set('mmv_next', state);
   return `/liff?${params.toString()}`;
 }
 

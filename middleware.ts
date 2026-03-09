@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
     if (!sessionToken) {
       // Missing session, redirect to /liff entry with current path as state
       const liffUrl = new URL('/liff', request.url);
-      liffUrl.searchParams.set('liff.state', pathname + (request.nextUrl.search || ''));
+      liffUrl.searchParams.set('mmv_next', pathname + (request.nextUrl.search || ''));
       return NextResponse.redirect(liffUrl);
     }
   }
