@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLiffGatewayPath } from '@/lib/client/providers/navigation-provider';
+import { buildLiffGatewayPath } from '@/lib/client/auth/session-shell-contract';
 import { buildGatewayTarget, resolveDurableGatewayTarget, resolveLiffStateTarget } from '@/app/liff/page';
 
 describe('Phase 5.1 LIFF gateway helpers', () => {
