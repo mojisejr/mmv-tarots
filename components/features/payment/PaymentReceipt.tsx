@@ -5,27 +5,30 @@ import { useRouter } from 'next/navigation';
 import { GlassButton } from '@/components';
 
 interface PaymentReceiptProps {
-  chargeId:    string;
+  transactionRef: string;
   packageName: string;
-  stars:       number;
-  amount:      number;
-  method:      'PROMPTPAY' | 'CARD';
-  paidAt:      Date;
-  onClose:     () => void;
+  stars: number;
+  amount: number;
+  paidAt: Date;
+  onClose: () => void;
 }
 
 export function PaymentReceipt({
-  chargeId, packageName, stars, amount, method, paidAt, onClose,
+  transactionRef,
+  packageName,
+  stars,
+  amount,
+  paidAt,
+  onClose,
 }: PaymentReceiptProps) {
   const router = useRouter();
-  const methodLabel = method === 'PROMPTPAY' ? 'PromptPay' : 'บัตรเครดิต/เดบิต';
 
   const rows: Array<{ label: string; value: string }> = [
-    { label: 'Transaction ID', value: chargeId },
+    { label: 'Transaction Ref', value: transactionRef },
     { label: 'แพ็กเกจ',        value: packageName },
     { label: 'จำนวนดาว',       value: `${stars} Stars` },
     { label: 'ยอดชำระ',        value: `฿${amount.toFixed(0)}` },
-    { label: 'ช่องทาง',        value: methodLabel },
+    { label: 'ช่องทาง',        value: 'PromptPay QR + SlipOK' },
     { label: 'วันที่',          value: paidAt.toLocaleString('th-TH') },
     { label: 'สถานะ',          value: 'Delivered ✓' },
   ];

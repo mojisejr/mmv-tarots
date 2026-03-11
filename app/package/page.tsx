@@ -28,6 +28,17 @@ interface StarPackage {
   prices: PackagePrice[];
 }
 
+const ACTIVE_ORDER_KEY = 'mmv_active_payment_order';
+
+interface ActiveOrderSnapshot {
+  orderId: string;
+  userId: string;
+  priceId: string;
+  packageName: string;
+  stars: number;
+  amount: number;
+}
+
 function PackagePageContent() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -39,6 +50,7 @@ function PackagePageContent() {
   // ── Payment Modal state ────────────────────────────────────────────────
   const [modalOpen,   setModalOpen]   = useState(false);
   const [modalPrice,  setModalPrice]  = useState<{ priceId: string; name: string; stars: number; amount: number } | null>(null);
+  const [resumeOrderId, setResumeOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentPage('package');
@@ -74,6 +86,57 @@ function PackagePageContent() {
     }
   }, [session]);
 
+  useEffect(() => {
+    if (!session?.user?.id) {
+      return;
+    }
+
+    const restoreOrder = async () => {
+      try {
+        const raw = localStorage.getItem(ACTIVE_ORDER_KEY);
+        if (!raw) {
+          return;
+        }
+
+        const snapshot = JSON.parse(raw) as ActiveOrderSnapshot;
+        if (snapshot.userId !== session.user.id) {
+          localStorage.removeItem(ACTIVE_ORDER_KEY);
+          return;
+        }
+
+        const res = await fetch(`/api/payment/orders/${snapshot.orderId}/status`, {
+          cache: 'no-store',
+        });
+        const payload = await res.json();
+        if (!res.ok || !payload?.order) {
+          localStorage.removeItem(ACTIVE_ORDER_KEY);
+          return;
+        }
+
+        const status = payload.order.status as string;
+        const terminalStatuses = ['CREDITED', 'EXPIRED', 'REJECTED'];
+        if (terminalStatuses.includes(status)) {
+          localStorage.removeItem(ACTIVE_ORDER_KEY);
+          return;
+        }
+
+        setModalPrice({
+          priceId: snapshot.priceId,
+          name: snapshot.packageName,
+          stars: snapshot.stars,
+          amount: snapshot.amount,
+        });
+        setResumeOrderId(snapshot.orderId);
+        setModalOpen(true);
+        toast.info('กู้คืนคำสั่งชำระเงินล่าสุดแล้ว');
+      } catch {
+        localStorage.removeItem(ACTIVE_ORDER_KEY);
+      }
+    };
+
+    void restoreOrder();
+  }, [session?.user?.id]);
+
   const handleBuy = (priceId: string, pkgName: string, pkgStars: number, pkgAmount: number) => {
     if (!consentAccepted) {
       toast.error('กรุณายอมรับเงื่อนไขก่อนชำระเงิน');
@@ -83,6 +146,7 @@ function PackagePageContent() {
       toast.error('กรุณา Login ก่อนซื้อแพ็กเกจ');
       return;
     }
+    setResumeOrderId(null);
     setModalPrice({ priceId, name: pkgName, stars: pkgStars, amount: pkgAmount });
     setModalOpen(true);
   };
@@ -292,12 +356,13 @@ function PackagePageContent() {
     {modalPrice && session?.user && (
       <PaymentModal
         isOpen={modalOpen}
-        onClose={() => { setModalOpen(false); setModalPrice(null); }}
+        onClose={() => { setModalOpen(false); setModalPrice(null); setResumeOrderId(null); }}
         priceId={modalPrice.priceId}
         userId={session.user.id}
         packageName={modalPrice.name}
         stars={modalPrice.stars}
         amount={modalPrice.amount}
+        resumeOrderId={resumeOrderId}
       />
     )}
     </>
