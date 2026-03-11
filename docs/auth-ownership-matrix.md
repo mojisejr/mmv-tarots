@@ -17,8 +17,13 @@ Plan Reference: `2026-03-11_10-43_mmv-auth-identity-boundary-refactor-plan.md`
 
 - `line-identity`
   - Owner: LINE account-to-user resolution and link decisions
-  - Files: `app/api/auth/liff-verify/route.ts` (temporary owner until service extraction in Phase 3)
+  - Files: `lib/server/services/line-identity-service.ts`
   - Responsibility: verify LINE token/profile, resolve or link account, then request session issuance
+
+- `auth-session`
+  - Owner: Better-Auth session issuance wrapper for non-standard entry points
+  - Files: `lib/server/services/auth-session-service.ts`
+  - Responsibility: issue Better-Auth session and signed cookie response for resolved user identity
 
 - `session-shell`
   - Owner: client navigation/session UX contract
@@ -31,9 +36,9 @@ Plan Reference: `2026-03-11_10-43_mmv-auth-identity-boundary-refactor-plan.md`
   - Owns Better-Auth standard endpoint handling (`signin`, `callback`, `session`, `signout`)
 
 - `app/api/auth/liff-verify/route.ts`
-  - Owns LINE verification and identity resolution
+  - Owns LIFF verify endpoint orchestration only
   - Must not become a second generic auth router
-  - Session issuance is delegated to Better-Auth internals after identity resolution
+  - Session issuance is delegated to `auth-session` after `line-identity` resolution
 
 ## Naming Decisions (Phase 1)
 
