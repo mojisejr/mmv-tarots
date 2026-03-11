@@ -11,12 +11,10 @@ const PACKAGES = [
     prices: [
       {
         amount: 99,
-        stripePriceId: 'price_starter_reg_dummy',
         isPromo: false,
       },
       {
         amount: 49,
-        stripePriceId: 'price_starter_promo_dummy',
         isPromo: true,
         promoLabel: 'First Time Only',
       },
@@ -29,12 +27,10 @@ const PACKAGES = [
     prices: [
       {
         amount: 249,
-        stripePriceId: 'price_standard_reg_dummy',
         isPromo: false,
       },
       {
         amount: 129,
-        stripePriceId: 'price_standard_promo_dummy',
         isPromo: true,
         promoLabel: 'Best Value',
       },
@@ -47,12 +43,10 @@ const PACKAGES = [
     prices: [
       {
         amount: 399,
-        stripePriceId: 'price_premium_reg_dummy',
         isPromo: false,
       },
       {
         amount: 199,
-        stripePriceId: 'price_premium_promo_dummy',
         isPromo: true,
         promoLabel: 'Pro Choice',
       },
@@ -72,7 +66,6 @@ async function main() {
         prices: {
           create: pkg.prices.map((p) => ({
             amount: p.amount,
-            stripePriceId: p.stripePriceId,
             isPromo: p.isPromo,
             promoLabel: p.promoLabel,
             currency: 'thb',

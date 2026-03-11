@@ -1,7 +1,24 @@
 import { db } from '@/lib/server/db';
-import { TransactionType, TransactionStatus, PaymentMethod, Prisma } from '@prisma/client';
+import { TransactionType, TransactionStatus, PaymentChannel, Prisma } from '@prisma/client';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { referralService } from '@/lib/server/services/referral-service';
+
+function resolvePaymentChannel(metadata?: Record<string, unknown>): PaymentChannel | null {
+  const channel = metadata?.channel;
+  if (channel === 'PROMPTPAY_QR' || channel === 'LINE_ADMIN_MANUAL' || channel === 'SYSTEM') {
+    return channel;
+  }
+
+  const legacyPaymentMethod = metadata?.paymentMethod;
+  if (legacyPaymentMethod === 'PROMPTPAY') {
+    return PaymentChannel.PROMPTPAY_QR;
+  }
+  if (legacyPaymentMethod === 'CARD' || legacyPaymentMethod === 'STRIPE' || legacyPaymentMethod === 'MANUAL') {
+    return PaymentChannel.SYSTEM;
+  }
+
+  return null;
+}
 
 export const CreditService = {
   /**
@@ -94,9 +111,13 @@ export const CreditService = {
           balanceAfter: newBalance,
           type: TransactionType.TOPUP,
           status: TransactionStatus.SUCCESS,
-          stripeSessionId: metadata?.stripeSessionId ?? null,
-          omiseChargeId:  metadata?.omiseChargeId  ?? null,
-          paymentMethod:  (metadata?.paymentMethod as PaymentMethod) ?? null,
+          paymentOrderId: metadata?.paymentOrderId ?? null,
+          externalRef:
+            metadata?.externalRef ??
+            metadata?.omiseChargeId ??
+            metadata?.stripeSessionId ??
+            null,
+          channel: resolvePaymentChannel(metadata),
           metadata: metadata ?? {},
         },
       });

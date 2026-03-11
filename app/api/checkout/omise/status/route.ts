@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     // ── Phase 3.3: Transaction Lock (Double-spend prevention) ─────────────────
     // Check if we already credited this charge (from Webhook or previous poll)
     const existing = await db.creditTransaction.findUnique({
-      where: { omiseChargeId: chargeId },
+      where: { externalRef: chargeId },
     });
 
     paymentDebug('omise.status', 'credit.lookup', {
@@ -77,12 +77,14 @@ export async function GET(req: NextRequest) {
         });
         try {
           await CreditService.addStars(userId, parseInt(stars, 10), {
-            omiseChargeId:  chargeId,
-            omiseSourceId:  charge.source?.id ?? null,
-            paymentMethod:  paymentMethod ?? 'PROMPTPAY',
-            packageId:      priceId ?? null,
-            amount:         charge.amount / 100,
-            creditedVia:    'status-poll',
+            externalRef:  chargeId,
+            channel:      paymentMethod === 'PROMPTPAY' ? 'PROMPTPAY_QR' : 'SYSTEM',
+            omiseChargeId: chargeId,
+            omiseSourceId: charge.source?.id ?? null,
+            paymentMethod: paymentMethod ?? 'PROMPTPAY',
+            packageId:     priceId ?? null,
+            amount:        charge.amount / 100,
+            creditedVia:   'status-poll',
           });
           paymentDebug('omise.status', 'credit.apply.success', {
             chargeId,

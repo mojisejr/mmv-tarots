@@ -42,6 +42,7 @@ model User {
   referrals     User[]              @relation("UserReferrals")
   referralHistoryAsReferrer ReferralHistory[] @relation("ReferrerHistory")
   referralHistoryAsReferee  ReferralHistory[] @relation("RefereeHistory")
+  paymentOrders PaymentOrder[]
 
   @@map("user")
 }
@@ -138,14 +139,16 @@ model CreditTransaction {
   balanceAfter    Int
   type            TransactionType
   status          TransactionStatus @default(PENDING)
+  paymentOrderId  String?           @unique
+  externalRef     String?           @unique
+  channel         PaymentChannel?
   metadata        Json?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-  stripeSessionId String?           @unique
-  omiseChargeId   String?           @unique
-  paymentMethod   PaymentMethod?
+  paymentOrder    PaymentOrder?     @relation(fields: [paymentOrderId], references: [id], onDelete: SetNull)
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([channel, createdAt])
   @@map("credit_transactions")
 }
 
@@ -165,8 +168,6 @@ model StarPackage {
 model PackagePrice {
   id            String      @id @default(cuid())
   packageId     String
-  stripePriceId String?     @unique
-  omisePriceId  String?     @unique
   amount        Float
   currency      String      @default("thb")
   active        Boolean     @default(true)
@@ -175,8 +176,54 @@ model PackagePrice {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   package       StarPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  paymentOrders PaymentOrder[]
 
   @@map("package_prices")
+}
+
+model PaymentOrder {
+  id                       String                @id @default(cuid())
+  userId                   String
+  packagePriceId           String
+  amountTHB                Decimal               @db.Decimal(10, 2)
+  amountSatang             Int
+  currency                 String                @default("THB")
+  status                   PaymentOrderStatus    @default(PENDING_PAYMENT)
+  referenceCode            String                @unique
+  slipImageUrl             String?
+  verificationProvider     VerificationProvider?
+  verificationErrorCode    String?
+  verificationErrorMessage String?
+  metadata                 Json?
+  expiresAt                DateTime
+  verifiedAt               DateTime?
+  creditedAt               DateTime?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  creditTransaction        CreditTransaction?
+  packagePrice             PackagePrice          @relation(fields: [packagePriceId], references: [id], onDelete: Restrict)
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verificationLogs         PaymentVerificationLog[]
+
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@map("payment_orders")
+}
+
+model PaymentVerificationLog {
+  id                String               @id @default(cuid())
+  paymentOrderId    String
+  provider          VerificationProvider
+  status            String
+  errorCode         String?
+  errorMessage      String?
+  requestPayload    Json?
+  responsePayload   Json?
+  createdAt         DateTime             @default(now())
+  paymentOrder      PaymentOrder         @relation(fields: [paymentOrderId], references: [id], onDelete: Cascade)
+
+  @@index([paymentOrderId, createdAt])
+  @@map("payment_verification_logs")
 }
 
 enum TransactionType {
@@ -187,11 +234,25 @@ enum TransactionType {
   REFERRAL
 }
 
-enum PaymentMethod {
-  CARD
-  PROMPTPAY
-  STRIPE
-  MANUAL
+enum PaymentChannel {
+  PROMPTPAY_QR
+  LINE_ADMIN_MANUAL
+  SYSTEM
+}
+
+enum VerificationProvider {
+  SLIP_OK
+  MANUAL_REVIEW
+}
+
+enum PaymentOrderStatus {
+  PENDING_PAYMENT
+  SLIP_UPLOADED
+  VERIFYING
+  VERIFIED
+  REJECTED
+  EXPIRED
+  CREDITED
 }
 
 enum TransactionStatus {

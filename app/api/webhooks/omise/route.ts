@@ -4,7 +4,7 @@
  * Phase 3 / Phase 5 bridge: Omise Webhook Handler
  *
  * Handles event: charge.complete
- *   → Idempotency check on omiseChargeId
+ *   → Idempotency check on externalRef (legacy Omise charge id)
  *   → Credits stars to user
  *   → Logs paymentMethod + chargeId for Dispute Defense
  *
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   try {
     // ── Phase 3.3: Transaction Lock (Idempotency) ──────────────────────────────
     const existing = await db.creditTransaction.findUnique({
-      where: { omiseChargeId: chargeId },
+      where: { externalRef: chargeId },
     });
 
     if (existing) {
@@ -107,6 +107,8 @@ export async function POST(req: NextRequest) {
 
     // ── Credit Stars ────────────────────────────────────────────────────────────
     await CreditService.addStars(userId, parseInt(stars, 10), {
+      externalRef: chargeId,
+      channel: paymentMethod === 'PROMPTPAY' ? 'PROMPTPAY_QR' : 'SYSTEM',
       omiseChargeId: chargeId,
       omiseSourceId: charge.source?.id ?? null,
       paymentMethod: paymentMethod ?? 'PROMPTPAY',

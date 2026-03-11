@@ -17,7 +17,6 @@ interface SeedConfig {
     description: string;
     stars: number;
     prices: Array<{
-      stripePriceId: string;
       amount: number;
       isPromo: boolean;
       promoLabel: string | null;
@@ -188,7 +187,6 @@ async function main() {
         stars: pkg.stars,
         prices: {
           create: pkg.prices.map((p) => ({
-             stripePriceId: p.stripePriceId,
              amount: p.amount,
              isPromo: p.isPromo,
              promoLabel: p.promoLabel,

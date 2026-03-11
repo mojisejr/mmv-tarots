@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     try {
       // ตรวจสอบว่าประมวลผลแล้วหรือยัง (Idempotency Check)
       const existing = await db.creditTransaction.findUnique({
-        where: { stripeSessionId: session.id },
+        where: { externalRef: session.id },
       });
 
       if (existing) {
@@ -75,6 +75,8 @@ export async function POST(req: NextRequest) {
       // เพิ่มดาวให้ User โดยใช้ CreditService
       console.log(`🚀 Attempting to add ${stars} stars to user ${userId}...`);
       await CreditService.addStars(userId, parseInt(stars, 10), {
+        externalRef: session.id,
+        channel: 'SYSTEM',
         stripeSessionId: session.id,
         packageName: session.metadata?.packageId,
         amount: session.amount_total ? session.amount_total / 100 : 0,

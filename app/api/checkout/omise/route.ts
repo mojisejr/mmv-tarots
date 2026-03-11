@@ -251,6 +251,8 @@ export async function POST(req: NextRequest) {
 
         try {
           await CreditService.addStars(userId, price.package.stars, {
+            externalRef: charge.id,
+            channel: 'SYSTEM',
             omiseChargeId: charge.id,
             paymentMethod: 'CARD',
             packageId: price.id,
