@@ -18,7 +18,7 @@ interface NavigationContextType {
   isLoggedIn: boolean;
   isPending: boolean;
   isInitialLoading: boolean;
-  isLoggingIn: boolean; // Added
+  isLoggingIn: boolean;
   stars: number | null;
   lastPredictionAt: string | null;
   concentration: Concentration | null;
@@ -46,8 +46,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [stars, setStars] = useState<number | null>(null);
   const [lastPredictionAt, setLastPredictionAt] = useState<string | null>(null);
   const [concentration, setConcentration] = useState<Concentration | null>(null);
-  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [balanceResolved, setBalanceResolved] = useState(false);
 
   // Sync currentPage with pathname
   useEffect(() => {
@@ -69,25 +69,20 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const isLoggedIn = !!session?.user;
   const user = session?.user || null;
 
-  // Fetch balance when logged in
   const refreshBalance = async () => {
-    if (isLoggedIn) {
-      // Don't set isFetchingBalance during polling to avoid UI flickering
-      // Only set it if explicitly triggered (future implementation might distinguish)
-      // For now we keep it simple or maybe we don't need loading state for background refresh
-      // Let's keep isFetchingBalance for manual triggers if we add a button later
-      // But for polling we might want to skip it.
-      
-      try {
-        const data = await fetchBalance();
-        setStars(data.stars);
-        setLastPredictionAt(data.lastPredictionAt || null);
-        if (data.concentration) {
-          setConcentration(data.concentration);
-        }
-      } catch (error) {
-        console.error('Failed to fetch balance:', error);
+    if (!isLoggedIn) {
+      return;
+    }
+
+    try {
+      const data = await fetchBalance();
+      setStars(data.stars);
+      setLastPredictionAt(data.lastPredictionAt || null);
+      if (data.concentration) {
+        setConcentration(data.concentration);
       }
+    } catch (error) {
+      console.error('Failed to fetch balance:', error);
     }
   };
 
@@ -107,16 +102,18 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoggedIn) {
-      setIsFetchingBalance(true);
-      refreshBalance().finally(() => setIsFetchingBalance(false));
+      setBalanceResolved(false);
+      refreshBalance().finally(() => setBalanceResolved(true));
     } else {
       setStars(null);
       setLastPredictionAt(null);
       setConcentration(null);
+      setBalanceResolved(true);
     }
   }, [isLoggedIn]);
 
-  const isInitialLoading = isPending || (isLoggedIn && stars === null);
+  const sessionPending = isPending;
+  const isInitialLoading = sessionPending || (isLoggedIn && !balanceResolved);
 
   const handleHomeClick = () => {
     router.push('/');
@@ -183,7 +180,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     <NavigationContext.Provider
       value={{
         isLoggedIn,
-        isPending,
+        isPending: sessionPending,
         isInitialLoading,
         isLoggingIn,
         stars,

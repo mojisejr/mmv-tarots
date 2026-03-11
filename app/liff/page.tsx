@@ -115,7 +115,7 @@ function LiffGatewayClient() {
         const tokenSyncKey = `mmv_liff_verified_${accessToken.slice(0, 16)}`;
         if (window.sessionStorage.getItem(tokenSyncKey) === '1') {
           window.localStorage.removeItem(SESSION_SHELL_TARGET_STORAGE_KEY);
-          router.replace(target);
+          window.location.assign(target);
           return;
         }
 
@@ -136,7 +136,7 @@ function LiffGatewayClient() {
         if (!cancelled && data?.ok) {
           window.sessionStorage.setItem(tokenSyncKey, '1');
           window.localStorage.removeItem(SESSION_SHELL_TARGET_STORAGE_KEY);
-          router.replace(target);
+          window.location.assign(target);
           return;
         }
 
