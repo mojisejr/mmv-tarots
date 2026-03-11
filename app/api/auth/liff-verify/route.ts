@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Step 1: Verify LINE identity payload
     const identity = await verifyAndLoadLineIdentity(accessToken, process.env.LINE_CHANNEL_ID);
 
-    // Step 2: Resolve or create app identity linked to LINE account
+    // Step 2: Resolve or create app identity via provider contract
     const user = await resolveOrCreateLineUser(identity, accessToken);
 
     // Step 3: Issue Better-Auth session cookie

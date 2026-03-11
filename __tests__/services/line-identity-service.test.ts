@@ -33,10 +33,12 @@ import {
 
 describe('line-identity-service', () => {
   const identity = {
+    providerId: 'line' as const,
+    providerAccountId: 'line-user-123',
     lineUserId: 'line-user-123',
     displayName: 'LINE User',
     avatar: 'https://img.example/avatar.png',
-    lineIdentityEmail: 'line-user-123@mimivibe.com',
+    providerIdentityEmail: 'line.line-user-123@mimivibe.com',
   };
 
   beforeEach(() => {
@@ -72,7 +74,7 @@ describe('line-identity-service', () => {
     expect(user.id).toBe('new-user-id');
     expect(testMocks.mockInternalAdapter.createOAuthUser).toHaveBeenCalledWith(
       expect.objectContaining({
-        email: 'line-user-123@mimivibe.com',
+        email: 'line.line-user-123@mimivibe.com',
       }),
       expect.objectContaining({
         providerId: 'line',

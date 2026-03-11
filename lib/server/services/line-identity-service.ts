@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { auth } from '@/lib/server/auth';
+import {
+  buildProviderIdentityEmail,
+  LINE_PROVIDER_ID,
+  ProviderIdentity,
+} from '@/lib/server/services/provider-identity-contract';
 
 const lineVerifyResponseSchema = z.object({
   client_id: z.string(),
@@ -23,11 +28,8 @@ export class LineIdentityError extends Error {
   }
 }
 
-export type LineIdentity = {
+export type LineIdentity = ProviderIdentity & {
   lineUserId: string;
-  displayName: string;
-  avatar?: string;
-  lineIdentityEmail: string;
 };
 
 export async function verifyAndLoadLineIdentity(
@@ -79,18 +81,20 @@ export async function verifyAndLoadLineIdentity(
   const lineUserId = profile.data.userId;
 
   return {
+    providerId: LINE_PROVIDER_ID,
+    providerAccountId: lineUserId,
     lineUserId,
     displayName: profile.data.displayName || 'LINE User',
     avatar: profile.data.pictureUrl,
-    lineIdentityEmail: `${lineUserId}@mimivibe.com`,
+    providerIdentityEmail: buildProviderIdentityEmail(LINE_PROVIDER_ID, lineUserId),
   };
 }
 
 export async function resolveOrCreateLineUser(identity: LineIdentity, accessToken: string) {
   const authContext = await auth.$context;
   const existingAccount = await authContext.internalAdapter.findAccountByProviderId(
-    identity.lineUserId,
-    'line'
+    identity.providerAccountId,
+    identity.providerId
   );
 
   let user = existingAccount
@@ -98,23 +102,26 @@ export async function resolveOrCreateLineUser(identity: LineIdentity, accessToke
     : null;
 
   if (!user) {
-    const foundByEmail = await authContext.internalAdapter.findUserByEmail(identity.lineIdentityEmail, {
-      includeAccounts: true,
-    });
+    const foundByEmail = await authContext.internalAdapter.findUserByEmail(
+      identity.providerIdentityEmail,
+      {
+        includeAccounts: true,
+      }
+    );
     user = foundByEmail?.user ?? null;
   }
 
   if (!user) {
     const created = await authContext.internalAdapter.createOAuthUser(
       {
-        email: identity.lineIdentityEmail,
+        email: identity.providerIdentityEmail,
         emailVerified: true,
         name: identity.displayName,
         image: identity.avatar,
       },
       {
-        providerId: 'line',
-        accountId: identity.lineUserId,
+        providerId: identity.providerId,
+        accountId: identity.providerAccountId,
         accessToken,
       }
     );
@@ -125,8 +132,8 @@ export async function resolveOrCreateLineUser(identity: LineIdentity, accessToke
   if (!existingAccount) {
     await authContext.internalAdapter.linkAccount({
       userId: user.id,
-      providerId: 'line',
-      accountId: identity.lineUserId,
+      providerId: identity.providerId,
+      accountId: identity.providerAccountId,
       accessToken,
     });
 
