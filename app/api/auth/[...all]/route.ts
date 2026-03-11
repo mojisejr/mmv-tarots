@@ -1,9 +1,9 @@
 /**
  * Better Auth API Route Handler
- * 
+ *
  * This catch-all route handles all Better Auth endpoints:
- * - /api/auth/signin/line - Line Login
- * - /api/auth/callback/line - Line OAuth callback
+ * - /api/auth/signin/* - Provider sign-in entrypoint
+ * - /api/auth/callback/* - Provider OAuth callback
  * - /api/auth/signout - Sign out
  * - /api/auth/session - Get session
  */

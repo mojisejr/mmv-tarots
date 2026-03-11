@@ -1,8 +1,8 @@
 /**
  * Better Auth Server Configuration
- * 
+ *
  * This file configures Better Auth for server-side authentication
- * using Prisma adapter and Line Login provider.
+ * using Prisma adapter and LINE social provider.
  */
 
 import { betterAuth } from 'better-auth';
@@ -10,7 +10,10 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { db } from './db';
 import { cookies, headers } from 'next/headers';
 import { referralService } from './services/referral-service';
-import { CreditService } from '@/services/credit-service';
+import {
+  buildProviderIdentityEmail,
+  LINE_PROVIDER_ID,
+} from '@/lib/server/services/provider-identity-contract';
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -52,11 +55,9 @@ export const auth = betterAuth({
             const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
 
             // Referral recording only; onboarding bonus is handled by onboarding API.
-            Promise.allSettled([
-               referralService.processReferralSignup(user as any, referralCode, ip)
-            ]).catch(err => {
+            void referralService.processReferralSignup(user as any, referralCode, ip).catch(err => {
               // Non-blocking failure by design.
-               console.error('[Background Auth] Failed to process rewards:', err);
+              console.error('[Background Auth] Failed to process rewards:', err);
             });
 
           } catch (error) {
@@ -81,7 +82,9 @@ export const auth = betterAuth({
         return {
           name: profile.name || 'LINE User',
           image: profile.picture,
-          email: profile.email || `${profile.sub || 'unknown'}@mimivibe.com`,
+          email:
+            profile.email ||
+            buildProviderIdentityEmail(LINE_PROVIDER_ID, profile.sub || 'unknown'),
         };
       },
     },
