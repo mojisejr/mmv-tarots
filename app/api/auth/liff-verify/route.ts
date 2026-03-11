@@ -73,11 +73,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Invalid LINE profile payload' }, { status: 401 });
     }
 
+    // Step 1: Verify LINE identity payload
     const lineUserId = profile.data.userId;
-    const fallbackEmail = `${lineUserId}@mimivibe.com`;
+    const lineIdentityEmail = `${lineUserId}@mimivibe.com`;
     const displayName = profile.data.displayName || 'LINE User';
     const avatar = profile.data.pictureUrl;
 
+    // Step 2: Resolve or create app identity linked to LINE account
     const authContext = await auth.$context;
     const existingAccount = await authContext.internalAdapter.findAccountByProviderId(lineUserId, 'line');
 
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
       : null;
 
     if (!user) {
-      const foundByEmail = await authContext.internalAdapter.findUserByEmail(fallbackEmail, {
+      const foundByEmail = await authContext.internalAdapter.findUserByEmail(lineIdentityEmail, {
         includeAccounts: true,
       });
       user = foundByEmail?.user ?? null;
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       const created = await authContext.internalAdapter.createOAuthUser(
         {
-          email: fallbackEmail,
+          email: lineIdentityEmail,
           emailVerified: true,
           name: displayName,
           image: avatar,
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Conflicting LINE account link' }, { status: 409 });
     }
 
+    // Step 3: Issue Better-Auth session cookie
     const session = await authContext.internalAdapter.createSession(user.id);
     if (!session?.token) {
       return NextResponse.json({ ok: false, error: 'Failed to create auth session' }, { status: 500 });

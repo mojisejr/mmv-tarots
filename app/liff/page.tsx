@@ -2,9 +2,9 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { SESSION_SHELL_TARGET_STORAGE_KEY } from '@/lib/client/auth/session-shell-contract';
 
 type LiffModule = typeof import('@line/liff');
-export const LIFF_TARGET_STORAGE_KEY = 'mmv_target';
 
 export function resolveLiffStateTarget(rawState: string | null): string {
   if (!rawState) return '/';
@@ -82,11 +82,11 @@ function LiffGatewayClient() {
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
     const rawState = searchParams.get('mmv_next');
     const referralCode = searchParams.get('ref');
-    const persistedTarget = window.localStorage.getItem(LIFF_TARGET_STORAGE_KEY);
+    const persistedTarget = window.localStorage.getItem(SESSION_SHELL_TARGET_STORAGE_KEY);
     const target = resolveDurableGatewayTarget(rawState, referralCode, persistedTarget);
 
     if (target !== '/') {
-      window.localStorage.setItem(LIFF_TARGET_STORAGE_KEY, target);
+      window.localStorage.setItem(SESSION_SHELL_TARGET_STORAGE_KEY, target);
     }
 
     if (!liffId) {
@@ -114,7 +114,7 @@ function LiffGatewayClient() {
 
         const tokenSyncKey = `mmv_liff_verified_${accessToken.slice(0, 16)}`;
         if (window.sessionStorage.getItem(tokenSyncKey) === '1') {
-          window.localStorage.removeItem(LIFF_TARGET_STORAGE_KEY);
+          window.localStorage.removeItem(SESSION_SHELL_TARGET_STORAGE_KEY);
           router.replace(target);
           return;
         }
@@ -135,7 +135,7 @@ function LiffGatewayClient() {
         const data = await response.json();
         if (!cancelled && data?.ok) {
           window.sessionStorage.setItem(tokenSyncKey, '1');
-          window.localStorage.removeItem(LIFF_TARGET_STORAGE_KEY);
+          window.localStorage.removeItem(SESSION_SHELL_TARGET_STORAGE_KEY);
           router.replace(target);
           return;
         }

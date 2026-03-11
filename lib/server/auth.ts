@@ -43,10 +43,7 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           try {
-            // FIRE & FORGET STRATEGY (Phase 1 Latency Optimization)
-            // We decouple the reward logic from the critical path of signup.
-            
-            // 1. Check for referral intent
+            // Keep referral processing off the signup critical path.
             const cookieStore = await cookies();
             const referralCode = cookieStore.get('mmv_ref')?.value;
 
@@ -54,19 +51,11 @@ export const auth = betterAuth({
             const forwardedFor = headerStore.get('x-forwarded-for');
             const ip = forwardedFor ? forwardedFor.split(',')[0] : 'unknown';
 
-            // 2. Dispatch to background (NO AWAIT)
-            // This allows the user to log in instantly without waiting for:
-            // - Credit transactions
-            // - Referral validation
-            // - User updates
-
-            // Phase 2 Update: STOP granting onboarding bonus here!
-            // We only process referral recording (linking user to referrer)
-            // The actual star granting happens at the Ritual Gate (Onboarding API)
+            // Referral recording only; onboarding bonus is handled by onboarding API.
             Promise.allSettled([
                referralService.processReferralSignup(user as any, referralCode, ip)
             ]).catch(err => {
-               // Silent fail log - we will rely on Phase 2 (Ritual) for guaranteed delivery later
+              // Non-blocking failure by design.
                console.error('[Background Auth] Failed to process rewards:', err);
             });
 
