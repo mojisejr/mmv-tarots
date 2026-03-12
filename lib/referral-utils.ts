@@ -26,6 +26,20 @@ export const ReferralUtils = {
   },
 
   /**
+   * Generates the canonical invite link for profile sharing.
+   */
+  generateInviteLink: (origin: string, referralCode?: string) => {
+    return ReferralUtils.generateLink(origin, referralCode, '/');
+  },
+
+  /**
+   * Generates the canonical prediction-share link with optional referral attribution.
+   */
+  generatePredictionLink: (origin: string, predictionId: string, referralCode?: string) => {
+    return ReferralUtils.generateLink(origin, referralCode, `/share/${predictionId}`);
+  },
+
+  /**
    * Generates standard sharing text for specific contexts
    */
   shareText: {

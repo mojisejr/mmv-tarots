@@ -39,8 +39,12 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
   const getShareUrl = () => {
     if (typeof window === 'undefined') return '';
     const user = session?.user as unknown as UserWithReferral;
-    // Always append user's referral code if available
-    return ReferralUtils.generateLink(window.location.origin, user?.referralCode || undefined, `/share/${predictionId}`);
+    // Always append user's referral code if available.
+    return ReferralUtils.generatePredictionLink(
+      window.location.origin,
+      predictionId,
+      user?.referralCode || undefined
+    );
   };
 
   const getShareText = () => {

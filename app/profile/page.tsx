@@ -142,7 +142,7 @@ function ProfilePageContent() {
     if (!referralCode) return;
     
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const referralLink = ReferralUtils.generateLink(baseUrl, referralCode);
+    const referralLink = ReferralUtils.generateInviteLink(baseUrl, referralCode);
     const shareText = ReferralUtils.shareText.invite();
     
     try {
@@ -310,7 +310,7 @@ function ProfilePageContent() {
           
           <div className="flex gap-2">
             <div className="flex-1 bg-primary/5 rounded-lg px-3 py-2.5 text-xs font-mono text-foreground/80 truncate border border-primary/10">
-              {typeof window !== 'undefined' ? ReferralUtils.generateLink(window.location.origin, referralCode) : ''}
+              {typeof window !== 'undefined' ? ReferralUtils.generateInviteLink(window.location.origin, referralCode) : ''}
             </div>
             <GlassButton 
               onClick={handleCopyReferralLink}

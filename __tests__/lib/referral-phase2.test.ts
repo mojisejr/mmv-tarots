@@ -43,6 +43,22 @@ describe('Phase 5.2 referral hardening', () => {
     expect(link).toBe('https://maemormimi.com/package?tier=gold');
   });
 
+  it('builds profile invite link through the canonical invite helper', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.maemormimi.com';
+
+    const link = ReferralUtils.generateInviteLink('https://local.mimi', 'PROFILE777');
+
+    expect(link).toBe('https://www.maemormimi.com/?ref=PROFILE777');
+  });
+
+  it('builds prediction share link through the canonical prediction helper', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.maemormimi.com';
+
+    const link = ReferralUtils.generatePredictionLink('https://local.mimi', 'abc123', 'CARD555');
+
+    expect(link).toBe('https://www.maemormimi.com/share/abc123?ref=CARD555');
+  });
+
   it('forwards ref query from /liff to target when liff.state has no ref', () => {
     const target = buildGatewayTarget('/profile', 'PROMO999');
     expect(target).toBe('/profile?ref=PROMO999');
