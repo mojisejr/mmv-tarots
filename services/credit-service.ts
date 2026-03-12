@@ -13,7 +13,7 @@ function resolvePaymentChannel(metadata?: Record<string, unknown>): PaymentChann
   if (legacyPaymentMethod === 'PROMPTPAY') {
     return PaymentChannel.PROMPTPAY_QR;
   }
-  if (legacyPaymentMethod === 'CARD' || legacyPaymentMethod === 'STRIPE' || legacyPaymentMethod === 'MANUAL') {
+  if (legacyPaymentMethod === 'CARD' || legacyPaymentMethod === 'MANUAL') {
     return PaymentChannel.SYSTEM;
   }
 
@@ -112,11 +112,7 @@ export const CreditService = {
           type: TransactionType.TOPUP,
           status: TransactionStatus.SUCCESS,
           paymentOrderId: metadata?.paymentOrderId ?? null,
-          externalRef:
-            metadata?.externalRef ??
-            metadata?.omiseChargeId ??
-            metadata?.stripeSessionId ??
-            null,
+          externalRef: metadata?.externalRef ?? null,
           channel: resolvePaymentChannel(metadata),
           metadata: metadata ?? {},
         },
