@@ -1,263 +1,290 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import Script from 'next/script';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
-import { MethodSelector, type PaymentMethod } from './MethodSelector';
-import { CardForm } from './CardForm';
 import { PromptPayQR } from './PromptPayQR';
 import { PaymentReceipt } from './PaymentReceipt';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type Step = 'method-select' | 'card-form' | 'qr-display' | '3ds-redirect' | 'receipt';
+type Step = 'creating-order' | 'qr-display' | 'failed' | 'receipt';
 
-interface QrData {
-  chargeId:   string;
-  qrImageUrl: string;
-  expiresAt:  string;
+type PaymentOrderStatus =
+  | 'PENDING_PAYMENT'
+  | 'SLIP_UPLOADED'
+  | 'VERIFYING'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'CREDITED';
+
+interface OrderSnapshot {
+  orderId: string;
+  userId: string;
+  priceId: string;
+  packageName: string;
+  stars: number;
+  amount: number;
+}
+
+interface OrderPayload {
+  id: string;
+  referenceCode: string;
+  status: PaymentOrderStatus;
+  amountTHB: number;
+  currency: string;
+  expiresAt: string;
+  creditedAt?: string | null;
+  verificationErrorMessage?: string | null;
 }
 
 interface ReceiptData {
-  chargeId: string;
-  paidAt:   Date;
+  transactionRef: string;
+  paidAt: Date;
 }
 
 export interface PaymentModalProps {
-  isOpen:      boolean;
-  onClose:     () => void;
-  priceId:     string;
-  userId:      string;
+  isOpen: boolean;
+  onClose: () => void;
+  priceId: string;
+  userId: string;
   packageName: string;
-  stars:       number;
-  amount:      number;
+  stars: number;
+  amount: number;
+  resumeOrderId?: string | null;
 }
+
+const ACTIVE_ORDER_KEY = 'mmv_active_payment_order';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function PaymentModal({
-  isOpen, onClose, priceId, userId, packageName, stars, amount,
+  isOpen,
+  onClose,
+  priceId,
+  userId,
+  packageName,
+  stars,
+  amount,
+  resumeOrderId,
 }: PaymentModalProps) {
-  const [step,          setStep]    = useState<Step>('method-select');
-  const [method,        setMethod]  = useState<PaymentMethod | null>(null);
+  const [step, setStep] = useState<Step>('creating-order');
   const [loading,       setLoading] = useState(false);
-  const [qrData,        setQrData]  = useState<QrData | null>(null);
+  const [order, setOrder] = useState<OrderPayload | null>(null);
+  const [failureMessage, setFailureMessage] = useState<string | null>(null);
   const [receiptData,   setReceipt] = useState<ReceiptData | null>(null);
+
+  const persistActiveOrder = useCallback((orderId: string) => {
+    const snapshot: OrderSnapshot = {
+      orderId,
+      userId,
+      priceId,
+      packageName,
+      stars,
+      amount,
+    };
+    localStorage.setItem(ACTIVE_ORDER_KEY, JSON.stringify(snapshot));
+  }, [amount, packageName, priceId, stars, userId]);
+
+  const clearActiveOrder = useCallback(() => {
+    localStorage.removeItem(ACTIVE_ORDER_KEY);
+  }, []);
 
   // ── Reset on close ──────────────────────────────────────────────────────
   const handleClose = useCallback(() => {
-    setStep('method-select');
-    setMethod(null);
-    setQrData(null);
+    setStep('creating-order');
+    setOrder(null);
     setReceipt(null);
+    setFailureMessage(null);
     setLoading(false);
     onClose();
   }, [onClose]);
 
-  // ── PromptPay: call API → get QR ────────────────────────────────────────
-  const startPromptPay = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/checkout/omise', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          priceId,
-          userId,
-          paymentMethod: 'PROMPTPAY',
-          ownerName:     'Mimi Divination',
-        }),
+  const applyOrderState = useCallback((incoming: OrderPayload) => {
+    setOrder(incoming);
+
+    if (incoming.status === 'CREDITED') {
+      clearActiveOrder();
+      setReceipt({
+        transactionRef: incoming.referenceCode,
+        paidAt: incoming.creditedAt ? new Date(incoming.creditedAt) : new Date(),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error ?? 'ไม่สามารถสร้าง QR ได้');
-        return;
-      }
-
-      setQrData({
-        chargeId:   data.chargeId,
-        qrImageUrl: data.qrImageUrl ?? '',
-        expiresAt:  data.expiresAt ?? new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      });
-      setStep('qr-display');
-    } catch {
-      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
-    } finally {
-      setLoading(false);
+      setStep('receipt');
+      return;
     }
-  }, [priceId, userId]);
 
-  // ── Card: receive token from CardForm → call API ─────────────────────────
-  const handleCardToken = useCallback(
-    async (token: string) => {
-      setLoading(true);
+    if (incoming.status === 'REJECTED' || incoming.status === 'EXPIRED') {
+      setFailureMessage(
+        incoming.verificationErrorMessage ??
+          (incoming.status === 'EXPIRED'
+            ? 'คำสั่งชำระเงินหมดอายุ กรุณาสร้าง QR ใหม่'
+            : 'ไม่สามารถยืนยันสลิปได้ กรุณาตรวจสอบและลองใหม่')
+      );
+      setStep('failed');
+      return;
+    }
+
+    setStep('qr-display');
+  }, [clearActiveOrder]);
+
+  const fetchOrderStatus = useCallback(async (orderId: string) => {
+    const res = await fetch(`/api/payment/orders/${orderId}/status`, {
+      cache: 'no-store',
+    });
+
+    const payload = await res.json();
+    if (!res.ok || !payload?.order) {
+      throw new Error(payload?.error ?? 'ไม่สามารถโหลดสถานะคำสั่งชำระเงินได้');
+    }
+
+    const mapped: OrderPayload = {
+      id: payload.order.id,
+      referenceCode: payload.order.referenceCode,
+      status: payload.order.status,
+      amountTHB: payload.order.amountTHB,
+      currency: payload.order.currency,
+      expiresAt: new Date(payload.order.expiresAt).toISOString(),
+      creditedAt: payload.order.creditedAt ? new Date(payload.order.creditedAt).toISOString() : null,
+      verificationErrorMessage: payload.order.verificationErrorMessage ?? null,
+    };
+
+    applyOrderState(mapped);
+  }, [applyOrderState]);
+
+  const createOrder = useCallback(async () => {
+    const res = await fetch('/api/payment/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packagePriceId: priceId }),
+    });
+
+    const payload = await res.json();
+    if (!res.ok || !payload?.order) {
+      throw new Error(payload?.error ?? 'ไม่สามารถสร้างคำสั่งชำระเงินได้');
+    }
+
+    const created: OrderPayload = {
+      id: payload.order.id,
+      referenceCode: payload.order.referenceCode,
+      status: payload.order.status,
+      amountTHB: payload.order.amountTHB,
+      currency: payload.order.currency,
+      expiresAt: payload.order.expiresAt,
+    };
+
+    persistActiveOrder(created.id);
+    applyOrderState(created);
+  }, [applyOrderState, persistActiveOrder, priceId]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setLoading(true);
+    setFailureMessage(null);
+    setReceipt(null);
+
+    const bootstrap = async () => {
       try {
-        const res = await fetch('/api/checkout/omise', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            priceId,
-            userId,
-            paymentMethod: 'CARD',
-            token,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          toast.error(data.error ?? 'การชำระเงินล้มเหลว');
-          return;
+        if (resumeOrderId) {
+          await fetchOrderStatus(resumeOrderId);
+        } else {
+          await createOrder();
         }
-
-        // 3DS redirect
-        if (data.requires3DS && data.authorizeUri) {
-          setStep('3ds-redirect');
-          // Give user a moment to see the message, then redirect
-          setTimeout(() => {
-            window.location.href = data.authorizeUri as string;
-          }, 1500);
-          return;
-        }
-
-        // Direct success (no 3DS)
-        if (data.chargeStatus === 'successful' || data.success) {
-          setReceipt({ chargeId: data.chargeId, paidAt: new Date() });
-          setStep('receipt');
-          return;
-        }
-
-        toast.error('การชำระเงินไม่สำเร็จ กรุณาตรวจสอบข้อมูลบัตร');
-      } catch {
-        toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+        setFailureMessage(message);
+        setStep('failed');
       } finally {
         setLoading(false);
       }
-    },
-    [priceId, userId],
-  );
+    };
 
-  // ── Method selection confirmed ───────────────────────────────────────────
-  const handleMethodConfirm = useCallback(async () => {
-    if (!method) {
-      toast.error('กรุณาเลือกช่องทางชำระเงิน');
-      return;
-    }
-    if (method === 'PROMPTPAY') {
-      await startPromptPay();
-    } else {
-      setStep('card-form');
-    }
-  }, [method, startPromptPay]);
+    void bootstrap();
+  }, [createOrder, fetchOrderStatus, isOpen, resumeOrderId]);
 
-  // ── PromptPay polling success ────────────────────────────────────────────
-  const handleQrSuccess = useCallback((chargeId: string) => {
-    setReceipt({ chargeId, paidAt: new Date() });
+  const handleCredited = useCallback((transactionRef: string) => {
+    clearActiveOrder();
+    setReceipt({ transactionRef, paidAt: new Date() });
     setStep('receipt');
     toast.success('ชำระเงินสำเร็จ! ดาวเพิ่มเข้าบัญชีแล้ว 🌟');
-  }, []);
+  }, [clearActiveOrder]);
 
   // ── Render step titles ───────────────────────────────────────────────────
   const titleMap: Record<Step, string> = {
-    'method-select':  `เติม ${stars} Stars · ฿${amount}`,
-    'card-form':      'กรอกข้อมูลบัตร',
-    'qr-display':     `สแกน QR · ฿${amount}`,
-    '3ds-redirect':   'กำลังส่งต่อไปยังธนาคาร...',
-    'receipt':        'ใบเสร็จ',
+    'creating-order': `เติม ${stars} Stars · ฿${amount}`,
+    'qr-display': `สแกน QR · ฿${amount}`,
+    'failed': 'ไม่สามารถดำเนินการชำระเงิน',
+    'receipt': 'ใบเสร็จ',
   };
 
   return (
-    <>
-      {/* Load Omise.js once when modal is opened */}
-      {isOpen && (
-        <Script
-          src="https://cdn.omise.co/omise.js"
-          strategy="lazyOnload"
-        />
-      )}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      hideCloseButton={loading || step === 'qr-display'}
+      title={titleMap[step]}
+    >
+      <div className="px-6 py-5 overflow-y-auto max-h-[calc(90dvh-80px)]">
+        {loading && (
+          <div className="flex flex-col items-center justify-center gap-4 py-10">
+            <div className="w-14 h-14 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center">
+              <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
+              กำลังเตรียมคำสั่งชำระเงิน...
+            </p>
+          </div>
+        )}
 
-      <Modal
-        isOpen={isOpen}
-        onClose={handleClose}
-        hideCloseButton={step === 'qr-display' || step === '3ds-redirect'}
-        title={titleMap[step]}
-      >
-        <div className="px-6 py-5 overflow-y-auto max-h-[calc(90dvh-80px)]">
-          {/* ── Step: Method Select ────────────────────────────────────────── */}
-          {step === 'method-select' && (
-            <div className="space-y-5">
-              <MethodSelector selected={method} onSelect={setMethod} />
+        {!loading && step === 'qr-display' && order && (
+          <PromptPayQR
+            orderId={order.id}
+            referenceCode={order.referenceCode}
+            expiresAt={order.expiresAt}
+            amount={order.amountTHB}
+            promptPayTargetId={process.env.NEXT_PUBLIC_PROMPTPAY_TARGET_ID ?? ''}
+            initialStatus={order.status}
+            initialErrorMessage={order.verificationErrorMessage ?? null}
+            onCredited={handleCredited}
+            onExpired={() => {
+              setFailureMessage('คำสั่งชำระเงินหมดอายุ กรุณาสร้าง QR ใหม่');
+              setStep('failed');
+            }}
+            onClose={handleClose}
+          />
+        )}
 
-              <button
-                type="button"
-                onClick={handleMethodConfirm}
-                disabled={!method || loading}
-                className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold text-base transition-all duration-300 bg-primary text-primary-foreground hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-glow-primary"
-              >
-                {loading ? 'กำลังเตรียม...' : 'ถัดไป →'}
-              </button>
-
-              <p className="text-center text-[10px] text-muted-foreground/60">
-                For entertainment purposes only · ขับเคลื่อนโดย Omise
+        {!loading && step === 'failed' && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+              <p className="text-sm text-destructive font-medium">
+                {failureMessage ?? 'ไม่สามารถดำเนินการคำสั่งชำระเงินได้'}
               </p>
             </div>
-          )}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl font-bold text-base transition-all duration-300 bg-primary text-primary-foreground hover:brightness-105"
+            >
+              ปิดหน้าต่าง
+            </button>
+          </div>
+        )}
 
-          {/* ── Step: Card Form ────────────────────────────────────────────── */}
-          {step === 'card-form' && (
-            <CardForm
-              onToken={handleCardToken}
-              onBack={() => setStep('method-select')}
-              loading={loading}
-            />
-          )}
-
-          {/* ── Step: PromptPay QR ─────────────────────────────────────────── */}
-          {step === 'qr-display' && qrData && (
-            <PromptPayQR
-              chargeId={qrData.chargeId}
-              qrImageUrl={qrData.qrImageUrl}
-              expiresAt={qrData.expiresAt}
-              amount={amount}
-              onSuccess={handleQrSuccess}
-              onExpired={() => {
-                toast.error('QR หมดอายุ กรุณาลองใหม่');
-                setStep('method-select');
-                setQrData(null);
-              }}
-              onBack={() => setStep('method-select')}
-            />
-          )}
-
-          {/* ── Step: 3DS Redirect ─────────────────────────────────────────── */}
-          {step === '3ds-redirect' && (
-            <div className="flex flex-col items-center justify-center gap-4 py-10">
-              <div className="w-14 h-14 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center">
-                <div className="w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              </div>
-              <p className="text-center text-sm text-muted-foreground">
-                กำลังส่งต่อไปยังหน้ายืนยันธนาคาร (3D Secure)...
-              </p>
-            </div>
-          )}
-
-          {/* ── Step: Receipt ──────────────────────────────────────────────── */}
-          {step === 'receipt' && receiptData && (
-            <PaymentReceipt
-              chargeId={receiptData.chargeId}
-              packageName={packageName}
-              stars={stars}
-              amount={amount}
-              method={method!}
-              paidAt={receiptData.paidAt}
-              onClose={handleClose}
-            />
-          )}
-        </div>
-      </Modal>
-    </>
+        {!loading && step === 'receipt' && receiptData && (
+          <PaymentReceipt
+            transactionRef={receiptData.transactionRef}
+            packageName={packageName}
+            stars={stars}
+            amount={amount}
+            paidAt={receiptData.paidAt}
+            onClose={handleClose}
+          />
+        )}
+      </div>
+    </Modal>
   );
 }

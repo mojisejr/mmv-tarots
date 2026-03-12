@@ -20,6 +20,11 @@ Plan Reference: `2026-03-11_10-43_mmv-auth-identity-boundary-refactor-plan.md`
   - Files: `lib/server/services/line-identity-service.ts`
   - Responsibility: verify LINE token/profile, resolve or link account, then request session issuance
 
+- `identity-contract`
+  - Owner: provider-agnostic identity shape and deterministic fallback identity keys
+  - Files: `lib/server/services/provider-identity-contract.ts`
+  - Responsibility: keep provider mapping rules centralized so new providers can reuse auth-core safely
+
 - `auth-session`
   - Owner: Better-Auth session issuance wrapper for non-standard entry points
   - Files: `lib/server/services/auth-session-service.ts`
@@ -43,8 +48,14 @@ Plan Reference: `2026-03-11_10-43_mmv-auth-identity-boundary-refactor-plan.md`
 ## Naming Decisions (Phase 1)
 
 - Use `line-identity` for account mapping concern (instead of phase tags or temporary naming)
-- Use `lineIdentityEmail` as explicit fallback identity label for LINE-backed users in verify flow
+- Use `providerIdentityEmail` as explicit fallback identity label for provider-backed users
 - Use `session-shell` naming for client-side auth/navigation contract concerns
+
+## Capability Boundary (Phase 4)
+
+- LINE OA messaging is a linked capability, not an auth requirement
+- Login success path must issue session independent of messaging linkage state
+- Browser-only users remain valid authenticated users under the same auth-core tables
 
 ## Guardrails
 

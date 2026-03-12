@@ -159,6 +159,8 @@ describe('POST /api/checkout/omise integration', () => {
       packageName: 'Starter Pack',
     })
     expect(CreditService.addStars).toHaveBeenCalledWith('user_001', 50, {
+      externalRef: 'chrg_test_success',
+      channel: 'SYSTEM',
       omiseChargeId: 'chrg_test_success',
       paymentMethod: 'CARD',
       packageId: 'price_001',
@@ -198,6 +200,8 @@ describe('POST /api/checkout/omise integration', () => {
       packageName: 'Starter Pack',
     })
     expect(CreditService.addStars).toHaveBeenCalledWith('user_001', 50, {
+      externalRef: 'chrg_test_success_with_authorize_uri',
+      channel: 'SYSTEM',
       omiseChargeId: 'chrg_test_success_with_authorize_uri',
       paymentMethod: 'CARD',
       packageId: 'price_001',

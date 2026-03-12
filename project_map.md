@@ -1,132 +1,82 @@
 # 🗺️ Project Map: MMV Tarots
 
-**Last Updated**: 2026-03-11 (Auth v3.1 post-execution)
-**Branch**: `staging` (HEAD: `3301e26`) — ยังไม่ merge ไป `main`
+**Last Updated**: 2026-03-11 (Auth v3.2 Phase 5 cleanup)
+**Branch**: `staging`
 
 ## 🌟 Philosophy
-**MMV Tarots** (Mimi Vibe Tarots) คือแพลตฟอร์มพยากรณ์ไพ่ยิปซีด้วย AI ที่เน้นประสบการณ์ผู้ใช้ที่นุ่มนวล ทันสมัย และมีความเป็นส่วนตัว (Mimi Vibe) โดยใช้เทคโนโลยี AI (Google/OpenAI) ในการตีความความหมายไพ่ให้เข้ากับบริบทคำถามของผู้ใช้แต่ละคน พร้อมระบบสะสมแต้ม (Stars) และการชำระเงินผ่าน Omise
+MMV Tarots คือแพลตฟอร์ม AI Tarot ที่เน้นความลื่นไหลของ UX และความปลอดภัยของบัญชีผู้ใช้ โดยให้
+**Better-Auth เป็น auth-core เดียว** และแยก provider-specific concerns (LINE/LIFF) ออกจาก navigation shell และ business flow
 
 **Production URL**: [https://maemormimi.com](https://maemormimi.com)
 
 ## 📍 Key Landmarks
 
 ### App Routes (`app/`)
--   `page.tsx`: หน้าแรก — กรอกคำถามและเลือกไพ่
--   `liff/`: **LIFF Gateway** — จุดเข้าจาก LINE Mini App (Auth v3.1)
--   `history/`: ระบบประวัติการดูดวง
--   `submitted/`: หน้าแสดงผลคำทำนาย + Animation
--   `profile/` & `package/`: ระบบ User Profile และซื้อ Stars
--   `share/`: Social share preview
--   `api/auth/liff-verify/`: **LIFF Auth Bridge** — Verify LINE token → Native Better-Auth session
--   `api/auth/[...all]/`: Better-Auth catch-all handler
--   `api/auth/referral-check/`: Referral attribution API
+- `page.tsx`: หน้าแรก
+- `liff/page.tsx`: LIFF gateway สำหรับ LINE in-app entry
+- `profile/`, `package/`, `history/`, `submitted/`: protected user flows
+- `api/auth/[...all]/route.ts`: Better-Auth catch-all endpoint
+- `api/auth/liff-verify/route.ts`: LIFF verify orchestration (`verify -> resolve identity -> issue session`)
+- `api/auth/referral-check/route.ts`: referral reward check
 
 ### Core Library (`lib/`)
--   **`lib/server/auth.ts`**: Better-Auth instance (Single Source of Truth สำหรับ session)
--   **`lib/server/services/`**: Business Logic (referral, user, suggested-questions)
--   **`lib/server/ai/`**: AI workflows (prediction generation)
--   **`lib/server/security/`**: Rate limiting, validators
--   **`lib/server/db.ts`**: Prisma client
--   **`lib/client/auth-client.ts`**: Better-Auth client SDK
--   **`lib/client/providers/navigation-provider.tsx`**: Durable redirect target recovery (`mmv_target`)
--   **`middleware.ts`**: Auth gate + referral attribution — ใช้ `getSessionCookie()` จาก `better-auth/cookies` (contract-based, ไม่ใช่ hardcoded name)
-
-### Services (`lib/server/services/`)
--   `referral-service.ts`: Referral tracking และ reward
--   `user-service.ts`: User CRUD + onboarding
--   `suggested-question-service.ts`: Suggested prompts
+- `lib/server/auth.ts`: Better-Auth core config และ hooks
+- `lib/server/services/line-identity-service.ts`: LINE identity verification + account resolve/link
+- `lib/server/services/auth-session-service.ts`: session issuance wrapper
+- `lib/server/services/provider-identity-contract.ts`: provider-agnostic identity contract
+- `lib/client/providers/navigation-provider.tsx`: session shell + balance hydration
+- `lib/client/auth/session-shell-contract.ts`: gateway target contract (`mmv_target`)
+- `middleware.ts`: auth gate + referral cookie attribution
 
 ### Tests (`__tests__/`)
--   `lib/liff-phase1.test.ts`: LIFF session issuance unit tests
--   `middleware.test.ts`: Middleware cookie contract verification
--   `api/liff-verify-route.test.ts`: Regression suite for `/api/auth/liff-verify`
--   `app/cards-import.test.ts`: CSV card import integration
+- `api/liff-verify-route.test.ts`: liff verify route regression
+- `services/line-identity-service.test.ts`: LINE identity service behavior
+- `services/provider-identity-contract.test.ts`: provider identity contract behavior
+- `middleware.test.ts`: auth gate + cookie contract verification
 
-### Components (`components/`)
--   `ui/`: Base Shadcn + Glassmorphism custom components
--   `features/`: Feature components (QuestionInput, Reading animation, etc.)
+## 🔐 Auth Architecture (v3.2)
 
-## 🔐 Auth Architecture (v3.1 — สถานะล่าสุด)
-
-```
-LINE App (LIFF)
-    │
-    ▼
-app/liff/page.tsx
-    │  1. เซ็ต mmv_target cookie (durable state)
-    │  2. เรียก liff.getAccessToken()
-    ▼
-app/api/auth/liff-verify/route.ts
-    │  3. Verify token กับ LINE API
-    │  4. auth.$context.internalAdapter.createSession(userId)
-    │  5. Better-Auth ออก signed cookie ให้ทั้งหมด (ห้าม manual set!)
-    ▼
-lib/client/providers/navigation-provider.tsx
-    │  6. กู้คืน mmv_target จาก cookie (ป้องกัน URL param loss)
-    ▼
-หน้าปลายทาง (redirect target)
+```text
+Browser / LINE LIFF entry
+      |
+      +--> /api/auth/[...all] (auth-core standard flow)
+      |
+      +--> /liff -> /api/auth/liff-verify (LINE-specific adapter)
+                    1) verify LINE token
+                    2) resolve/link app identity
+                    3) issue Better-Auth session cookie
+      |
+Navigation session-shell hydrates session + balance independently
 ```
 
-**Law**: Better-Auth คือ Single-Core Engine เท่านั้น — ห้าม `serializeSignedCookie` หรือ set session cookie เอง
+### Ownership Rules
+- `auth-core`: session policy, provider wiring, cookie contract
+- `line-gateway`: LIFF entry and token forwarding only
+- `line-identity`: LINE account mapping concern only
+- `identity-contract`: shared provider identity shape for future providers
+- `session-shell`: UX hydration concern only (must stay provider-agnostic)
 
 ## 🌊 Data Flow (Prediction)
-1.  **Input**: User กรอกคำถามใน `QuestionInput` หน้า Landing
-2.  **Selection**: ระบบเลือกไพ่จาก `Card` database ผ่าน `tarot-service`
-3.  **Inference**: ส่งบริบทคำถาม + ไพ่ที่ได้ไปหา AI (GPT/Gemini) ผ่าน `prediction-service`
-4.  **Storage**: บันทึกคำทำนายลง `Prediction` table และหัก Stars
-5.  **View**: แสดงผลลัพธ์ในหน้า `submitted/` พร้อม Animation
-
-## 🗃️ Database Schema
-
-```mermaid
-erDiagram
-  User ||--o{ Session : has
-  User ||--o{ Account : has
-  User ||--o{ Prediction : makes
-  User ||--o{ CreditTransaction : has
-  User }o--o{ User : referrals
-  User ||--o{ ReferralHistory : "referrer/referee"
-  CreditTransaction }o--|| StarPackage : via
-  StarPackage ||--o{ PackagePrice : prices
-  AgentConfig }|..|| User : "(prompt vault)"
-  SuggestedQuestion }|..|| User : "(prompts)"
-```
-
-| Model | หน้าที่ | Key Fields |
-|-------|---------|------------|
-| `User` | ผู้ใช้หลัก | `stars`, `referralCode`, `onboardingCompleted` |
-| `Session` | Better-Auth session | `token`, `expiresAt` |
-| `Account` | OAuth accounts | `providerId`, `accountId` (LINE userId) |
-| `Prediction` | ประวัติดูดวง | `question`, `result`, `cardIds` |
-| `CreditTransaction` | Stars ledger | `type`, `status`, `omiseChargeId` |
-| `StarPackage` + `PackagePrice` | ราคา package Stars | `amount`, `currency`, `isPromo` |
-| `ReferralHistory` | Referral tracking | `status` (PENDING/GRANTED/BLOCKED) |
-| `AgentConfig` | Encrypted AI prompts | `slug`, `encryptedPrompt` |
-| `SuggestedQuestion` | Suggested prompts | `text`, `category` |
+1. User submits question
+2. Card selection and interpretation via AI agents
+3. Save prediction + stars transaction
+4. Render submitted result and persist history
 
 ## 🐲 Challenges & Dragons
 
-### 🔥 Active Dragons (ยังไม่แก้)
--   **Client Hydration Race** ⚠️: หลัง LIFF login redirect → home loading ค้าง เพราะ global overlay ขึ้นกับ `useSession()` + balance fetch พร้อมกัน — **ยังไม่มี blueprint แก้**
--   **Client E2E Coverage Gap**: Tests ครอบ API contract แต่ไม่ครอบ UI boot sequence timing หลัง redirect
+### Active Risks
+- Manual smoke coverage ยังต้องทำซ้ำหลัง deploy candidate ทุกครั้ง (LIFF app + mobile browser + desktop browser)
+- Payment and referral side effects ยังต้องเฝ้าดูผ่าน logs ใน production
 
-### 🐢 Known Debt
--   **Search Oracle Index Stale**: `search-oracle.ts` ไม่ return mmv-tarots records — index ขาด
--   **AI Interpretations**: Prompt design ให้คงธีม Mimi Vibe คงต้องดูแลต่อเนื่อง
--   **Payment Integrity**: Stars deduction ต้องเป็น Atomic ทุกครั้ง
-
-### ✅ Dragons Slain (v3.1)
--   ~~Cookie mismatch จาก `serializeSignedCookie`~~: ลบออกแล้ว, ใช้ Better-Auth native
--   ~~`mmv_next` URL param loss ใน LIFF redirect~~: แก้ด้วย durable `mmv_target` cookie
--   ~~Hardcoded cookie names ใน middleware~~: เปลี่ยนเป็น `getSessionCookie()` contract helper
--   ~~Domain mismatch (`www.` prefix) กับ LINE LIFF~~: แก้ด้วย domain normalization
+### Resolved Auth Risks
+- Session sync gap หลัง LIFF redirect ถูกลดด้วย hard navigation + session-shell contract
+- Loading deadlock จาก coupling `useSession()` กับ balance fetch ถูกแยก concern แล้ว
+- Better-Auth internals ถูกย้ายเข้า owner service boundaries (`line-identity`, `auth-session`)
 
 ## 🛠️ Tech Stack
--   **Framework**: Next.js 16 (App Router)
--   **Database**: PostgreSQL via Prisma (Neon DB)
--   **AI**: Vercel AI SDK (OpenAI & Google Gemini) + Encrypted AgentConfig
--   **Styling**: Tailwind CSS + Framer Motion (MimiVibe Glassmorphism)
--   **Auth**: Better-Auth v1.4.7 (Single-Core — LIFF + OAuth)
--   **Payment**: Omise (Charge + PromptPay)
--   **Monitoring**: Sentry
--   **Testing**: Vitest + Playwright
+- Next.js 16 (App Router)
+- Better-Auth v1.4.x
+- Prisma + PostgreSQL (Neon)
+- Tailwind CSS + Framer Motion
+- Sentry
+- Vitest + Playwright

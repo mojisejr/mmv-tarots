@@ -31,11 +31,10 @@ describe('PaymentReceipt', () => {
 
     render(
       <PaymentReceipt
-        chargeId="chrg_test_123"
+        transactionRef="PAY-REF-001"
         packageName="Starter Pack"
         stars={50}
         amount={99}
-        method="CARD"
         paidAt={new Date('2026-02-26T14:00:00.000Z')}
         onClose={onClose}
       />
