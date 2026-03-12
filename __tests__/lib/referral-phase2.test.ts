@@ -1,18 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ReferralUtils } from '@/lib/referral-utils';
 import { buildGatewayTarget } from '@/app/liff/page';
 
 describe('Phase 5.2 referral hardening', () => {
-  it('generates LIFF wrapped referral link on root path', () => {
-    process.env.NEXT_PUBLIC_LIFF_ID = '1234567890-abcDEF';
+  beforeEach(() => {
+    delete process.env.NEXT_PUBLIC_LIFF_ID;
+    delete process.env.NEXT_PUBLIC_APP_URL;
+  });
+
+  it('generates canonical web referral link on root path', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://maemormimi.com';
 
     const link = ReferralUtils.generateLink('https://maemormimi.com', 'REFCODE');
 
-    expect(link).toBe('https://liff.line.me/1234567890-abcDEF/?ref=REFCODE');
+    expect(link).toBe('https://maemormimi.com/?ref=REFCODE');
   });
 
   it('preserves existing query params and appends ref on sub-path', () => {
-    process.env.NEXT_PUBLIC_LIFF_ID = '1234567890-abcDEF';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.maemormimi.com';
 
     const link = ReferralUtils.generateLink(
       'https://maemormimi.com',
@@ -20,23 +25,22 @@ describe('Phase 5.2 referral hardening', () => {
       '/share/abc123?from=profile'
     );
 
-    expect(link).toBe('https://liff.line.me/1234567890-abcDEF/share/abc123?from=profile&ref=REF777');
+    expect(link).toBe('https://www.maemormimi.com/share/abc123?from=profile&ref=REF777');
   });
 
-  it('falls back to origin link when LIFF ID is missing', () => {
-    delete process.env.NEXT_PUBLIC_LIFF_ID;
+  it('falls back to origin link when app url is missing', () => {
 
     const link = ReferralUtils.generateLink('https://maemormimi.com', 'FALLBACK', '/history');
 
     expect(link).toBe('https://maemormimi.com/history?ref=FALLBACK');
   });
 
-  it('keeps LIFF wrapped path without ref when referral code is not provided', () => {
-    process.env.NEXT_PUBLIC_LIFF_ID = '1234567890-abcDEF';
+  it('keeps canonical path without ref when referral code is not provided', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://maemormimi.com/';
 
     const link = ReferralUtils.generateLink('https://maemormimi.com', undefined, '/package?tier=gold');
 
-    expect(link).toBe('https://liff.line.me/1234567890-abcDEF/package?tier=gold');
+    expect(link).toBe('https://maemormimi.com/package?tier=gold');
   });
 
   it('forwards ref query from /liff to target when liff.state has no ref', () => {
