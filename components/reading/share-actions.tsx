@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { useSession } from '@/lib/client/auth-client';
 import { ReferralUtils } from '@/lib/referral-utils';
 import { cn } from '@/lib/shared/utils';
+import { isLiffEnvironment } from '@/lib/client/liff-environment';
+import { resolveShareActionOrder, type ShareActionId } from '@/lib/client/share-action-order';
 
 interface ShareActionsProps {
   predictionId: string;
@@ -35,7 +37,9 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 export function ShareActions({ predictionId, cardName, className = '', variant = 'minimal' }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const { data: session } = useSession();
+  const isLiff = isLiffEnvironment();
 
   const getSharePayload = () => {
     if (typeof window === 'undefined') return '';
@@ -51,6 +55,12 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
   const getShareText = () => {
     const payload = getSharePayload();
     return typeof payload === 'string' ? '' : payload.text;
+  };
+
+  const getReferralCode = () => {
+    const payload = getSharePayload();
+    if (typeof payload === 'string') return undefined;
+    return payload.code;
   };
 
   const handleFacebookShare = () => {
@@ -102,6 +112,19 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
     });
   };
 
+  const handleCopyCode = () => {
+    const referralCode = getReferralCode();
+    if (!referralCode) return;
+
+    navigator.clipboard.writeText(referralCode).then(() => {
+      setCopiedCode(true);
+      toast.success('คัดลอกรหัสแนะนำแล้ว! ส่งในแชท LINE ได้ทันที', {
+        duration: 3000,
+      });
+      setTimeout(() => setCopiedCode(false), 2000);
+    });
+  };
+
   const SocialButton = ({ 
     icon: Icon, 
     onClick, 
@@ -148,49 +171,73 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
     </motion.button>
   );
 
+  const actionOrder = resolveShareActionOrder(isLiff, Boolean(getReferralCode()));
+
+  const actionConfig: Record<ShareActionId, {
+    icon: React.ComponentType<{ className?: string }>;
+    onClick: () => void;
+    label: string;
+    colorClass: string;
+  }> = {
+    facebook: {
+      icon: Facebook,
+      onClick: handleFacebookShare,
+      label: 'Facebook',
+      colorClass: 'bg-[#1877F2]/80 hover:bg-[#1877F2] shadow-blue-500/20',
+    },
+    x: {
+      icon: Twitter,
+      onClick: handleTwitterShare,
+      label: 'X',
+      colorClass: 'bg-black/80 hover:bg-black shadow-gray-500/20',
+    },
+    tiktok: {
+      icon: TikTokIcon,
+      onClick: handleTikTokShare,
+      label: 'TikTok',
+      colorClass: 'bg-gradient-to-br from-[#00f2ea] to-[#ff0050] opacity-90 hover:opacity-100 shadow-pink-500/20',
+    },
+    'copy-link': {
+      icon: copied ? Check : Copy,
+      onClick: handleCopyLink,
+      label: 'Copy Link',
+      colorClass: copied
+        ? 'bg-green-500/90 shadow-green-500/20'
+        : 'bg-gradient-to-br from-[#d4af37] to-[#b58d28] shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100',
+    },
+    'copy-message': {
+      icon: copiedMessage ? Check : Share2,
+      onClick: handleCopyMessage,
+      label: 'Message',
+      colorClass: copiedMessage
+        ? 'bg-green-500/90 shadow-green-500/20'
+        : 'bg-primary/80 hover:bg-primary shadow-primary/30',
+    },
+    'copy-code': {
+      icon: copiedCode ? Check : Copy,
+      onClick: handleCopyCode,
+      label: 'Code',
+      colorClass: copiedCode
+        ? 'bg-green-500/90 shadow-green-500/20'
+        : 'bg-indigo-500/80 hover:bg-indigo-500 shadow-indigo-500/30',
+    },
+  };
+
   const buttonList = (
     <div className="flex items-center justify-center gap-4 flex-wrap">
-      <SocialButton 
-        icon={Facebook} 
-        onClick={handleFacebookShare} 
-        label="Facebook" 
-        colorClass="bg-[#1877F2]/80 hover:bg-[#1877F2] shadow-blue-500/20" 
-        delay={0.1}
-      />
-      <SocialButton 
-        icon={Twitter} 
-        onClick={handleTwitterShare} 
-        label="X" 
-        colorClass="bg-black/80 hover:bg-black shadow-gray-500/20" 
-        delay={0.2}
-      />
-      <SocialButton 
-        icon={TikTokIcon} 
-        onClick={handleTikTokShare} 
-        label="TikTok" 
-        colorClass="bg-gradient-to-br from-[#00f2ea] to-[#ff0050] opacity-90 hover:opacity-100 shadow-pink-500/20" 
-        delay={0.3}
-      />
-      <SocialButton
-        icon={copied ? Check : Copy}
-        onClick={handleCopyLink}
-        label="Copy"
-        colorClass={copied 
-          ? "bg-green-500/90 shadow-green-500/20" 
-          : "bg-gradient-to-br from-[#d4af37] to-[#b58d28] shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100"
-        }
-        delay={0.4}
-      />
-      <SocialButton
-        icon={copiedMessage ? Check : Share2}
-        onClick={handleCopyMessage}
-        label="Message"
-        colorClass={copiedMessage
-          ? 'bg-green-500/90 shadow-green-500/20'
-          : 'bg-primary/80 hover:bg-primary shadow-primary/30'
-        }
-        delay={0.5}
-      />
+      {actionOrder.map((actionId, index) => {
+        const action = actionConfig[actionId];
+        return (
+          <SocialButton
+            key={actionId}
+            icon={action.icon}
+            onClick={action.onClick}
+            label={action.label}
+            colorClass={action.colorClass}
+            delay={0.1 + index * 0.1}
+          />
+        );
+      })}
     </div>
   );
 

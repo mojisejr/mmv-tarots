@@ -12,6 +12,7 @@ import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info, HelpC
 import { toast } from 'sonner';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { ReferralUtils } from '@/lib/referral-utils';
+import { isLiffEnvironment } from '@/lib/client/liff-environment';
 
 interface Prediction {
   id: string;
@@ -283,6 +284,7 @@ function ProfilePageContent() {
 
   const user = session.user;
   const canClaimReferral = !referredById && !onboardingCompleted;
+  const liffMode = isLiffEnvironment();
 
   return (
     <div className="max-w-2xl mx-auto pt-6 px-4 pb-32">
@@ -381,7 +383,9 @@ function ProfilePageContent() {
             </GlassButton>
             <GlassButton
               onClick={handleCopyReferralCode}
-              className="!px-4 !py-2.5 bg-primary/10 border-primary/20 hover:bg-primary/20"
+              className={liffMode
+                ? '!px-4 !py-2.5 bg-indigo-500/20 border-indigo-400/40 hover:bg-indigo-500/30'
+                : '!px-4 !py-2.5 bg-primary/10 border-primary/20 hover:bg-primary/20'}
               title="คัดลอกรหัสแนะนำ"
             >
               {copiedCode ? <Check className="w-4 h-4 text-green-600" /> : <span className="text-[11px] font-mono">CODE</span>}
