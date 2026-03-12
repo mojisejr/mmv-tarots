@@ -99,19 +99,8 @@ function ProfilePageContent() {
       loadPredictions();
       fetchUserStars();
       fetchUserProfile();
-      // Check for referral rewards on first load
-      checkReferralReward();
     }
   }, [session, isPending, router]);
-
-  const checkReferralReward = async () => {
-    try {
-      await fetch('/api/auth/referral-check', { method: 'POST' });
-    } catch (err) {
-      // Silent fail - not critical
-      console.error('Failed to check referral:', err);
-    }
-  };
 
   const fetchUserProfile = async () => {
     try {
