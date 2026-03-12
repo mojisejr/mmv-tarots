@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Link as LinkIcon, Check, Facebook, Twitter, Copy } from 'lucide-react';
+import { Share2, Check, Facebook, Twitter, Copy } from 'lucide-react';
 import { GlassCard } from '@/components';
 import { toast } from 'sonner';
 import { useSession } from '@/lib/client/auth-client';
@@ -34,31 +34,37 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 
 export function ShareActions({ predictionId, cardName, className = '', variant = 'minimal' }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
   const { data: session } = useSession();
 
-  const getShareUrl = () => {
+  const getSharePayload = () => {
     if (typeof window === 'undefined') return '';
     const user = session?.user as unknown as UserWithReferral;
-    // Always append user's referral code if available.
-    return ReferralUtils.generatePredictionLink(
+    return ReferralUtils.composePredictionPayload(
       window.location.origin,
       predictionId,
+      cardName,
       user?.referralCode || undefined
     );
   };
 
   const getShareText = () => {
-    return ReferralUtils.shareText.prediction(cardName);
-  }
+    const payload = getSharePayload();
+    return typeof payload === 'string' ? '' : payload.text;
+  };
 
   const handleFacebookShare = () => {
-    const url = getShareUrl();
+    const payload = getSharePayload();
+    if (typeof payload === 'string') return;
+    const url = payload.url;
     const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
     window.open(shareUrl, '_blank', 'width=600,height=400');
   };
 
   const handleTwitterShare = () => {
-    const url = getShareUrl();
+    const payload = getSharePayload();
+    if (typeof payload === 'string') return;
+    const url = payload.url;
     const text = getShareText();
     const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     window.open(shareUrl, '_blank', 'width=600,height=400');
@@ -71,13 +77,28 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
   };
 
   const handleCopyLink = () => {
-    const url = getShareUrl();
+    const payload = getSharePayload();
+    if (typeof payload === 'string') return;
+    const url = payload.url;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       toast.success('คัดลอกลิงก์แล้ว! นำไปวางใน TikTok หรือแอปอื่นได้เลย', {
         duration: 3000
       });
       setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyMessage = () => {
+    const payload = getSharePayload();
+    if (typeof payload === 'string') return;
+
+    navigator.clipboard.writeText(payload.message).then(() => {
+      setCopiedMessage(true);
+      toast.success('คัดลอกข้อความแชร์แล้ว! (ลิงก์ + รหัสแนะนำ)', {
+        duration: 3000,
+      });
+      setTimeout(() => setCopiedMessage(false), 2000);
     });
   };
 
@@ -159,6 +180,16 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
           : "bg-gradient-to-br from-[#d4af37] to-[#b58d28] shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100"
         }
         delay={0.4}
+      />
+      <SocialButton
+        icon={copiedMessage ? Check : Share2}
+        onClick={handleCopyMessage}
+        label="Message"
+        colorClass={copiedMessage
+          ? 'bg-green-500/90 shadow-green-500/20'
+          : 'bg-primary/80 hover:bg-primary shadow-primary/30'
+        }
+        delay={0.5}
       />
     </div>
   );

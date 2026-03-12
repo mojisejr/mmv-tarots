@@ -59,6 +59,28 @@ describe('Phase 5.2 referral hardening', () => {
     expect(link).toBe('https://www.maemormimi.com/share/abc123?ref=CARD555');
   });
 
+  it('composes invite payload with both url and code in full message', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://maemormimi.com';
+
+    const payload = ReferralUtils.composeInvitePayload('https://local.mimi', 'INV123');
+
+    expect(payload.url).toBe('https://maemormimi.com/?ref=INV123');
+    expect(payload.code).toBe('INV123');
+    expect(payload.message).toContain('ลิงก์ใช้งาน: https://maemormimi.com/?ref=INV123');
+    expect(payload.message).toContain('ถ้าลิงก์เข้าไม่ได้ ให้กรอกรหัสนี้: INV123');
+  });
+
+  it('composes prediction payload with both url and code in full message', () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.maemormimi.com';
+
+    const payload = ReferralUtils.composePredictionPayload('https://local.mimi', 'job123', 'The Sun', 'SUN999');
+
+    expect(payload.url).toBe('https://www.maemormimi.com/share/job123?ref=SUN999');
+    expect(payload.text).toContain('รหัสแนะนำ: SUN999');
+    expect(payload.message).toContain('ลิงก์ใช้งาน: https://www.maemormimi.com/share/job123?ref=SUN999');
+    expect(payload.message).toContain('ถ้าลิงก์เข้าไม่ได้ ให้กรอกรหัสนี้: SUN999');
+  });
+
   it('forwards ref query from /liff to target when liff.state has no ref', () => {
     const target = buildGatewayTarget('/profile', 'PROMO999');
     expect(target).toBe('/profile?ref=PROMO999');

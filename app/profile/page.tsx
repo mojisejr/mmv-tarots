@@ -34,6 +34,7 @@ function ProfilePageContent() {
   const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
   const [referralCode, setReferralCode] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   
   // Support System State
   const [supportOpen, setSupportOpen] = useState(false);
@@ -142,19 +143,18 @@ function ProfilePageContent() {
     if (!referralCode) return;
     
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const referralLink = ReferralUtils.generateInviteLink(baseUrl, referralCode);
-    const shareText = ReferralUtils.shareText.invite();
+     const payload = ReferralUtils.composeInvitePayload(baseUrl, referralCode);
     
     try {
       // Try to use native share if available (mobile friendly)
       if (navigator.share) {
          await navigator.share({
             title: 'MimiVibe Free Reading',
-            text: shareText,
-            url: referralLink
+          text: payload.message,
+          url: payload.url
          });
       } else {
-         await navigator.clipboard.writeText(referralLink);
+        await navigator.clipboard.writeText(payload.url);
          setCopied(true);
          toast.success('คัดลอกลิงก์แล้ว!', {
            description: `แชร์ให้เพื่อนเพื่อรับ ${REFERRAL_REWARDS.REFERRER} Stars`,
@@ -165,12 +165,28 @@ function ProfilePageContent() {
       console.error('Failed to copy/share:', err);
       // Fallback to clipboard if share fails (e.g. user cancelled)
       try {
-        await navigator.clipboard.writeText(referralLink);
+        await navigator.clipboard.writeText(payload.url);
         setCopied(true);
         toast.success('คัดลอกลิงก์แล้ว!');
       } catch (clipboardErr) {
         toast.error('ไม่สามารถคัดลอกได้');
       }
+    }
+  };
+
+  const handleCopyReferralCode = async () => {
+    if (!referralCode) return;
+
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCopiedCode(true);
+      toast.success('คัดลอกรหัสแนะนำแล้ว!', {
+        description: 'ส่งรหัสนี้ให้เพื่อนใช้กรณีลิงก์เข้าไม่ได้',
+      });
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy referral code:', err);
+      toast.error('ไม่สามารถคัดลอกรหัสได้');
     }
   };
 
@@ -315,9 +331,21 @@ function ProfilePageContent() {
             <GlassButton 
               onClick={handleCopyReferralLink}
               className="!px-4 !py-2.5 bg-accent/10 border-accent/20 hover:bg-accent/20"
+              title="คัดลอกลิงก์ชวนเพื่อน"
             >
               {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
             </GlassButton>
+            <GlassButton
+              onClick={handleCopyReferralCode}
+              className="!px-4 !py-2.5 bg-primary/10 border-primary/20 hover:bg-primary/20"
+              title="คัดลอกรหัสแนะนำ"
+            >
+              {copiedCode ? <Check className="w-4 h-4 text-green-600" /> : <span className="text-[11px] font-mono">CODE</span>}
+            </GlassButton>
+          </div>
+
+          <div className="mt-2 text-[11px] text-foreground/60">
+            รหัสแนะนำ: <span className="font-mono text-foreground/80">{referralCode}</span>
           </div>
         </GlassCard>
       )}
