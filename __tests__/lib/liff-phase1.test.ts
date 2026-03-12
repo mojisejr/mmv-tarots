@@ -38,4 +38,12 @@ describe('Phase 5.1 LIFF gateway helpers', () => {
   it('uses persisted target when mmv_next is malformed', () => {
     expect(resolveDurableGatewayTarget('https%3A%2F%2Fevil.com', 'PROMO1', '/history?from=liff')).toBe('/history?from=liff&ref=PROMO1');
   });
+
+  it('recovers referral from persisted target when mmv_next drops query context', () => {
+    expect(resolveDurableGatewayTarget('%2Fprofile', null, '/profile?ref=KEEP123')).toBe('/profile?ref=KEEP123');
+  });
+
+  it('does not override explicit ref in raw state even when persisted target has different ref', () => {
+    expect(resolveDurableGatewayTarget('%2Fprofile%3Fref%3DRAW999', null, '/profile?ref=PERSIST111')).toBe('/profile?ref=RAW999');
+  });
 });
