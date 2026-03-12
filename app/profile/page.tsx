@@ -33,6 +33,10 @@ function ProfilePageContent() {
   const [stars, setStars] = useState(0);
   const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
   const [referralCode, setReferralCode] = useState<string>('');
+  const [referredById, setReferredById] = useState<string | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [claimCode, setClaimCode] = useState('');
+  const [isClaimingCode, setIsClaimingCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   
@@ -111,6 +115,8 @@ function ProfilePageContent() {
         if (data.referralCode) {
           setReferralCode(data.referralCode);
         }
+        setReferredById(data.referredById ?? null);
+        setOnboardingCompleted(Boolean(data.onboardingCompleted));
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
@@ -190,6 +196,43 @@ function ProfilePageContent() {
     }
   };
 
+  const handleClaimReferralCode = async () => {
+    const normalizedCode = claimCode.trim();
+    if (!normalizedCode) {
+      toast.error('กรุณากรอกรหัสแนะนำ');
+      return;
+    }
+
+    setIsClaimingCode(true);
+    try {
+      const res = await fetch('/api/user/referral-claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: normalizedCode }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'ไม่สามารถใช้รหัสแนะนำได้');
+      }
+
+      setReferredById(data.referredById ?? 'claimed');
+      setClaimCode('');
+      toast.success('ใช้รหัสแนะนำสำเร็จ', {
+        description: 'ระบบผูกผู้แนะนำให้แล้ว โบนัสจะถูกคำนวณตามเงื่อนไข onboarding',
+      });
+    } catch (err) {
+      toast.error('ใช้รหัสแนะนำไม่สำเร็จ', {
+        description: err instanceof Error ? err.message : 'กรุณาลองใหม่อีกครั้ง',
+      });
+    } finally {
+      setIsClaimingCode(false);
+    }
+  };
+
   const loadPredictions = async () => {
     try {
       setLoading(true);
@@ -239,6 +282,7 @@ function ProfilePageContent() {
   }
 
   const user = session.user;
+  const canClaimReferral = !referredById && !onboardingCompleted;
 
   return (
     <div className="max-w-2xl mx-auto pt-6 px-4 pb-32">
@@ -347,6 +391,40 @@ function ProfilePageContent() {
           <div className="mt-2 text-[11px] text-foreground/60">
             รหัสแนะนำ: <span className="font-mono text-foreground/80">{referralCode}</span>
           </div>
+
+          {canClaimReferral ? (
+            <div className="mt-3 rounded-lg border border-primary/10 bg-primary/5 p-3">
+              <p className="text-[11px] text-foreground/70 mb-2">
+                ถ้ากดลิงก์ไม่ทัน สามารถกรอกรหัสเพื่อนเพื่อรับสิทธิ์ผู้ถูกแนะนำได้ 1 ครั้ง
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={claimCode}
+                  onChange={(event) => setClaimCode(event.target.value)}
+                  placeholder="กรอกรหัสแนะนำ"
+                  className="flex-1 rounded-lg border border-white/15 bg-white/60 px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40"
+                />
+                <GlassButton
+                  onClick={handleClaimReferralCode}
+                  disabled={isClaimingCode}
+                  className="!px-4 !py-2 text-xs bg-primary/15 border-primary/20 disabled:opacity-60"
+                >
+                  {isClaimingCode ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      กำลังยืนยัน
+                    </span>
+                  ) : (
+                    'ใช้รหัส'
+                  )}
+                </GlassButton>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/40 px-3 py-2 text-[11px] text-foreground/60">
+              สิทธิ์ผู้ถูกแนะนำถูกใช้ไปแล้วหรือพ้นช่วง claim แล้ว
+            </div>
+          )}
         </GlassCard>
       )}
 

@@ -21,6 +21,8 @@ export const GET = async () => {
       email: true,
       image: true,
       referralCode: true,
+      referredById: true,
+      onboardingCompleted: true,
       stars: true,
     },
   });
