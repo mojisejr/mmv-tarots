@@ -36,11 +36,32 @@ export function buildGatewayTarget(rawState: string | null, referralCode: string
   return `${parsedTarget.pathname}${parsedTarget.search}`;
 }
 
+function extractReferralFromTarget(target: string | null): string | null {
+  if (!target) {
+    return null;
+  }
+
+  const safeTarget = resolveLiffStateTarget(target);
+  if (!safeTarget || safeTarget === '/') {
+    return null;
+  }
+
+  try {
+    const parsedTarget = new URL(safeTarget, 'https://local.mimi');
+    return parsedTarget.searchParams.get('ref');
+  } catch {
+    return null;
+  }
+}
+
 export function resolveDurableGatewayTarget(
   rawState: string | null,
   referralCode: string | null,
   persistedTarget: string | null
 ): string {
+  // Preserve ref from persisted target when incoming state loses query context.
+  const durableReferralCode = referralCode ?? extractReferralFromTarget(persistedTarget);
+
   if (rawState) {
     const resolvedRaw = resolveLiffStateTarget(rawState);
     let isExplicitRootState = false;
@@ -51,15 +72,15 @@ export function resolveDurableGatewayTarget(
     }
 
     if (resolvedRaw !== '/' || isExplicitRootState) {
-      return buildGatewayTarget(rawState, referralCode);
+      return buildGatewayTarget(rawState, durableReferralCode);
     }
   }
 
   if (persistedTarget) {
-    return buildGatewayTarget(persistedTarget, referralCode);
+    return buildGatewayTarget(persistedTarget, durableReferralCode);
   }
 
-  return buildGatewayTarget(rawState, referralCode);
+  return buildGatewayTarget(rawState, durableReferralCode);
 }
 
 function LiffGatewayLoading() {

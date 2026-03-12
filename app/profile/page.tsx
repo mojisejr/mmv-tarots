@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from '@/lib/client/auth-client';
@@ -12,6 +12,7 @@ import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info, HelpC
 import { toast } from 'sonner';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { ReferralUtils } from '@/lib/referral-utils';
+import { isLiffEnvironment } from '@/lib/client/liff-environment';
 
 interface Prediction {
   id: string;
@@ -33,13 +34,17 @@ function ProfilePageContent() {
   const [stars, setStars] = useState(0);
   const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
   const [referralCode, setReferralCode] = useState<string>('');
+  const [referredById, setReferredById] = useState<string | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+  const [claimCode, setClaimCode] = useState('');
+  const [isClaimingCode, setIsClaimingCode] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   
   // Support System State
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
   const [isSendingSupport, setIsSendingSupport] = useState(false);
-  const handledChargeIdsRef = useRef<Set<string>>(new Set());
 
   const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,78 +94,6 @@ function ProfilePageContent() {
   }, [setCurrentPage, searchParams]);
 
   useEffect(() => {
-    const paymentStatus = searchParams?.get('payment');
-    const chargeId = searchParams?.get('chargeId');
-    const legacySuccess = searchParams?.get('success');
-
-    if (paymentStatus === 'success' && chargeId) {
-      if (handledChargeIdsRef.current.has(chargeId)) {
-        return;
-      }
-      handledChargeIdsRef.current.add(chargeId);
-
-      let isCancelled = false;
-
-      const reconcilePayment = async () => {
-        try {
-          const statusRes = await fetch(
-            `/api/checkout/omise/status?chargeId=${encodeURIComponent(chargeId)}`,
-            { cache: 'no-store' }
-          );
-          const statusData = await statusRes.json();
-
-          if (!statusRes.ok) {
-            throw new Error(statusData.error ?? 'Payment status check failed');
-          }
-
-          if (isCancelled) return;
-
-          if (statusData.status === 'successful' && statusData.paid) {
-            toast.success('เติม Star สำเร็จ!', {
-              description: 'ยอด Star ของคุณได้รับการอัปเดตแล้ว',
-              duration: 5000,
-            });
-
-            const balanceRes = await fetch('/api/credits/balance', { cache: 'no-store' });
-            if (balanceRes.ok) {
-              const balanceData = await balanceRes.json();
-              setStars(balanceData.stars);
-            }
-          } else if (statusData.status === 'failed') {
-            toast.error('การชำระเงินไม่สำเร็จ', {
-              description: 'กรุณาลองใหม่อีกครั้ง',
-            });
-          }
-        } catch (error) {
-          if (!isCancelled) {
-            toast.error('ไม่สามารถยืนยันสถานะการชำระเงินได้', {
-              description: error instanceof Error ? error.message : 'กรุณาลองรีเฟรชหน้าอีกครั้ง',
-            });
-          }
-        } finally {
-          if (!isCancelled) {
-            window.history.replaceState({}, '', '/profile');
-          }
-        }
-      };
-
-      void reconcilePayment();
-
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    if (legacySuccess === 'true') {
-      toast.success('เติม Star สำเร็จ!', {
-        description: 'ยอด Star ของคุณได้รับการอัปเดตแล้ว',
-        duration: 5000,
-      });
-      window.history.replaceState({}, '', '/profile');
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
     // Redirect to home if not authenticated
     if (!isPending && !session) {
       router.push('/');
@@ -172,19 +105,8 @@ function ProfilePageContent() {
       loadPredictions();
       fetchUserStars();
       fetchUserProfile();
-      // Check for referral rewards on first load
-      checkReferralReward();
     }
   }, [session, isPending, router]);
-
-  const checkReferralReward = async () => {
-    try {
-      await fetch('/api/auth/referral-check', { method: 'POST' });
-    } catch (err) {
-      // Silent fail - not critical
-      console.error('Failed to check referral:', err);
-    }
-  };
 
   const fetchUserProfile = async () => {
     try {
@@ -194,6 +116,8 @@ function ProfilePageContent() {
         if (data.referralCode) {
           setReferralCode(data.referralCode);
         }
+        setReferredById(data.referredById ?? null);
+        setOnboardingCompleted(Boolean(data.onboardingCompleted));
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
@@ -226,19 +150,18 @@ function ProfilePageContent() {
     if (!referralCode) return;
     
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const referralLink = ReferralUtils.generateLink(baseUrl, referralCode);
-    const shareText = ReferralUtils.shareText.invite();
+     const payload = ReferralUtils.composeInvitePayload(baseUrl, referralCode);
     
     try {
       // Try to use native share if available (mobile friendly)
       if (navigator.share) {
          await navigator.share({
             title: 'MimiVibe Free Reading',
-            text: shareText,
-            url: referralLink
+          text: payload.message,
+          url: payload.url
          });
       } else {
-         await navigator.clipboard.writeText(referralLink);
+        await navigator.clipboard.writeText(payload.url);
          setCopied(true);
          toast.success('คัดลอกลิงก์แล้ว!', {
            description: `แชร์ให้เพื่อนเพื่อรับ ${REFERRAL_REWARDS.REFERRER} Stars`,
@@ -249,12 +172,65 @@ function ProfilePageContent() {
       console.error('Failed to copy/share:', err);
       // Fallback to clipboard if share fails (e.g. user cancelled)
       try {
-        await navigator.clipboard.writeText(referralLink);
+        await navigator.clipboard.writeText(payload.url);
         setCopied(true);
         toast.success('คัดลอกลิงก์แล้ว!');
       } catch (clipboardErr) {
         toast.error('ไม่สามารถคัดลอกได้');
       }
+    }
+  };
+
+  const handleCopyReferralCode = async () => {
+    if (!referralCode) return;
+
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCopiedCode(true);
+      toast.success('คัดลอกรหัสแนะนำแล้ว!', {
+        description: 'ส่งรหัสนี้ให้เพื่อนใช้กรณีลิงก์เข้าไม่ได้',
+      });
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy referral code:', err);
+      toast.error('ไม่สามารถคัดลอกรหัสได้');
+    }
+  };
+
+  const handleClaimReferralCode = async () => {
+    const normalizedCode = claimCode.trim();
+    if (!normalizedCode) {
+      toast.error('กรุณากรอกรหัสแนะนำ');
+      return;
+    }
+
+    setIsClaimingCode(true);
+    try {
+      const res = await fetch('/api/user/referral-claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: normalizedCode }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'ไม่สามารถใช้รหัสแนะนำได้');
+      }
+
+      setReferredById(data.referredById ?? 'claimed');
+      setClaimCode('');
+      toast.success('ใช้รหัสแนะนำสำเร็จ', {
+        description: 'ระบบผูกผู้แนะนำให้แล้ว โบนัสจะถูกคำนวณตามเงื่อนไข onboarding',
+      });
+    } catch (err) {
+      toast.error('ใช้รหัสแนะนำไม่สำเร็จ', {
+        description: err instanceof Error ? err.message : 'กรุณาลองใหม่อีกครั้ง',
+      });
+    } finally {
+      setIsClaimingCode(false);
     }
   };
 
@@ -307,6 +283,8 @@ function ProfilePageContent() {
   }
 
   const user = session.user;
+  const canClaimReferral = !referredById && !onboardingCompleted;
+  const liffMode = isLiffEnvironment();
 
   return (
     <div className="max-w-2xl mx-auto pt-6 px-4 pb-32">
@@ -394,15 +372,63 @@ function ProfilePageContent() {
           
           <div className="flex gap-2">
             <div className="flex-1 bg-primary/5 rounded-lg px-3 py-2.5 text-xs font-mono text-foreground/80 truncate border border-primary/10">
-              {typeof window !== 'undefined' ? ReferralUtils.generateLink(window.location.origin, referralCode) : ''}
+              {typeof window !== 'undefined' ? ReferralUtils.generateInviteLink(window.location.origin, referralCode) : ''}
             </div>
             <GlassButton 
               onClick={handleCopyReferralLink}
               className="!px-4 !py-2.5 bg-accent/10 border-accent/20 hover:bg-accent/20"
+              title="คัดลอกลิงก์ชวนเพื่อน"
             >
               {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
             </GlassButton>
+            <GlassButton
+              onClick={handleCopyReferralCode}
+              className={liffMode
+                ? '!px-4 !py-2.5 bg-indigo-500/20 border-indigo-400/40 hover:bg-indigo-500/30'
+                : '!px-4 !py-2.5 bg-primary/10 border-primary/20 hover:bg-primary/20'}
+              title="คัดลอกรหัสแนะนำ"
+            >
+              {copiedCode ? <Check className="w-4 h-4 text-green-600" /> : <span className="text-[11px] font-mono">CODE</span>}
+            </GlassButton>
           </div>
+
+          <div className="mt-2 text-[11px] text-foreground/60">
+            รหัสแนะนำ: <span className="font-mono text-foreground/80">{referralCode}</span>
+          </div>
+
+          {canClaimReferral ? (
+            <div className="mt-3 rounded-lg border border-primary/10 bg-primary/5 p-3">
+              <p className="text-[11px] text-foreground/70 mb-2">
+                ถ้ากดลิงก์ไม่ทัน สามารถกรอกรหัสเพื่อนเพื่อรับสิทธิ์ผู้ถูกแนะนำได้ 1 ครั้ง
+              </p>
+              <div className="flex gap-2">
+                <input
+                  value={claimCode}
+                  onChange={(event) => setClaimCode(event.target.value)}
+                  placeholder="กรอกรหัสแนะนำ"
+                  className="flex-1 rounded-lg border border-white/15 bg-white/60 px-3 py-2 text-xs text-foreground outline-none focus:border-primary/40"
+                />
+                <GlassButton
+                  onClick={handleClaimReferralCode}
+                  disabled={isClaimingCode}
+                  className="!px-4 !py-2 text-xs bg-primary/15 border-primary/20 disabled:opacity-60"
+                >
+                  {isClaimingCode ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      กำลังยืนยัน
+                    </span>
+                  ) : (
+                    'ใช้รหัส'
+                  )}
+                </GlassButton>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-lg border border-white/10 bg-white/40 px-3 py-2 text-[11px] text-foreground/60">
+              สิทธิ์ผู้ถูกแนะนำถูกใช้ไปแล้วหรือพ้นช่วง claim แล้ว
+            </div>
+          )}
         </GlassCard>
       )}
 
