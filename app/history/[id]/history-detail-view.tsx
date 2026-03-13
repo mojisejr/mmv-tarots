@@ -262,21 +262,12 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
     <div className="max-w-4xl mx-auto px-4 h-full pb-20">
       <div className="space-y-6">
         <GlassCard className="p-6">
-          <div className="flex justify-between items-start gap-4">
-            <div className="flex-1">
-              <h1 className="text-2xl font-serif text-foreground mb-4">{prediction.question}</h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>Job ID: #{jobId}</span>
-                {prediction.completedAt && <span>{formatDate(prediction.completedAt)}</span>}
-              </div>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-serif text-foreground">{prediction.question}</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+              <span>Job ID: #{jobId}</span>
+              {prediction.completedAt && <span>{formatDate(prediction.completedAt)}</span>}
             </div>
-            {mappedData?.cards && (
-              <ShareActions 
-                predictionId={jobId} 
-                cardName={mappedData.cards[0]?.name_th || 'คำทำนาย'} 
-                variant="minimal"
-              />
-            )}
           </div>
         </GlassCard>
 
