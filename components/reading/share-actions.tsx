@@ -165,7 +165,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
       )}>
         <Icon className="w-5 h-5" />
       </div>
-      <span className="text-[11px] text-black/50 font-medium group-hover:text-accent-300 transition-colors uppercase tracking-wider drop-shadow-sm">
+      <span className="text-[11px] text-foreground/75 font-medium group-hover:text-foreground transition-colors uppercase tracking-wider drop-shadow-sm">
         {label === 'Copy Link' ? 'Copy' : label}
       </span>
     </motion.button>
@@ -195,7 +195,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
       icon: TikTokIcon,
       onClick: handleTikTokShare,
       label: 'TikTok',
-      colorClass: 'bg-gradient-to-br from-[#00f2ea] to-[#ff0050] opacity-90 hover:opacity-100 shadow-pink-500/20',
+      colorClass: 'bg-gradient-to-br from-[#00d6cf] to-[#e60049] opacity-95 hover:opacity-100 shadow-pink-500/20',
     },
     'copy-link': {
       icon: copied ? Check : Copy,
@@ -203,7 +203,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
       label: 'Copy Link',
       colorClass: copied
         ? 'bg-green-500/90 shadow-green-500/20'
-        : 'bg-gradient-to-br from-[#d4af37] to-[#b58d28] shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100',
+        : 'bg-gradient-to-br from-[#d4af37] to-[#b58d28] text-amber-950 shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100',
     },
     'copy-message': {
       icon: copiedMessage ? Check : Share2,
