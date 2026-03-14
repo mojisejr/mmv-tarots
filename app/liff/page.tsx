@@ -85,11 +85,11 @@ export function resolveDurableGatewayTarget(
 
 function LiffGatewayLoading() {
   return (
-    <main className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-black to-neutral-900 text-white px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-center">
-        <div className="h-9 w-9 mx-auto rounded-full border-2 border-white/50 border-t-transparent animate-spin" />
-        <h1 className="mt-4 text-lg font-medium">กำลังเชื่อมต่อบัญชี LINE</h1>
-        <p className="mt-2 text-sm text-white/70">กรุณารอสักครู่ ระบบกำลังพาคุณเข้าสู่หน้าที่ต้องการ</p>
+    <main className="min-h-dvh flex items-center justify-center bg-gradient-to-b from-background via-primary/10 to-background text-foreground px-6">
+      <div className="w-full max-w-sm rounded-2xl border border-border-subtle bg-[var(--color-surface-card)] shadow-warm backdrop-blur-xl p-6 text-center">
+        <div className="h-9 w-9 mx-auto rounded-full border-2 border-border-medium border-t-primary animate-spin" />
+        <h1 className="mt-4 text-lg font-medium text-foreground">กำลังเชื่อมต่อบัญชี LINE</h1>
+        <p className="mt-2 text-sm text-muted-foreground">กรุณารอสักครู่ ระบบกำลังพาคุณเข้าสู่หน้าที่ต้องการ</p>
       </div>
     </main>
   );
