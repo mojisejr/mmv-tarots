@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Check, Facebook, Twitter, Copy } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Share2, Check, Copy, Link2 } from 'lucide-react';
 import { GlassCard } from '@/components';
 import { toast } from 'sonner';
 import { useSession } from '@/lib/client/auth-client';
@@ -22,18 +22,6 @@ interface UserWithReferral {
   referralCode?: string | null;
 }
 
-// Custom TikTok Icon because Lucide doesn't have it
-const TikTokIcon = ({ className }: { className?: string }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    fill="currentColor" 
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 10.692 6.33 6.33 0 0 0 10.857-4.424V8.687a8.182 8.182 0 0 0 4.773 1.526V6.79a4.831 4.831 0 0 1-1.003-.104z"/>
-  </svg>
-);
-
 export function ShareActions({ predictionId, cardName, className = '', variant = 'minimal' }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
@@ -52,38 +40,10 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
     );
   };
 
-  const getShareText = () => {
-    const payload = getSharePayload();
-    return typeof payload === 'string' ? '' : payload.text;
-  };
-
   const getReferralCode = () => {
     const payload = getSharePayload();
     if (typeof payload === 'string') return undefined;
     return payload.code;
-  };
-
-  const handleFacebookShare = () => {
-    const payload = getSharePayload();
-    if (typeof payload === 'string') return;
-    const url = payload.url;
-    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
-
-  const handleTwitterShare = () => {
-    const payload = getSharePayload();
-    if (typeof payload === 'string') return;
-    const url = payload.url;
-    const text = getShareText();
-    const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-  };
-
-  const handleTikTokShare = () => {
-    // TikTok web doesn't support direct share intent well, so we copy the link
-    // and guide the user to paste it.
-    handleCopyLink();
   };
 
   const handleCopyLink = () => {
@@ -92,7 +52,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
     const url = payload.url;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
-      toast.success('คัดลอกลิงก์แล้ว! นำไปวางใน TikTok หรือแอปอื่นได้เลย', {
+      toast.success('คัดลอกลิงก์แล้ว! นำไปแชร์ได้ทันที', {
         duration: 3000
       });
       setTimeout(() => setCopied(false), 2000);
@@ -125,49 +85,56 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
     });
   };
 
-  const SocialButton = ({ 
+  const ActionButton = ({ 
     icon: Icon, 
     onClick, 
-    label, 
-    colorClass,
+    title,
+    description,
+    iconClass,
+    copiedState,
     delay = 0 
   }: { 
     icon: React.ComponentType<{ className?: string }>, 
     onClick: () => void, 
-    label: string, 
-    colorClass: string,
+    title: string,
+    description: string,
+    iconClass: string,
+    copiedState?: boolean,
     delay?: number
   }) => (
     <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onClick();
       }}
       className={cn(
-        "flex flex-col items-center gap-2 group relative",
-        "focus:outline-none focus:ring-2 focus:ring-accent/50 rounded-xl p-2",
-        "min-w-[64px]", // Ensure touch target
-        className
+        'w-full rounded-2xl border border-white/15 bg-white/[0.04] p-4 text-left',
+        'backdrop-blur-md transition-all duration-300',
+        'hover:border-accent/30 hover:bg-accent/[0.08] hover:shadow-[0_10px_30px_-20px_rgba(255,208,120,0.8)]',
+        'focus:outline-none focus:ring-2 focus:ring-accent/50 focus:ring-offset-0',
+        'min-h-[92px]'
       )}
-      aria-label={`Share to ${label}`}
-      title={label}
+      aria-label={title}
+      title={title}
     >
-      <div className={cn(
-        "w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg backdrop-blur-sm border border-white/20",
-        "transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1",
-        colorClass
-      )}>
-        <Icon className="w-5 h-5" />
+      <div className="flex items-start gap-3">
+        <div className={cn(
+          'mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/20',
+          copiedState ? 'bg-green-500/20 text-green-300' : iconClass
+        )}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold tracking-wide text-foreground">{title}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
+        </div>
       </div>
-      <span className="text-[11px] text-foreground/75 font-medium group-hover:text-foreground transition-colors uppercase tracking-wider drop-shadow-sm">
-        {label === 'Copy Link' ? 'Copy' : label}
-      </span>
     </motion.button>
   );
 
@@ -176,64 +143,50 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
   const actionConfig: Record<ShareActionId, {
     icon: React.ComponentType<{ className?: string }>;
     onClick: () => void;
-    label: string;
-    colorClass: string;
+    title: string;
+    description: string;
+    iconClass: string;
+    copiedState?: boolean;
   }> = {
-    facebook: {
-      icon: Facebook,
-      onClick: handleFacebookShare,
-      label: 'Facebook',
-      colorClass: 'bg-[#1877F2]/80 hover:bg-[#1877F2] shadow-blue-500/20',
-    },
-    x: {
-      icon: Twitter,
-      onClick: handleTwitterShare,
-      label: 'X',
-      colorClass: 'bg-black/80 hover:bg-black shadow-gray-500/20',
-    },
-    tiktok: {
-      icon: TikTokIcon,
-      onClick: handleTikTokShare,
-      label: 'TikTok',
-      colorClass: 'bg-gradient-to-br from-[#00d6cf] to-[#e60049] opacity-95 hover:opacity-100 shadow-pink-500/20',
-    },
     'copy-link': {
-      icon: copied ? Check : Copy,
+      icon: copied ? Check : Link2,
       onClick: handleCopyLink,
-      label: 'Copy Link',
-      colorClass: copied
-        ? 'bg-green-500/90 shadow-green-500/20'
-        : 'bg-gradient-to-br from-[#d4af37] to-[#b58d28] text-amber-950 shadow-accent-500/30 hover:shadow-accent-500/50 hover:brightness-110 opacity-100',
+      title: 'คัดลอกลิงก์',
+      description: 'ลิงก์สั้น แชร์ได้กับทุกแอปทันที',
+      iconClass: 'bg-accent/20 text-accent',
+      copiedState: copied,
     },
     'copy-message': {
       icon: copiedMessage ? Check : Share2,
       onClick: handleCopyMessage,
-      label: 'Message',
-      colorClass: copiedMessage
-        ? 'bg-green-500/90 shadow-green-500/20'
-        : 'bg-primary/80 hover:bg-primary shadow-primary/30',
+      title: 'คัดลอกข้อความ',
+      description: 'ได้ข้อความพร้อมลิงก์และรหัสแนะนำ (ถ้ามี)',
+      iconClass: 'bg-primary/20 text-primary-foreground',
+      copiedState: copiedMessage,
     },
     'copy-code': {
       icon: copiedCode ? Check : Copy,
       onClick: handleCopyCode,
-      label: 'Code',
-      colorClass: copiedCode
-        ? 'bg-green-500/90 shadow-green-500/20'
-        : 'bg-indigo-500/80 hover:bg-indigo-500 shadow-indigo-500/30',
+      title: 'คัดลอกรหัส',
+      description: 'ใช้ส่งแยกในแชทเมื่อเพื่อนเข้าลิงก์ไม่ได้',
+      iconClass: 'bg-indigo-500/20 text-indigo-300',
+      copiedState: copiedCode,
     },
   };
 
   const buttonList = (
-    <div className="flex items-center justify-center gap-4 flex-wrap">
+    <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3">
       {actionOrder.map((actionId, index) => {
         const action = actionConfig[actionId];
         return (
-          <SocialButton
+          <ActionButton
             key={actionId}
             icon={action.icon}
             onClick={action.onClick}
-            label={action.label}
-            colorClass={action.colorClass}
+            title={action.title}
+            description={action.description}
+            iconClass={action.iconClass}
+            copiedState={action.copiedState}
             delay={0.1 + index * 0.1}
           />
         );
@@ -243,7 +196,7 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
 
   if (variant === 'minimal') {
     return (
-      <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${className}`}>
+      <div className={`rounded-2xl border border-white/10 bg-white/5 p-4 ${className}`}>
         {buttonList}
       </div>
     );
@@ -256,6 +209,9 @@ export function ShareActions({ predictionId, cardName, className = '', variant =
         <h3 className="text-lg font-serif text-accent/90">
           แบ่งปันคำทำนายของคุณ
         </h3>
+        <p className="max-w-xl text-sm text-muted-foreground">
+          เลือกวิธีคัดลอกที่สะดวกที่สุด แล้วนำไปแชร์ต่อในช่องทางที่คุณใช้จริง
+        </p>
         {buttonList}
       </div>
     </GlassCard>
