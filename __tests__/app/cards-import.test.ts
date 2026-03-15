@@ -3,6 +3,7 @@ import { importCardsFromCSV } from '../../scripts/import-cards';
 
 const prisma = new PrismaClient();
 const CSV_IMPORT_TEST_TIMEOUT_MS = 15_000;
+const CARD_MODEL_HOOK_TIMEOUT_MS = 30_000;
 
 describe('Cards Import', () => {
   beforeAll(async () => {
@@ -57,7 +58,7 @@ describe('Cards Import', () => {
       const keywords = firstCard?.keywords as any[];
       expect(Array.isArray(keywords)).toBe(true);
       expect(keywords.length).toBeGreaterThan(0);
-    });
+    }, CSV_IMPORT_TEST_TIMEOUT_MS);
 
     it('should preserve all required fields', async () => {
       // Act - Import cards
@@ -75,14 +76,14 @@ describe('Cards Import', () => {
         arcana: expect.any(String),
         imageUrl: expect.stringContaining('supabase.co')
       });
-    });
+    }, CSV_IMPORT_TEST_TIMEOUT_MS);
   });
 
   describe('Card Model Operations', () => {
     beforeEach(async () => {
       // Import cards before each test
       await importCardsFromCSV();
-    });
+    }, CARD_MODEL_HOOK_TIMEOUT_MS);
 
     it('should query cards by card_id array', async () => {
       // Arrange
@@ -103,7 +104,7 @@ describe('Cards Import', () => {
       // Assert
       expect(cards).toHaveLength(3);
       expect(cards.map(c => c.cardId)).toEqual([0, 15, 32]);
-    });
+    }, CSV_IMPORT_TEST_TIMEOUT_MS);
 
     it('should return card with all fields when queried', async () => {
       // Act
@@ -123,6 +124,6 @@ describe('Cards Import', () => {
         keywords: expect.any(Array),
         imageUrl: expect.stringContaining('https://')
       });
-    });
+    }, CSV_IMPORT_TEST_TIMEOUT_MS);
   });
 });

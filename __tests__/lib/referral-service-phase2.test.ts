@@ -218,4 +218,21 @@ describe('referralService phase 2 safety net', () => {
       })
     );
   });
+
+  it('grantReferralReward skips payouts when state transition was already claimed by another worker', async () => {
+    testMocks.mockReferralHistoryFindFirst.mockResolvedValue({
+      id: 'history-race',
+      referrerId: 'referrer-race',
+      refereeId: 'referee-race',
+      source: ReferralSource.MANUAL_CODE,
+      referrer: { stars: 12 },
+      referee: { stars: 8 },
+    });
+    testMocks.mockReferralHistoryUpdate.mockResolvedValue({ count: 0 });
+
+    await referralService.grantReferralReward('referee-race');
+
+    expect(testMocks.mockCreditTransactionCreate).not.toHaveBeenCalled();
+    expect(testMocks.mockUserUpdate).not.toHaveBeenCalled();
+  });
 });
