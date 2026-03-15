@@ -162,7 +162,10 @@ describe('referralService phase 2 safety net', () => {
 
     expect(testMocks.mockReferralHistoryUpdate).toHaveBeenCalledWith({
       where: { id: 'history-777' },
-      data: { status: ReferralStatus.GRANTED },
+      data: {
+        status: ReferralStatus.GRANTED,
+        eligibilityState: 'GRANTED',
+      },
     });
     expect(testMocks.mockDbTransaction).toHaveBeenCalledTimes(1);
   });

@@ -1,25 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const testState = vi.hoisted(() => ({
-  user: {
-    id: 'user-1',
-    referralCode: 'SELF123',
-    referredById: null as string | null,
-    onboardingCompleted: false,
-  },
-  referrerId: 'referrer-2',
-}));
-
 const testMocks = vi.hoisted(() => ({
   mockGetSession: vi.fn(),
   mockHeaders: vi.fn(),
   mockCookies: vi.fn(),
-  mockDbUserFindUnique: vi.fn(),
-  mockDbTransaction: vi.fn(),
-  mockGrantOnboardingBonus: vi.fn(),
-  mockGrantReferralEntryBonus: vi.fn(),
-  mockProcessReferralSignup: vi.fn(),
+  mockCompleteOnboarding: vi.fn(),
+  mockClaimReferralCode: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -35,25 +22,15 @@ vi.mock('@/lib/server/auth', () => ({
   },
 }));
 
-vi.mock('@/lib/server/db', () => ({
-  db: {
-    user: {
-      findUnique: testMocks.mockDbUserFindUnique,
-    },
-    $transaction: testMocks.mockDbTransaction,
+vi.mock('@/lib/server/services/onboarding-orchestration-service', () => ({
+  onboardingOrchestrationService: {
+    completeOnboarding: testMocks.mockCompleteOnboarding,
   },
 }));
 
-vi.mock('@/services/credit-service', () => ({
-  CreditService: {
-    grantOnboardingBonus: testMocks.mockGrantOnboardingBonus,
-    grantReferralEntryBonus: testMocks.mockGrantReferralEntryBonus,
-  },
-}));
-
-vi.mock('@/lib/server/services/referral-service', () => ({
-  referralService: {
-    processReferralSignup: testMocks.mockProcessReferralSignup,
+vi.mock('@/lib/server/services/referral-claim-service', () => ({
+  referralClaimService: {
+    claimReferralCode: testMocks.mockClaimReferralCode,
   },
 }));
 
@@ -67,11 +44,8 @@ describe('Phase 3 - Referral Reliability E2E', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    testState.user.referredById = null;
-    testState.user.onboardingCompleted = false;
-
     testMocks.mockGetSession.mockResolvedValue({
-      user: { id: testState.user.id },
+      user: { id: 'user-1' },
     });
 
     testMocks.mockHeaders.mockResolvedValue(new Headers({ 'x-forwarded-for': '1.2.3.4' }));
@@ -79,60 +53,18 @@ describe('Phase 3 - Referral Reliability E2E', () => {
       get: vi.fn().mockReturnValue(undefined),
     });
 
-    testMocks.mockProcessReferralSignup.mockImplementation(async (_user: unknown, code: string) => {
-      if (code === 'FRIEND777') {
-        testState.user.referredById = testState.referrerId;
-      }
+    testMocks.mockClaimReferralCode.mockResolvedValue({
+      status: 200,
+      body: {
+        success: true,
+        referredById: 'referrer-2',
+        message: 'Referral code claimed successfully',
+      },
     });
 
-    testMocks.mockDbUserFindUnique.mockImplementation(async (args: any) => {
-      const where = args?.where ?? {};
-
-      if (where.referralCode !== undefined) {
-        if (where.referralCode === 'FRIEND777') {
-          return { id: testState.referrerId };
-        }
-        return null;
-      }
-
-      if (where.id === testState.user.id) {
-        const base = {
-          id: testState.user.id,
-          referralCode: testState.user.referralCode,
-          referredById: testState.user.referredById,
-          onboardingCompleted: testState.user.onboardingCompleted,
-        };
-
-        if (!args?.select) {
-          return base;
-        }
-
-        const selected: Record<string, unknown> = {};
-        for (const key of Object.keys(args.select)) {
-          selected[key] = (base as Record<string, unknown>)[key];
-        }
-        return selected;
-      }
-
-      return null;
-    });
-
-    testMocks.mockDbTransaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
-      const tx = {
-        user: {
-          updateMany: vi.fn().mockImplementation(async () => {
-            if (testState.user.onboardingCompleted) {
-              return { count: 0 };
-            }
-
-            testState.user.onboardingCompleted = true;
-            return { count: 1 };
-          }),
-        },
-      };
-
-      return callback(tx);
-    });
+    testMocks.mockCompleteOnboarding
+      .mockResolvedValueOnce({ status: 'completed', reward: 1 })
+      .mockResolvedValueOnce({ status: 'already_completed', reward: 0 });
   });
 
   it('captures first-touch share ref and keeps it on reopen', () => {
@@ -177,7 +109,7 @@ describe('Phase 3 - Referral Reliability E2E', () => {
     expect(claimResponse.status).toBe(200);
     expect(claimData).toEqual({
       success: true,
-      referredById: testState.referrerId,
+      referredById: 'referrer-2',
       message: 'Referral code claimed successfully',
     });
 
@@ -191,7 +123,7 @@ describe('Phase 3 - Referral Reliability E2E', () => {
     expect(firstOnboardingData).toMatchObject({
       success: true,
       ritual: 'completed',
-      reward: 2,
+      reward: 1,
     });
 
     const replayOnboardingRequest = new NextRequest('http://localhost:3000/api/user/onboarding', {
@@ -203,8 +135,7 @@ describe('Phase 3 - Referral Reliability E2E', () => {
     expect(replayOnboardingResponse.status).toBe(200);
     expect(replayOnboardingData).toEqual({ success: true, message: 'Already completed', reward: 0 });
 
-    expect(testMocks.mockGrantOnboardingBonus).toHaveBeenCalledTimes(1);
-    expect(testMocks.mockGrantReferralEntryBonus).toHaveBeenCalledTimes(1);
+    expect(testMocks.mockCompleteOnboarding).toHaveBeenCalledTimes(2);
   });
 
   it('keeps legacy referral-check endpoint as no-op even on repeated calls', async () => {
@@ -230,8 +161,5 @@ describe('Phase 3 - Referral Reliability E2E', () => {
     });
     expect(secondResponse.status).toBe(200);
     expect(secondData).toEqual(firstData);
-
-    expect(testMocks.mockGrantOnboardingBonus).not.toHaveBeenCalled();
-    expect(testMocks.mockGrantReferralEntryBonus).not.toHaveBeenCalled();
   });
 });

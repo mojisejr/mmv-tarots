@@ -3,13 +3,9 @@ import { NextRequest } from 'next/server';
 
 const testMocks = vi.hoisted(() => ({
   mockGetSession: vi.fn(),
-  mockUserFindUnique: vi.fn(),
-  mockDbTransaction: vi.fn(),
   mockHeaders: vi.fn(),
   mockCookies: vi.fn(),
-  mockGrantOnboardingBonus: vi.fn(),
-  mockGrantReferralEntryBonus: vi.fn(),
-  mockProcessReferralSignup: vi.fn(),
+  mockCompleteOnboarding: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -25,25 +21,9 @@ vi.mock('@/lib/server/auth', () => ({
   },
 }));
 
-vi.mock('@/lib/server/db', () => ({
-  db: {
-    user: {
-      findUnique: testMocks.mockUserFindUnique,
-    },
-    $transaction: testMocks.mockDbTransaction,
-  },
-}));
-
-vi.mock('@/services/credit-service', () => ({
-  CreditService: {
-    grantOnboardingBonus: testMocks.mockGrantOnboardingBonus,
-    grantReferralEntryBonus: testMocks.mockGrantReferralEntryBonus,
-  },
-}));
-
-vi.mock('@/lib/server/services/referral-service', () => ({
-  referralService: {
-    processReferralSignup: testMocks.mockProcessReferralSignup,
+vi.mock('@/lib/server/services/onboarding-orchestration-service', () => ({
+  onboardingOrchestrationService: {
+    completeOnboarding: testMocks.mockCompleteOnboarding,
   },
 }));
 
@@ -53,7 +33,7 @@ describe('PATCH /api/user/onboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    testMocks.mockHeaders.mockResolvedValue(new Headers());
+    testMocks.mockHeaders.mockResolvedValue(new Headers({ 'x-forwarded-for': '10.20.30.40' }));
     testMocks.mockCookies.mockResolvedValue({
       get: vi.fn().mockReturnValue(undefined),
     });
@@ -62,18 +42,9 @@ describe('PATCH /api/user/onboarding', () => {
       user: { id: 'user-1' },
     });
 
-    testMocks.mockUserFindUnique.mockResolvedValue({
-      onboardingCompleted: false,
-      referredById: null,
-    });
-
-    testMocks.mockDbTransaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
-      const tx = {
-        user: {
-          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-        },
-      };
-      return callback(tx);
+    testMocks.mockCompleteOnboarding.mockResolvedValue({
+      status: 'completed',
+      reward: 1,
     });
   });
 
@@ -89,27 +60,14 @@ describe('PATCH /api/user/onboarding', () => {
 
     expect(response.status).toBe(401);
     expect(data).toEqual({ error: 'Unauthorized' });
+    expect(testMocks.mockCompleteOnboarding).not.toHaveBeenCalled();
   });
 
-  it('returns already completed when onboarding is already done', async () => {
-    testMocks.mockUserFindUnique.mockResolvedValue({
-      onboardingCompleted: true,
-      referredById: null,
+  it('delegates onboarding flow to orchestration service with cookie and ip context', async () => {
+    testMocks.mockCookies.mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: 'FRIEND777' }),
     });
 
-    const request = new NextRequest('http://localhost:3000/api/user/onboarding', {
-      method: 'PATCH',
-    });
-
-    const response = await PATCH(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data).toEqual({ success: true, message: 'Already completed', reward: 0 });
-    expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
-  });
-
-  it('grants onboarding bonus exactly once when user has no referrer', async () => {
     const request = new NextRequest('http://localhost:3000/api/user/onboarding', {
       method: 'PATCH',
     });
@@ -125,39 +83,17 @@ describe('PATCH /api/user/onboarding', () => {
       reward: 1,
     });
 
-    expect(testMocks.mockGrantOnboardingBonus).toHaveBeenCalledTimes(1);
-    expect(testMocks.mockGrantOnboardingBonus).toHaveBeenCalledWith('user-1', expect.any(Object));
-    expect(testMocks.mockGrantReferralEntryBonus).not.toHaveBeenCalled();
+    expect(testMocks.mockCompleteOnboarding).toHaveBeenCalledWith({
+      userId: 'user-1',
+      referralCodeFromCookie: 'FRIEND777',
+      ipAddress: '10.20.30.40',
+    });
   });
 
-  it('grants referral entry bonus when user is linked to referrer', async () => {
-    testMocks.mockUserFindUnique.mockResolvedValue({
-      onboardingCompleted: false,
-      referredById: 'referrer-1',
-    });
-
-    const request = new NextRequest('http://localhost:3000/api/user/onboarding', {
-      method: 'PATCH',
-    });
-
-    const response = await PATCH(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.reward).toBe(2);
-    expect(testMocks.mockGrantOnboardingBonus).toHaveBeenCalledTimes(1);
-    expect(testMocks.mockGrantReferralEntryBonus).toHaveBeenCalledTimes(1);
-    expect(testMocks.mockGrantReferralEntryBonus).toHaveBeenCalledWith('user-1', 'referrer-1', expect.any(Object));
-  });
-
-  it('returns already completed when atomic lock update count is zero', async () => {
-    testMocks.mockDbTransaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
-      const tx = {
-        user: {
-          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-        },
-      };
-      return callback(tx);
+  it('returns already completed when orchestration reports idempotent replay', async () => {
+    testMocks.mockCompleteOnboarding.mockResolvedValue({
+      status: 'already_completed',
+      reward: 0,
     });
 
     const request = new NextRequest('http://localhost:3000/api/user/onboarding', {
@@ -169,21 +105,10 @@ describe('PATCH /api/user/onboarding', () => {
 
     expect(response.status).toBe(200);
     expect(data).toEqual({ success: true, message: 'Already completed', reward: 0 });
-    expect(testMocks.mockGrantOnboardingBonus).not.toHaveBeenCalled();
-    expect(testMocks.mockGrantReferralEntryBonus).not.toHaveBeenCalled();
   });
 
-  it('attempts self-healing from mmv_ref cookie before ritual transaction', async () => {
-    const cookieGet = vi.fn().mockReturnValue({ value: 'FRIEND777' });
-    testMocks.mockCookies.mockResolvedValue({ get: cookieGet });
-
-    const firstHeaders = new Headers({ 'x-forwarded-for': '10.20.30.40, 10.20.30.41' });
-    const secondHeaders = new Headers({ 'x-forwarded-for': '10.20.30.40, 10.20.30.41' });
-    testMocks.mockHeaders.mockResolvedValueOnce(firstHeaders).mockResolvedValueOnce(secondHeaders);
-
-    testMocks.mockUserFindUnique
-      .mockResolvedValueOnce({ onboardingCompleted: false, referredById: null })
-      .mockResolvedValueOnce({ referredById: 'referrer-healed' });
+  it('returns 500 on orchestration failure', async () => {
+    testMocks.mockCompleteOnboarding.mockRejectedValue(new Error('boom'));
 
     const request = new NextRequest('http://localhost:3000/api/user/onboarding', {
       method: 'PATCH',
@@ -192,17 +117,7 @@ describe('PATCH /api/user/onboarding', () => {
     const response = await PATCH(request);
     const data = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(data.reward).toBe(2);
-    expect(testMocks.mockProcessReferralSignup).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'user-1' }),
-      'FRIEND777',
-      '10.20.30.40'
-    );
-    expect(testMocks.mockGrantReferralEntryBonus).toHaveBeenCalledWith(
-      'user-1',
-      'referrer-healed',
-      expect.any(Object)
-    );
+    expect(response.status).toBe(500);
+    expect(data).toEqual({ error: 'Ritual Failed' });
   });
 });

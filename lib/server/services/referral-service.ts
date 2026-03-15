@@ -1,10 +1,19 @@
 import { db } from '../db';
-import { REFERRAL_REWARDS, ReferralStatus } from '@/constants/referral';
+import {
+  REFERRAL_REWARDS,
+  ReferralEligibilityState,
+  ReferralSource,
+  ReferralStatus,
+} from '@/constants/referral';
 import { User, TransactionType, TransactionStatus } from '@prisma/client';
-import { CreditService } from '@/services/credit-service';
 
 export const referralService = {
-  async processReferralSignup(user: User, referralCode?: string, ipAddress: string = 'unknown') {
+  async processReferralSignup(
+    user: User,
+    referralCode?: string,
+    ipAddress: string = 'unknown',
+    options?: { source?: ReferralSource }
+  ) {
     if (!referralCode) {
       // Just record IP
       await db.user.update({
@@ -50,6 +59,10 @@ export const referralService = {
 
     const isSuspicious = existingReferralsFromIp >= 3; // Limit 3 referrals per IP per day
     const initialStatus = isSuspicious ? ReferralStatus.BLOCKED : ReferralStatus.PENDING;
+    const initialEligibilityState = isSuspicious
+      ? ReferralEligibilityState.BLOCKED
+      : ReferralEligibilityState.PENDING_FIRST_PREDICTION;
+    const source = options?.source ?? ReferralSource.LINK;
 
     // Phase 2: Record Intent ONLY (No reward granting here)
     // We just link the user and create the history record.
@@ -70,6 +83,8 @@ export const referralService = {
           refereeId: user.id,
           ipAddress: ipAddress,
           status: initialStatus,
+          source,
+          eligibilityState: initialEligibilityState,
           // Calculate expected reward but don't give it yet
           rewardAmount: REFERRAL_REWARDS.REFERRER, 
         },
@@ -134,7 +149,10 @@ export const referralService = {
       // 3. Update History Status
       db.referralHistory.update({
         where: { id: history.id },
-        data: { status: ReferralStatus.GRANTED },
+        data: {
+          status: ReferralStatus.GRANTED,
+          eligibilityState: ReferralEligibilityState.GRANTED,
+        },
       }),
     ]);
   }
