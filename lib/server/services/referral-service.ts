@@ -93,67 +93,82 @@ export const referralService = {
   },
 
   async grantReferralReward(refereeId: string) {
-    const history = await db.referralHistory.findFirst({
-      where: { 
-        refereeId, 
-        status: ReferralStatus.PENDING 
-      },
-      include: { referrer: true, referee: true },
-    });
+    await db.$transaction(async (tx) => {
+      const history = await tx.referralHistory.findFirst({
+        where: {
+          refereeId,
+          status: ReferralStatus.PENDING,
+          eligibilityState: ReferralEligibilityState.PENDING_FIRST_PREDICTION,
+        },
+        include: { referrer: true, referee: true },
+        orderBy: { createdAt: 'desc' },
+      });
 
-    if (!history) return;
+      if (!history) {
+        return;
+      }
 
-    await db.$transaction([
-      // 1. Give stars to Referrer
-      db.user.update({
+      const claimResult = await tx.referralHistory.updateMany({
+        where: {
+          id: history.id,
+          status: ReferralStatus.PENDING,
+          eligibilityState: ReferralEligibilityState.PENDING_FIRST_PREDICTION,
+        },
+        data: {
+          status: ReferralStatus.GRANTED,
+          eligibilityState: ReferralEligibilityState.GRANTED,
+        },
+      });
+
+      if (claimResult.count === 0) {
+        return;
+      }
+
+      await tx.user.update({
         where: { id: history.referrerId },
         data: { stars: { increment: REFERRAL_REWARDS.REFERRER } },
-      }),
-      // Create Transaction Log for Referrer
-      db.creditTransaction.create({
+      });
+
+      await tx.creditTransaction.create({
         data: {
           userId: history.referrerId,
           amount: REFERRAL_REWARDS.REFERRER,
           balanceAfter: history.referrer.stars + REFERRAL_REWARDS.REFERRER,
           type: TransactionType.TOPUP,
           status: TransactionStatus.SUCCESS,
+          externalRef: `referrer_bonus:${history.id}`,
           metadata: {
             source: 'referral_reward',
             refereeId: history.refereeId,
             note: 'Reward for referring a new user (first usage)',
           },
         },
-      }),
+      });
 
-      // 2. Give stars to Referee (Bonus)
-      db.user.update({
+      if (history.source !== ReferralSource.MANUAL_CODE) {
+        return;
+      }
+
+      await tx.user.update({
         where: { id: history.refereeId },
-        data: { stars: { increment: REFERRAL_REWARDS.REFEREE } },
-      }),
-      // Create Transaction Log for Referee
-      db.creditTransaction.create({
+        data: { stars: { increment: REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE } },
+      });
+
+      await tx.creditTransaction.create({
         data: {
           userId: history.refereeId,
-          amount: REFERRAL_REWARDS.REFEREE,
-          balanceAfter: history.referee.stars + REFERRAL_REWARDS.REFEREE,
+          amount: REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE,
+          balanceAfter: history.referee.stars + REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE,
           type: TransactionType.TOPUP,
           status: TransactionStatus.SUCCESS,
+          externalRef: `manual_claim_referee_bonus:${history.id}`,
           metadata: {
             source: 'referral_bonus',
             referrerId: history.referrerId,
-            note: 'Welcome bonus for using referral link (first usage)',
+            note: 'Manual claim bonus at first successful prediction',
           },
         },
-      }),
-
-      // 3. Update History Status
-      db.referralHistory.update({
-        where: { id: history.id },
-        data: {
-          status: ReferralStatus.GRANTED,
-          eligibilityState: ReferralEligibilityState.GRANTED,
-        },
-      }),
-    ]);
+      });
+    });
   }
 };

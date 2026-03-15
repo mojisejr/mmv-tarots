@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { REFERRAL_REWARDS, ReferralStatus } from '@/constants/referral';
+import { REFERRAL_REWARDS, ReferralEligibilityState, ReferralSource, ReferralStatus } from '@/constants/referral';
 
 const testMocks = vi.hoisted(() => ({
   mockUserUpdate: vi.fn(),
@@ -44,7 +44,24 @@ describe('referralService phase 2 safety net', () => {
     testMocks.mockReferralHistoryCreate.mockResolvedValue({ id: 'history-1' });
     testMocks.mockReferralHistoryUpdate.mockResolvedValue({});
     testMocks.mockCreditTransactionCreate.mockResolvedValue({});
-    testMocks.mockDbTransaction.mockResolvedValue([]);
+    testMocks.mockDbTransaction.mockImplementation(async (arg: any) => {
+      if (typeof arg === 'function') {
+        return arg({
+          referralHistory: {
+            findFirst: testMocks.mockReferralHistoryFindFirst,
+            updateMany: testMocks.mockReferralHistoryUpdate,
+          },
+          user: {
+            update: testMocks.mockUserUpdate,
+          },
+          creditTransaction: {
+            create: testMocks.mockCreditTransactionCreate,
+          },
+        });
+      }
+
+      return arg;
+    });
   });
 
   it('processReferralSignup is idempotent when referee already has referral history', async () => {
@@ -119,14 +136,16 @@ describe('referralService phase 2 safety net', () => {
     expect(testMocks.mockReferralHistoryUpdate).not.toHaveBeenCalled();
   });
 
-  it('grantReferralReward writes deterministic ledger entries and marks GRANTED', async () => {
+  it('grantReferralReward writes both payouts for MANUAL_CODE entitlement and marks GRANTED', async () => {
     testMocks.mockReferralHistoryFindFirst.mockResolvedValue({
       id: 'history-777',
       referrerId: 'referrer-9',
       refereeId: 'referee-9',
+      source: ReferralSource.MANUAL_CODE,
       referrer: { stars: 10 },
       referee: { stars: 4 },
     });
+    testMocks.mockReferralHistoryUpdate.mockResolvedValue({ count: 1 });
 
     await referralService.grantReferralReward('referee-9');
 
@@ -137,6 +156,7 @@ describe('referralService phase 2 safety net', () => {
           userId: 'referrer-9',
           amount: REFERRAL_REWARDS.REFERRER,
           balanceAfter: 12,
+          externalRef: 'referrer_bonus:history-777',
           metadata: expect.objectContaining({
             source: 'referral_reward',
             refereeId: 'referee-9',
@@ -150,8 +170,9 @@ describe('referralService phase 2 safety net', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           userId: 'referee-9',
-          amount: REFERRAL_REWARDS.REFEREE,
-          balanceAfter: 5,
+          amount: REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE,
+          balanceAfter: 6,
+          externalRef: 'manual_claim_referee_bonus:history-777',
           metadata: expect.objectContaining({
             source: 'referral_bonus',
             referrerId: 'referrer-9',
@@ -161,12 +182,40 @@ describe('referralService phase 2 safety net', () => {
     );
 
     expect(testMocks.mockReferralHistoryUpdate).toHaveBeenCalledWith({
-      where: { id: 'history-777' },
+      where: {
+        id: 'history-777',
+        status: ReferralStatus.PENDING,
+        eligibilityState: ReferralEligibilityState.PENDING_FIRST_PREDICTION,
+      },
       data: {
         status: ReferralStatus.GRANTED,
-        eligibilityState: 'GRANTED',
+        eligibilityState: ReferralEligibilityState.GRANTED,
       },
     });
     expect(testMocks.mockDbTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('grantReferralReward grants referrer only for LINK entitlement', async () => {
+    testMocks.mockReferralHistoryFindFirst.mockResolvedValue({
+      id: 'history-link',
+      referrerId: 'referrer-10',
+      refereeId: 'referee-10',
+      source: ReferralSource.LINK,
+      referrer: { stars: 7 },
+      referee: { stars: 3 },
+    });
+    testMocks.mockReferralHistoryUpdate.mockResolvedValue({ count: 1 });
+
+    await referralService.grantReferralReward('referee-10');
+
+    expect(testMocks.mockCreditTransactionCreate).toHaveBeenCalledTimes(1);
+    expect(testMocks.mockCreditTransactionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'referrer-10',
+          amount: REFERRAL_REWARDS.REFERRER,
+        }),
+      })
+    );
   });
 });

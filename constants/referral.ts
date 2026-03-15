@@ -5,8 +5,12 @@
 export const REFERRAL_REWARDS = {
   /** Number of stars the referrer receives when someone uses their referral code (Delayed) */
   REFERRER: 2,
-  /** Number of stars the referee receives when they sign up with a referral code (Bonus) */
+  /** Legacy referee bonus amount retained for compatibility in legacy paths */
   REFEREE: 1,
+  /** Universal reward on first successful prediction */
+  FIRST_PREDICTION: 1,
+  /** Referee bonus for manual-code attribution at first successful prediction */
+  MANUAL_CLAIM_REFEREE: 2,
   /** Base number of stars every new user receives (Onboarding) */
   ONBOARDING: 1,
 } as const;
