@@ -11,6 +11,26 @@ export const REFERRAL_REWARDS = {
   ONBOARDING: 1,
 } as const;
 
+export const REWARD_POLICY_EVENTS = {
+  ACCOUNT_CREATE_BONUS: 'ACCOUNT_CREATE_BONUS',
+  ONBOARDING_BONUS: 'ONBOARDING_BONUS',
+  FIRST_PREDICTION_BONUS: 'FIRST_PREDICTION_BONUS',
+  REFERRER_BONUS: 'REFERRER_BONUS',
+  MANUAL_CLAIM_REFEREE_BONUS: 'MANUAL_CLAIM_REFEREE_BONUS',
+} as const;
+
+export enum ReferralSource {
+  LINK = 'LINK',
+  MANUAL_CODE = 'MANUAL_CODE',
+}
+
+export enum ReferralEligibilityState {
+  PENDING_FIRST_PREDICTION = 'PENDING_FIRST_PREDICTION',
+  GRANTED = 'GRANTED',
+  BLOCKED = 'BLOCKED',
+  CANCELED = 'CANCELED',
+}
+
 export enum ReferralStatus {
   /** Joined via link, but not verified usage */
   PENDING = 'PENDING',

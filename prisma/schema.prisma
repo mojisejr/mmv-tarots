@@ -53,6 +53,8 @@ model ReferralHistory {
   refereeId    String   @map("referee_id")
   ipAddress    String   @map("ip_address")
   status       String   @default("PENDING") // PENDING, GRANTED, BLOCKED
+  source       ReferralSource?
+  eligibilityState ReferralEligibilityState? @map("eligibility_state")
   rewardAmount Int      @default(0)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -259,6 +261,18 @@ enum TransactionStatus {
   SUCCESS
   FAILED
   PENDING
+}
+
+enum ReferralSource {
+  LINK
+  MANUAL_CODE
+}
+
+enum ReferralEligibilityState {
+  PENDING_FIRST_PREDICTION
+  GRANTED
+  BLOCKED
+  CANCELED
 }
 
 model AgentConfig {
