@@ -118,4 +118,33 @@ describe('referralClaimService', () => {
       { source: ReferralSource.MANUAL_CODE }
     );
   });
+
+  it('allows manual claim after onboarding when user has no prior referral entitlement', async () => {
+    testMocks.mockUserFindUnique.mockReset();
+    testMocks.mockUserFindUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        referralCode: 'SELF123',
+        referredById: null,
+        onboardingCompleted: true,
+      })
+      .mockResolvedValueOnce({ id: 'referrer-2' })
+      .mockResolvedValueOnce({ referredById: 'referrer-2' });
+
+    testMocks.mockReferralHistoryFindFirst.mockResolvedValue(null);
+
+    const result = await referralClaimService.claimReferralCode({
+      userId: 'user-1',
+      code: 'FRIEND777',
+      ipAddress: '1.2.3.4',
+    });
+
+    expect(result.status).toBe(200);
+    expect(testMocks.mockProcessReferralSignup).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'user-1' }),
+      'FRIEND777',
+      '1.2.3.4',
+      { source: ReferralSource.MANUAL_CODE }
+    );
+  });
 });

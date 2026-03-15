@@ -2,8 +2,8 @@ import { REFERRAL_REWARDS } from '@/constants/referral';
 import { expect } from 'vitest';
 
 export type RewardEvent =
-  | 'ACCOUNT_CREATE_BONUS'
   | 'ONBOARDING_BONUS'
+  | 'LINK_ONBOARDING_BONUS'
   | 'FIRST_PREDICTION_BONUS'
   | 'REFERRER_BONUS'
   | 'MANUAL_CLAIM_REFEREE_BONUS';
@@ -26,14 +26,13 @@ export type ScenarioExpectation = {
 };
 
 const UNIVERSAL_REFEREE_EVENTS: RewardEvent[] = [
-  'ACCOUNT_CREATE_BONUS',
   'ONBOARDING_BONUS',
   'FIRST_PREDICTION_BONUS',
 ];
 
 const SCENARIO_EXPECTATIONS: Record<ScenarioId, ScenarioExpectation> = {
   S0: {
-    refereeTotal: 3,
+    refereeTotal: 2,
     referrerTotal: 0,
     refereeEvents: UNIVERSAL_REFEREE_EVENTS,
     referrerEvents: [],
@@ -41,25 +40,25 @@ const SCENARIO_EXPECTATIONS: Record<ScenarioId, ScenarioExpectation> = {
   S1: {
     refereeTotal: 3,
     referrerTotal: REFERRAL_REWARDS.REFERRER,
-    refereeEvents: UNIVERSAL_REFEREE_EVENTS,
+    refereeEvents: ['ONBOARDING_BONUS', 'LINK_ONBOARDING_BONUS', 'FIRST_PREDICTION_BONUS'],
     referrerEvents: ['REFERRER_BONUS'],
   },
   S2: {
-    refereeTotal: 5,
+    refereeTotal: 4,
     referrerTotal: REFERRAL_REWARDS.REFERRER,
     refereeEvents: [...UNIVERSAL_REFEREE_EVENTS, 'MANUAL_CLAIM_REFEREE_BONUS'],
     referrerEvents: ['REFERRER_BONUS'],
   },
   S3: {
-    refereeTotal: 3,
-    referrerTotal: 0,
-    refereeEvents: UNIVERSAL_REFEREE_EVENTS,
-    referrerEvents: [],
+    refereeTotal: 4,
+    referrerTotal: REFERRAL_REWARDS.REFERRER,
+    refereeEvents: [...UNIVERSAL_REFEREE_EVENTS, 'MANUAL_CLAIM_REFEREE_BONUS'],
+    referrerEvents: ['REFERRER_BONUS'],
   },
   S4: {
     refereeTotal: 3,
     referrerTotal: REFERRAL_REWARDS.REFERRER,
-    refereeEvents: UNIVERSAL_REFEREE_EVENTS,
+    refereeEvents: ['ONBOARDING_BONUS', 'LINK_ONBOARDING_BONUS', 'FIRST_PREDICTION_BONUS'],
     referrerEvents: ['REFERRER_BONUS'],
   },
 };
@@ -98,7 +97,7 @@ export function assertScenarioLedger(
 
   expect(countEvent(entries, 'referee', 'FIRST_PREDICTION_BONUS')).toBe(1);
   expect(countEvent(entries, 'referee', 'ONBOARDING_BONUS')).toBe(1);
-  expect(countEvent(entries, 'referee', 'ACCOUNT_CREATE_BONUS')).toBe(1);
+  expect(countEvent(entries, 'referee', 'LINK_ONBOARDING_BONUS')).toBeLessThanOrEqual(1);
   expect(countEvent(entries, 'referrer', 'REFERRER_BONUS')).toBeLessThanOrEqual(1);
   expect(countEvent(entries, 'referee', 'MANUAL_CLAIM_REFEREE_BONUS')).toBeLessThanOrEqual(1);
 }

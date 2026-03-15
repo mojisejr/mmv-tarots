@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testMocks = vi.hoisted(() => ({
   mockUserFindUnique: vi.fn(),
+  mockReferralHistoryFindFirst: vi.fn(),
   mockDbTransaction: vi.fn(),
   mockGrantOnboardingBonus: vi.fn(),
+  mockGrantLinkOnboardingBonus: vi.fn(),
   mockProcessReferralSignup: vi.fn(),
 }));
 
@@ -12,6 +14,9 @@ vi.mock('@/lib/server/db', () => ({
     user: {
       findUnique: testMocks.mockUserFindUnique,
     },
+    referralHistory: {
+      findFirst: testMocks.mockReferralHistoryFindFirst,
+    },
     $transaction: testMocks.mockDbTransaction,
   },
 }));
@@ -19,6 +24,7 @@ vi.mock('@/lib/server/db', () => ({
 vi.mock('@/services/credit-service', () => ({
   CreditService: {
     grantOnboardingBonus: testMocks.mockGrantOnboardingBonus,
+    grantLinkOnboardingBonus: testMocks.mockGrantLinkOnboardingBonus,
   },
 }));
 
@@ -39,6 +45,7 @@ describe('onboardingOrchestrationService', () => {
       onboardingCompleted: false,
       referredById: null,
     });
+    testMocks.mockReferralHistoryFindFirst.mockResolvedValue(null);
 
     testMocks.mockDbTransaction.mockImplementation(async (callback: (tx: any) => Promise<unknown>) => {
       const tx = {
@@ -78,8 +85,9 @@ describe('onboardingOrchestrationService', () => {
     testMocks.mockUserFindUnique
       .mockResolvedValueOnce({ onboardingCompleted: false, referredById: null })
       .mockResolvedValueOnce({ referredById: 'referrer-healed' });
+    testMocks.mockReferralHistoryFindFirst.mockResolvedValue({ source: ReferralSource.LINK });
 
-    await onboardingOrchestrationService.completeOnboarding({
+    const result = await onboardingOrchestrationService.completeOnboarding({
       userId: 'user-1',
       referralCodeFromCookie: 'FRIEND777',
       ipAddress: '2.3.4.5',
@@ -91,6 +99,8 @@ describe('onboardingOrchestrationService', () => {
       '2.3.4.5',
       { source: ReferralSource.LINK }
     );
+    expect(testMocks.mockGrantLinkOnboardingBonus).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ status: 'completed', reward: 2 });
   });
 
   it('returns already_completed when transaction lock update count is zero', async () => {
@@ -109,5 +119,6 @@ describe('onboardingOrchestrationService', () => {
 
     expect(result).toEqual({ status: 'already_completed', reward: 0 });
     expect(testMocks.mockGrantOnboardingBonus).not.toHaveBeenCalled();
+    expect(testMocks.mockGrantLinkOnboardingBonus).not.toHaveBeenCalled();
   });
 });

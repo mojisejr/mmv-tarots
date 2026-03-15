@@ -29,16 +29,15 @@ vi.mock('@/lib/server/services/referral-claim-service', () => ({
 
 function createScenarioLedger(scenarioId: ScenarioId): LedgerEntry[] {
   const universal: LedgerEntry[] = [
-    { role: 'referee', event: 'ACCOUNT_CREATE_BONUS', amount: 1 },
     { role: 'referee', event: 'ONBOARDING_BONUS', amount: 1 },
     { role: 'referee', event: 'FIRST_PREDICTION_BONUS', amount: 1 },
   ];
 
-  if (scenarioId === 'S0' || scenarioId === 'S3') {
+  if (scenarioId === 'S0') {
     return universal;
   }
 
-  if (scenarioId === 'S2') {
+  if (scenarioId === 'S2' || scenarioId === 'S3') {
     return [
       ...universal,
       { role: 'referee', event: 'MANUAL_CLAIM_REFEREE_BONUS', amount: 2 },
@@ -46,7 +45,12 @@ function createScenarioLedger(scenarioId: ScenarioId): LedgerEntry[] {
     ];
   }
 
-  return [...universal, { role: 'referrer', event: 'REFERRER_BONUS', amount: 2 }];
+  return [
+    { role: 'referee', event: 'ONBOARDING_BONUS', amount: 1 },
+    { role: 'referee', event: 'LINK_ONBOARDING_BONUS', amount: 1 },
+    { role: 'referee', event: 'FIRST_PREDICTION_BONUS', amount: 1 },
+    { role: 'referrer', event: 'REFERRER_BONUS', amount: 2 },
+  ];
 }
 
 describe('Phase 4 - Referral Reward Matrix E2E', () => {
@@ -110,6 +114,36 @@ describe('Phase 4 - Referral Reward Matrix E2E', () => {
     expect(res.status).toBe(409);
     expect(payload).toEqual({ error: 'Manual claim is blocked for link-attributed users' });
     expect(testMocks.mockClaimReferralCode).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows post-onboarding manual-claim when user has no prior entitlement', async () => {
+    testMocks.mockClaimReferralCode.mockResolvedValueOnce({
+      status: 200,
+      body: {
+        success: true,
+        referredById: 'referrer-2',
+        message: 'Referral code claimed successfully',
+      },
+    });
+
+    const req = new NextRequest('http://localhost:3000/api/user/referral-claim', {
+      method: 'POST',
+      body: JSON.stringify({ code: 'FRIEND777' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': '5.6.7.8',
+      },
+    });
+
+    const res = await claimReferralCode(req);
+    const payload = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(payload).toEqual({
+      success: true,
+      referredById: 'referrer-2',
+      message: 'Referral code claimed successfully',
+    });
   });
 
   it('remains deterministic across replayed matrix verification runs', () => {

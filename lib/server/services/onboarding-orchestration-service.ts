@@ -11,11 +11,12 @@ type CompleteOnboardingInput = {
 
 type CompleteOnboardingResult =
   | { status: 'already_completed'; reward: 0 }
-  | { status: 'completed'; reward: 1 };
+  | { status: 'completed'; reward: 1 | 2 };
 
 export const onboardingOrchestrationService = {
   async completeOnboarding(input: CompleteOnboardingInput): Promise<CompleteOnboardingResult> {
     const ipAddress = input.ipAddress ?? 'unknown';
+    let linkAttributionDetected = false;
 
     let currentUser = await db.user.findUnique({
       where: { id: input.userId },
@@ -46,6 +47,15 @@ export const onboardingOrchestrationService = {
       }
     }
 
+    if (currentUser?.referredById) {
+      const entitlement = await db.referralHistory.findFirst({
+        where: { refereeId: input.userId },
+        orderBy: { createdAt: 'desc' },
+        select: { source: true },
+      });
+      linkAttributionDetected = entitlement?.source === ReferralSource.LINK;
+    }
+
     const result = await db.$transaction(async (tx) => {
       const updateResult = await tx.user.updateMany({
         where: {
@@ -60,6 +70,9 @@ export const onboardingOrchestrationService = {
       }
 
       await CreditService.grantOnboardingBonus(input.userId, tx);
+      if (linkAttributionDetected) {
+        await CreditService.grantLinkOnboardingBonus(input.userId, tx);
+      }
       return { completed: true };
     });
 
@@ -67,6 +80,9 @@ export const onboardingOrchestrationService = {
       return { status: 'already_completed', reward: 0 };
     }
 
-    return { status: 'completed', reward: 1 };
+    return {
+      status: 'completed',
+      reward: linkAttributionDetected ? 2 : 1,
+    };
   },
 };

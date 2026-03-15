@@ -48,10 +48,6 @@ export const referralClaimService = {
       return { status: 409, body: { error: 'Referral already claimed' } };
     }
 
-    if (user.onboardingCompleted) {
-      return { status: 409, body: { error: 'Referral claim window has ended' } };
-    }
-
     if (user.referralCode === input.code) {
       return { status: 400, body: { error: 'Self referral is not allowed' } };
     }

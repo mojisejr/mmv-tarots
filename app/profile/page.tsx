@@ -35,7 +35,6 @@ function ProfilePageContent() {
   const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
   const [referralCode, setReferralCode] = useState<string>('');
   const [referredById, setReferredById] = useState<string | null>(null);
-  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [claimCode, setClaimCode] = useState('');
   const [isClaimingCode, setIsClaimingCode] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -117,7 +116,6 @@ function ProfilePageContent() {
           setReferralCode(data.referralCode);
         }
         setReferredById(data.referredById ?? null);
-        setOnboardingCompleted(Boolean(data.onboardingCompleted));
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
@@ -283,7 +281,7 @@ function ProfilePageContent() {
   }
 
   const user = session.user;
-  const canClaimReferral = !referredById && !onboardingCompleted;
+  const canClaimReferral = !referredById;
   const liffMode = isLiffEnvironment();
 
   return (
@@ -426,7 +424,7 @@ function ProfilePageContent() {
             </div>
           ) : (
             <div className="mt-3 rounded-lg border border-white/10 bg-white/40 px-3 py-2 text-[11px] text-foreground/60">
-              สิทธิ์ผู้ถูกแนะนำถูกใช้ไปแล้วหรือพ้นช่วง claim แล้ว
+              สิทธิ์ผู้ถูกแนะนำถูกใช้ไปแล้ว
             </div>
           )}
         </GlassCard>
