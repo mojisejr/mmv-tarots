@@ -2,6 +2,15 @@ import { REWARD_POLICY_EVENTS, REFERRAL_REWARDS } from '@/constants/referral';
 import { db } from '@/lib/server/db';
 import { Prisma, TransactionStatus, TransactionType } from '@prisma/client';
 import { referralService } from '@/lib/server/services/referral-service';
+import {
+  captureReferralException,
+  emitReferralEvent,
+} from '@/lib/server/referral-observability';
+
+function isRewardEngineDisabled(): boolean {
+  const raw = process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
+  return raw === '1' || raw === 'true';
+}
 
 function isUniqueConstraintError(error: unknown): boolean {
   return (
@@ -21,6 +30,10 @@ async function grantFirstPredictionBonus(userId: string): Promise<void> {
       });
 
       if (alreadyGranted) {
+        emitReferralEvent('first_prediction_bonus.skipped_idempotent', {
+          userId,
+          externalRef,
+        });
         return;
       }
 
@@ -52,19 +65,43 @@ async function grantFirstPredictionBonus(userId: string): Promise<void> {
           },
         },
       });
+
+      emitReferralEvent('first_prediction_bonus.granted', {
+        userId,
+        externalRef,
+        amount: REFERRAL_REWARDS.FIRST_PREDICTION,
+        balanceAfter: newBalance,
+      });
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
+      emitReferralEvent('first_prediction_bonus.skipped_unique_constraint', {
+        userId,
+        externalRef,
+      });
       return;
     }
 
+    captureReferralException('first_prediction_bonus', error, { userId, externalRef });
     throw error;
   }
 }
 
 export const firstPredictionRewardService = {
   async processFirstSuccessfulPrediction(userId: string): Promise<void> {
+    if (isRewardEngineDisabled()) {
+      emitReferralEvent('reward_engine.disabled', {
+        userId,
+        gate: 'MMV_REFERRAL_REWARD_ENGINE_DISABLED',
+      });
+      return;
+    }
+
     await grantFirstPredictionBonus(userId);
     await referralService.grantReferralReward(userId);
+
+    emitReferralEvent('first_prediction_reward_flow.completed', {
+      userId,
+    });
   },
 };

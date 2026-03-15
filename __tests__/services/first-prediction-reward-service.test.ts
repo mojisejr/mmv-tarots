@@ -25,8 +25,11 @@ vi.mock('@/lib/server/services/referral-service', () => ({
 import { firstPredictionRewardService } from '@/lib/server/services/first-prediction-reward-service';
 
 describe('firstPredictionRewardService', () => {
+  const previousKillSwitch = process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
 
     testMocks.mockDbTransaction.mockImplementation(async (cb: any) =>
       cb({
@@ -46,6 +49,15 @@ describe('firstPredictionRewardService', () => {
     testMocks.mockUserUpdate.mockResolvedValue({});
     testMocks.mockCreditCreate.mockResolvedValue({});
     testMocks.mockGrantReferralReward.mockResolvedValue(undefined);
+  });
+
+  afterAll(() => {
+    if (previousKillSwitch === undefined) {
+      delete process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
+      return;
+    }
+
+    process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED = previousKillSwitch;
   });
 
   it('grants universal first prediction bonus once and then triggers referral payout flow', async () => {
@@ -79,5 +91,14 @@ describe('firstPredictionRewardService', () => {
     expect(testMocks.mockUserUpdate).not.toHaveBeenCalled();
     expect(testMocks.mockCreditCreate).not.toHaveBeenCalled();
     expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
+  });
+
+  it('skips reward engine when kill-switch is enabled', async () => {
+    process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED = '1';
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
+    expect(testMocks.mockGrantReferralReward).not.toHaveBeenCalled();
   });
 });
