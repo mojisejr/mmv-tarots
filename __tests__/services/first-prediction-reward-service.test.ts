@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '@prisma/client';
 import { REFERRAL_REWARDS, REWARD_POLICY_EVENTS } from '@/constants/referral';
 
 const testMocks = vi.hoisted(() => ({
@@ -100,5 +101,36 @@ describe('firstPredictionRewardService', () => {
 
     expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
     expect(testMocks.mockGrantReferralReward).not.toHaveBeenCalled();
+  });
+
+  it('stays deterministic across replayed callbacks and grants universal bonus once', async () => {
+    testMocks.mockCreditFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'existing-first-prediction-tx' })
+      .mockResolvedValueOnce({ id: 'existing-first-prediction-tx' });
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockUserUpdate).toHaveBeenCalledTimes(1);
+    expect(testMocks.mockCreditCreate).toHaveBeenCalledTimes(1);
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledTimes(3);
+  });
+
+  it('continues referral payout flow when universal bonus hits unique-constraint race', async () => {
+    const raceError = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test-client',
+      }
+    );
+
+    testMocks.mockDbTransaction.mockRejectedValueOnce(raceError);
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
   });
 });
