@@ -39,7 +39,7 @@ function createScenarioLedger(scenarioId: ScenarioId): LedgerEntry[] {
 
   if (scenarioId === 'S2' || scenarioId === 'S3') {
     return [
-      ...universal,
+      { role: 'referee', event: 'ONBOARDING_BONUS', amount: 1 },
       { role: 'referee', event: 'MANUAL_CLAIM_REFEREE_BONUS', amount: 2 },
       { role: 'referrer', event: 'REFERRER_BONUS', amount: 2 },
     ];

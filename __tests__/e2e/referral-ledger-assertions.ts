@@ -44,15 +44,15 @@ const SCENARIO_EXPECTATIONS: Record<ScenarioId, ScenarioExpectation> = {
     referrerEvents: ['REFERRER_BONUS'],
   },
   S2: {
-    refereeTotal: 4,
+    refereeTotal: 3,
     referrerTotal: REFERRAL_REWARDS.REFERRER,
-    refereeEvents: [...UNIVERSAL_REFEREE_EVENTS, 'MANUAL_CLAIM_REFEREE_BONUS'],
+    refereeEvents: ['ONBOARDING_BONUS', 'MANUAL_CLAIM_REFEREE_BONUS'],
     referrerEvents: ['REFERRER_BONUS'],
   },
   S3: {
-    refereeTotal: 4,
+    refereeTotal: 3,
     referrerTotal: REFERRAL_REWARDS.REFERRER,
-    refereeEvents: [...UNIVERSAL_REFEREE_EVENTS, 'MANUAL_CLAIM_REFEREE_BONUS'],
+    refereeEvents: ['ONBOARDING_BONUS', 'MANUAL_CLAIM_REFEREE_BONUS'],
     referrerEvents: ['REFERRER_BONUS'],
   },
   S4: {
@@ -88,6 +88,8 @@ export function assertScenarioLedger(
   entries: LedgerEntry[]
 ): void {
   const expected = getScenarioExpectation(scenarioId);
+  const shouldIncludeFirstPrediction = expected.refereeEvents.includes('FIRST_PREDICTION_BONUS');
+  const shouldIncludeManualRefereeBonus = expected.refereeEvents.includes('MANUAL_CLAIM_REFEREE_BONUS');
 
   expect(sumByRole(entries, 'referee')).toBe(expected.refereeTotal);
   expect(sumByRole(entries, 'referrer')).toBe(expected.referrerTotal);
@@ -95,9 +97,13 @@ export function assertScenarioLedger(
   expect(eventsByRole(entries, 'referee')).toEqual(expected.refereeEvents);
   expect(eventsByRole(entries, 'referrer')).toEqual(expected.referrerEvents);
 
-  expect(countEvent(entries, 'referee', 'FIRST_PREDICTION_BONUS')).toBe(1);
+  expect(countEvent(entries, 'referee', 'FIRST_PREDICTION_BONUS')).toBe(
+    shouldIncludeFirstPrediction ? 1 : 0
+  );
   expect(countEvent(entries, 'referee', 'ONBOARDING_BONUS')).toBe(1);
   expect(countEvent(entries, 'referee', 'LINK_ONBOARDING_BONUS')).toBeLessThanOrEqual(1);
   expect(countEvent(entries, 'referrer', 'REFERRER_BONUS')).toBeLessThanOrEqual(1);
-  expect(countEvent(entries, 'referee', 'MANUAL_CLAIM_REFEREE_BONUS')).toBeLessThanOrEqual(1);
+  expect(countEvent(entries, 'referee', 'MANUAL_CLAIM_REFEREE_BONUS')).toBe(
+    shouldIncludeManualRefereeBonus ? 1 : 0
+  );
 }
