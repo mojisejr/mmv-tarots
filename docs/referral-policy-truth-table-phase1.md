@@ -1,7 +1,7 @@
 # MMV Referral Policy Truth Table (Phase 1 Realignment)
 
-Plan Ref: #mmv-referral-post-onboarding-claim-refactor
-Date: 2026-03-15
+Plan Ref: #mmv-referral-manual-balance-fix
+Date: 2026-03-16
 Status: FROZEN (phase-1 canonical contract)
 
 ## Policy Contract
@@ -18,6 +18,7 @@ Status: FROZEN (phase-1 canonical contract)
   - Post-onboarding manual claim is allowed exactly once when no prior entitlement exists.
   - Link-attributed users are denied manual claim (409).
   - Reward issuance must remain idempotent at each policy boundary.
+  - FIRST_PREDICTION_BONUS applies only to NONE and LINK paths.
 
 ## Scenario Matrix
 
@@ -25,9 +26,15 @@ Status: FROZEN (phase-1 canonical contract)
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | S0 | No referral | NONE | +1 | +0 | +1 | +0 | +0 | +2 | +0 | Yes (if no entitlement yet) |
 | S1 | Referral link before/on onboarding | LINK | +1 | +1 | +1 | +0 | +2 | +3 | +2 | No |
-| S2 | Manual code before onboarding | MANUAL_CODE | +1 | +0 | +1 | +2 | +2 | +4 | +2 | Already consumed |
-| S3 | Manual code after onboarding | MANUAL_CODE | +1 | +0 | +1 | +2 | +2 | +4 | +2 | Already consumed |
+| S2 | Manual code before onboarding | MANUAL_CODE | +1 | +0 | +0 | +2 | +2 | +3 | +2 | Already consumed |
+| S3 | Manual code after onboarding | MANUAL_CODE | +1 | +0 | +0 | +2 | +2 | +3 | +2 | Already consumed |
 | S4 | Link first, then manual attempt | LINK (manual denied) | +1 | +1 | +1 | +0 | +2 | +3 | +2 | No (deny 409) |
+
+## Balance-Normalization Invariant
+
+- LINK path after first successful prediction must end at net 2 stars (onboarding +1, link +1, prediction -1, universal +1).
+- MANUAL_CODE path after first successful prediction must end at net 2 stars (onboarding +1, prediction -1, manual referee +2).
+- MANUAL_CODE must not receive FIRST_PREDICTION_BONUS in any first-prediction payout path.
 
 ## Deny Cases (Mandatory)
 

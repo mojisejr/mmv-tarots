@@ -1,6 +1,6 @@
 # Referral Phase 4 Smoke Checklist
 
-Issue: #mmv-referral-post-onboarding-claim-refactor
+Issue: #mmv-referral-manual-balance-fix
 
 ## Scope
 - Validate runtime parity for LINK and MANUAL_CODE reward flows.
@@ -11,6 +11,7 @@ Issue: #mmv-referral-post-onboarding-claim-refactor
 - Open share URL with `?ref=<valid_code>` and complete signup.
 - Complete onboarding once: expect `ONBOARDING_BONUS` (+1) and `LINK_ONBOARDING_BONUS` (+1).
 - Complete first successful prediction once: expect `FIRST_PREDICTION_BONUS` (+1).
+- Net referee balance after first successful prediction should be 2.
 - Verify referrer receives `REFERRER_BONUS` (+2) exactly once.
 - Retry first-prediction completion callback: verify no duplicate LINK or REFERRER payout.
 - Try manual claim after link attribution: expect HTTP 409.
@@ -18,8 +19,9 @@ Issue: #mmv-referral-post-onboarding-claim-refactor
 ## MANUAL_CODE Flow (Post-Onboarding Claim)
 - Signup without referral link and complete onboarding: expect only `ONBOARDING_BONUS` (+1).
 - Submit valid referral code via profile claim endpoint after onboarding.
-- Complete first successful prediction once: expect `FIRST_PREDICTION_BONUS` (+1).
+- Complete first successful prediction once: expect no `FIRST_PREDICTION_BONUS` transaction.
 - Verify referee receives `MANUAL_CLAIM_REFEREE_BONUS` (+2) exactly once.
+- Net referee balance after first successful prediction should be 2.
 - Verify referrer receives `REFERRER_BONUS` (+2) exactly once.
 - Retry claim and callback flow: verify no duplicate entitlement or payouts.
 
@@ -28,6 +30,7 @@ Issue: #mmv-referral-post-onboarding-claim-refactor
 - Duplicate/manual-claim-after-entitlement returns 409.
 - Existing link-attributed user cannot switch to manual path.
 - Reward kill-switch (`MMV_REFERRAL_REWARD_ENGINE_DISABLED`) blocks reward execution.
+- Impossible combo guard: manual path must not emit both `FIRST_PREDICTION_BONUS` and `MANUAL_CLAIM_REFEREE_BONUS` on same first-prediction event.
 
 ## Evidence Capture
 - Save test command output from:
