@@ -14,6 +14,28 @@ import {
 } from '@/lib/server/referral-observability';
 
 export const referralService = {
+  async getReferralSourceForReferee(refereeId: string): Promise<ReferralSource | null> {
+    const history = await db.referralHistory.findFirst({
+      where: { refereeId },
+      orderBy: { createdAt: 'desc' },
+      select: { source: true },
+    });
+
+    if (!history?.source) {
+      return null;
+    }
+
+    if (history.source === ReferralSource.MANUAL_CODE) {
+      return ReferralSource.MANUAL_CODE;
+    }
+
+    if (history.source === ReferralSource.LINK) {
+      return ReferralSource.LINK;
+    }
+
+    return null;
+  },
+
   async processReferralSignup(
     user: User,
     referralCode?: string,

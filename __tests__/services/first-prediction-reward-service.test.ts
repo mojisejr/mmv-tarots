@@ -8,6 +8,7 @@ const testMocks = vi.hoisted(() => ({
   mockUserFindUnique: vi.fn(),
   mockUserUpdate: vi.fn(),
   mockCreditCreate: vi.fn(),
+  mockGetReferralSourceForReferee: vi.fn(),
   mockGrantReferralReward: vi.fn(),
 }));
 
@@ -19,11 +20,18 @@ vi.mock('@/lib/server/db', () => ({
 
 vi.mock('@/lib/server/services/referral-service', () => ({
   referralService: {
+    getReferralSourceForReferee: testMocks.mockGetReferralSourceForReferee,
     grantReferralReward: testMocks.mockGrantReferralReward,
   },
 }));
 
+vi.mock('@/constants/referral', async () => {
+  const actual = await vi.importActual<typeof import('@/constants/referral')>('@/constants/referral');
+  return actual;
+});
+
 import { firstPredictionRewardService } from '@/lib/server/services/first-prediction-reward-service';
+import { ReferralSource } from '@/constants/referral';
 
 describe('firstPredictionRewardService', () => {
   const previousKillSwitch = process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
@@ -49,6 +57,7 @@ describe('firstPredictionRewardService', () => {
     testMocks.mockUserFindUnique.mockResolvedValue({ stars: 5 });
     testMocks.mockUserUpdate.mockResolvedValue({});
     testMocks.mockCreditCreate.mockResolvedValue({});
+    testMocks.mockGetReferralSourceForReferee.mockResolvedValue(null);
     testMocks.mockGrantReferralReward.mockResolvedValue(undefined);
   });
 
@@ -84,6 +93,17 @@ describe('firstPredictionRewardService', () => {
     expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
   });
 
+  it('skips universal bonus for manual-code source and still triggers referral payout flow', async () => {
+    testMocks.mockGetReferralSourceForReferee.mockResolvedValue(ReferralSource.MANUAL_CODE);
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
+    expect(testMocks.mockUserUpdate).not.toHaveBeenCalled();
+    expect(testMocks.mockCreditCreate).not.toHaveBeenCalled();
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
+  });
+
   it('is idempotent for universal first prediction bonus and still evaluates referral payout', async () => {
     testMocks.mockCreditFindUnique.mockResolvedValue({ id: 'existing-first-prediction-tx' });
 
@@ -99,6 +119,7 @@ describe('firstPredictionRewardService', () => {
 
     await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
 
+    expect(testMocks.mockGetReferralSourceForReferee).not.toHaveBeenCalled();
     expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
     expect(testMocks.mockGrantReferralReward).not.toHaveBeenCalled();
   });

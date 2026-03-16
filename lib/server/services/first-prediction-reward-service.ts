@@ -2,6 +2,7 @@ import { REWARD_POLICY_EVENTS, REFERRAL_REWARDS } from '@/constants/referral';
 import { db } from '@/lib/server/db';
 import { Prisma, TransactionStatus, TransactionType } from '@prisma/client';
 import { referralService } from '@/lib/server/services/referral-service';
+import { ReferralSource } from '@/constants/referral';
 import {
   captureReferralException,
   emitReferralEvent,
@@ -97,7 +98,16 @@ export const firstPredictionRewardService = {
       return;
     }
 
-    await grantFirstPredictionBonus(userId);
+    const referralSource = await referralService.getReferralSourceForReferee(userId);
+
+    if (referralSource !== ReferralSource.MANUAL_CODE) {
+      await grantFirstPredictionBonus(userId);
+    } else {
+      emitReferralEvent('first_prediction_bonus.skipped_manual_code_source', {
+        userId,
+      });
+    }
+
     await referralService.grantReferralReward(userId);
 
     emitReferralEvent('first_prediction_reward_flow.completed', {
