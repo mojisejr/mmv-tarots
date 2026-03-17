@@ -6,7 +6,7 @@ import { useSession, signOut } from '@/lib/client/auth-client';
 import { fetchBalance } from '@/lib/client/api';
 import { buildLiffGatewayPath, SESSION_SHELL_TARGET_STORAGE_KEY } from '@/lib/client/auth/session-shell-contract';
 
-type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package';
+type PageType = 'home' | 'submitted' | 'history' | 'result' | 'profile' | 'package' | 'transactions';
 
 interface Concentration {
   active: number;
@@ -61,6 +61,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       setCurrentPage('profile');
     } else if (pathname === '/package') {
       setCurrentPage('package');
+    } else if (pathname === '/transactions') {
+      setCurrentPage('transactions');
     } else if (pathname === '/submitted') {
       setCurrentPage('submitted');
     }
@@ -136,6 +138,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       case 'history':
       case 'profile':
       case 'package':
+      case 'transactions':
         // From main sections, go to home
         router.push('/');
         setCurrentPage('home');

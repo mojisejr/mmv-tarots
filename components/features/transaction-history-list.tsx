@@ -9,7 +9,7 @@ interface Transaction {
   id: string;
   amount: number;
   balanceAfter: number;
-  type: 'TOPUP' | 'PREDICTION' | 'REFUND';
+  type: 'TOPUP' | 'PREDICTION' | 'REFUND' | 'REFERRAL' | 'ONBOARDING';
   status: 'SUCCESS' | 'FAILED' | 'PENDING';
   createdAt: string;
   metadata?: any;
@@ -28,6 +28,7 @@ interface HistoryResponse {
 export function TransactionHistoryList() {
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -36,9 +37,12 @@ export function TransactionHistoryList() {
         if (res.ok) {
           const data = await res.json();
           setHistory(data);
+        } else {
+          setError('ไม่สามารถโหลดประวัติได้ในขณะนี้');
         }
       } catch (error) {
         console.error('Failed to fetch history:', error);
+        setError('ไม่สามารถโหลดประวัติได้ในขณะนี้');
       } finally {
         setLoading(false);
       }
@@ -52,6 +56,14 @@ export function TransactionHistoryList() {
       <div className="flex justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <GlassCard className="p-6 text-center text-muted-foreground">
+        <p>{error}</p>
+      </GlassCard>
     );
   }
 
@@ -71,7 +83,9 @@ export function TransactionHistoryList() {
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-foreground">
                 {tx.type === 'TOPUP' ? 'เติมดาว (Package)' : 
-                 tx.type === 'PREDICTION' ? 'ทำนายไพ่' : 'คืนดาว (Refund)'}
+                  tx.type === 'PREDICTION' ? 'ทำนายไพ่' :
+                  tx.type === 'REFERRAL' ? 'โบนัสแนะนำเพื่อน' :
+                  tx.type === 'ONBOARDING' ? 'โบนัสเริ่มต้น' : 'คืนดาว (Refund)'}
               </span>
               <StatusBadge status={tx.status as any} />
             </div>
