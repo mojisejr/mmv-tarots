@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { slipVerificationService } from '@/lib/server/services/slip-verification-service';
 
-describe('slip-verification-service phase1 contract', () => {
+const STUB_SLIP_FILE = {
+  buffer: Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]),
+  filename: 'slip.jpg',
+  mimeType: 'image/jpeg',
+};
+
+describe('slip-verification-service phase2 contract', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
@@ -22,7 +28,7 @@ describe('slip-verification-service phase1 contract', () => {
 
     const result = await slipVerificationService.verify({
       paymentOrderId: 'pay_001',
-      slipImageUrl: 'https://cdn.example/slip.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.success).toBe(false);
@@ -32,7 +38,7 @@ describe('slip-verification-service phase1 contract', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('uses SlipOK URL mode contract with x-authorization and branch path', async () => {
+  it('uses SlipOK multipart files contract with x-authorization and branch path', async () => {
     process.env.SLIPOK_API_BASE_URL = 'https://api.slipok.com';
     process.env.SLIPOK_API_KEY = 'sk_test_123';
     process.env.SLIPOK_BRANCH_ID = 'branch_789';
@@ -54,7 +60,7 @@ describe('slip-verification-service phase1 contract', () => {
 
     const result = await slipVerificationService.verify({
       paymentOrderId: 'pay_002',
-      slipImageUrl: 'https://cdn.example/slip-2.jpg',
+      slipFile: STUB_SLIP_FILE,
       expectedAmountTHB: 49.75,
     });
 
@@ -66,14 +72,19 @@ describe('slip-verification-service phase1 contract', () => {
     const headers = init.headers as Record<string, string>;
     expect(headers['x-authorization']).toBe('sk_test_123');
     expect(headers['Authorization']).toBeUndefined();
-    expect(headers['Content-Type']).toBe('application/json');
+    expect(headers['Content-Type']).toBeUndefined();
 
-    const body = JSON.parse(String(init.body));
-    expect(body).toEqual({
-      url: 'https://cdn.example/slip-2.jpg',
-      log: true,
-      amount: 49.75,
-    });
+    expect(init.body).toBeInstanceOf(FormData);
+
+    const body = init.body as FormData;
+    expect(body.get('log')).toBe('true');
+    expect(body.get('amount')).toBe('49.75');
+
+    const uploadedFile = body.get('files');
+    expect(uploadedFile).toBeInstanceOf(Blob);
+    expect((uploadedFile as Blob).type).toBe('image/jpeg');
+    expect((uploadedFile as Blob).size).toBe(STUB_SLIP_FILE.buffer.length);
+    expect((uploadedFile as Blob & { name?: string }).name).toBe('slip.jpg');
 
     expect(result.success).toBe(true);
     expect(result.externalRef).toBe('TRX-001');
@@ -100,7 +111,7 @@ describe('slip-verification-service phase1 contract', () => {
 
     const result = await slipVerificationService.verify({
       paymentOrderId: 'pay_nested_001',
-      slipImageUrl: 'https://cdn.example/slip-nested.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.success).toBe(true);
@@ -127,7 +138,7 @@ describe('slip-verification-service phase1 contract', () => {
 
     const result = await slipVerificationService.verify({
       paymentOrderId: 'pay_delay_001',
-      slipImageUrl: 'https://cdn.example/slip-delay.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.success).toBe(false);
@@ -159,12 +170,50 @@ describe('slip-verification-service phase1 contract', () => {
 
       const result = await slipVerificationService.verify({
         paymentOrderId: `pay_${payload.code}`,
-        slipImageUrl: 'https://cdn.example/slip-failed.jpg',
+        slipFile: STUB_SLIP_FILE,
       });
 
       expect(result.success).toBe(false);
       expect(result.errorCode).toBe(String(payload.code));
       expect(result.errorCategory).toBe(payload.expected);
     }
+  });
+
+  it('falls back to JSON url mode when only slipImageUrl is provided', async () => {
+    process.env.SLIPOK_API_KEY = 'sk_test_url';
+    process.env.SLIPOK_BRANCH_ID = 'branch_url';
+    process.env.SLIPOK_MAX_RETRIES = '0';
+
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          success: true,
+          amount: 88,
+          transRef: 'TRX-URL-001',
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const result = await slipVerificationService.verify({
+      paymentOrderId: 'pay_url_001',
+      slipImageUrl: 'https://cdn.example/slip-url.jpg',
+      expectedAmountTHB: 88,
+    });
+
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+
+    const body = JSON.parse(String(init.body));
+    expect(body).toEqual({
+      url: 'https://cdn.example/slip-url.jpg',
+      log: true,
+      amount: 88,
+    });
+
+    expect(result.success).toBe(true);
   });
 });

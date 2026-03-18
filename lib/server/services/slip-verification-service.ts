@@ -40,6 +40,10 @@ interface SlipOkClientConfig {
   verifyLog: boolean;
 }
 
+function roundAmountTHB(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function parseIntEnv(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
@@ -91,15 +95,66 @@ function resolveSlipOkConfig():
 
 function parseAmountTHB(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.round(value * 100) / 100;
+    return roundAmountTHB(value);
   }
   if (typeof value === 'string') {
     const normalized = Number.parseFloat(value.replace(/,/g, ''));
     if (Number.isFinite(normalized)) {
-      return Math.round(normalized * 100) / 100;
+      return roundAmountTHB(normalized);
     }
   }
   return undefined;
+}
+
+function buildSlipOkRequest(input: VerifySlipInput, verifyLog: boolean): {
+  headers: Record<string, string>;
+  body: BodyInit;
+} {
+  const roundedAmount =
+    typeof input.expectedAmountTHB === 'number' && Number.isFinite(input.expectedAmountTHB)
+      ? roundAmountTHB(input.expectedAmountTHB)
+      : undefined;
+
+  if (input.slipFile) {
+    const formData = new FormData();
+    const slipArrayBuffer = new ArrayBuffer(input.slipFile.buffer.byteLength);
+    new Uint8Array(slipArrayBuffer).set(input.slipFile.buffer);
+
+    const slipBlob = new Blob([slipArrayBuffer], {
+      type: input.slipFile.mimeType || 'application/octet-stream',
+    });
+
+    formData.append('files', slipBlob, input.slipFile.filename);
+    formData.append('log', String(verifyLog));
+
+    if (typeof roundedAmount === 'number') {
+      formData.append('amount', String(roundedAmount));
+    }
+
+    return {
+      headers: {},
+      body: formData,
+    };
+  }
+
+  const requestPayload: Record<string, unknown> = {
+    log: verifyLog,
+  };
+
+  if (input.slipImageUrl) {
+    requestPayload.url = input.slipImageUrl;
+  }
+
+  if (typeof roundedAmount === 'number') {
+    requestPayload.amount = roundedAmount;
+  }
+
+  return {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestPayload),
+  };
 }
 
 function parseErrorCode(payload: Record<string, unknown>, nestedData: Record<string, unknown> | null): string | undefined {
@@ -274,19 +329,7 @@ export const slipVerificationService = {
 
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       try {
-        const requestPayload: Record<string, unknown> = {
-          log: verifyLog,
-        };
-
-        if (input.slipFile) {
-          requestPayload.data = input.slipFile.buffer.toString('base64');
-        } else if (input.slipImageUrl) {
-          requestPayload.url = input.slipImageUrl;
-        }
-
-        if (typeof input.expectedAmountTHB === 'number' && Number.isFinite(input.expectedAmountTHB)) {
-          requestPayload.amount = Math.round(input.expectedAmountTHB * 100) / 100;
-        }
+        const request = buildSlipOkRequest(input, verifyLog);
 
         const response = await fetchWithTimeout(
           endpointUrl,
@@ -294,9 +337,9 @@ export const slipVerificationService = {
             method: 'POST',
             headers: {
               'x-authorization': apiKey,
-              'Content-Type': 'application/json',
+              ...request.headers,
             },
-            body: JSON.stringify(requestPayload),
+            body: request.body,
           },
           timeoutMs
         );
