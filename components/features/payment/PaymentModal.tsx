@@ -69,6 +69,7 @@ export function PaymentModal({
   amount,
   resumeOrderId,
 }: PaymentModalProps) {
+  const amountLabel = amount.toFixed(2);
   const [step, setStep] = useState<Step>('creating-order');
   const [loading,       setLoading] = useState(false);
   const [order, setOrder] = useState<OrderPayload | null>(null);
@@ -214,8 +215,8 @@ export function PaymentModal({
 
   // ── Render step titles ───────────────────────────────────────────────────
   const titleMap: Record<Step, string> = {
-    'creating-order': `เติม ${stars} Stars · ฿${amount}`,
-    'qr-display': `สแกน QR · ฿${amount}`,
+    'creating-order': `เติม ${stars} Stars · ฿${amountLabel}`,
+    'qr-display': `สแกน QR · ฿${amountLabel}`,
     'failed': 'ไม่สามารถดำเนินการชำระเงิน',
     'receipt': 'ใบเสร็จ',
   };

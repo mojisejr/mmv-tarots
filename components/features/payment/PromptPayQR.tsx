@@ -11,6 +11,10 @@ import { cn } from '@/lib/shared/utils';
 
 const POLL_INTERVAL_MS = 4000;
 const MAX_POLLS = 150; // ~10 minutes
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_FILE_TYPES = '.jpg,.jpeg,.png,.webp,.jfif,image/jpeg,image/png,image/webp';
+const ACCEPTED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'jfif']);
+const ACCEPTED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 interface StatusResponse {
   order: {
@@ -39,6 +43,70 @@ interface PromptPayQRProps {
   onCredited: (transactionRef: string) => void;
   onExpired: () => void;
   onClose: () => void;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function getFileExtension(filename: string): string {
+  const parts = filename.toLowerCase().split('.');
+  return parts.length > 1 ? parts.at(-1) ?? '' : '';
+}
+
+function validateSlipFile(file: File): string | null {
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return 'ไฟล์ใหญ่เกินไป (สูงสุด 10MB)';
+  }
+
+  const extension = getFileExtension(file.name);
+  const mimeType = file.type.toLowerCase();
+
+  if (!ACCEPTED_MIME_TYPES.has(mimeType) && !ACCEPTED_EXTENSIONS.has(extension)) {
+    return 'รองรับเฉพาะไฟล์ภาพ JPG, PNG, WEBP เท่านั้น';
+  }
+
+  return null;
+}
+
+function extractErrorMessage(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') {
+    return 'การยืนยันสลิปไม่สำเร็จ';
+  }
+
+  const candidate = payload as {
+    errorMessage?: unknown;
+    error?: unknown;
+    message?: unknown;
+  };
+
+  if (typeof candidate.errorMessage === 'string' && candidate.errorMessage.trim()) {
+    return candidate.errorMessage;
+  }
+
+  if (typeof candidate.message === 'string' && candidate.message.trim()) {
+    return candidate.message;
+  }
+
+  if (
+    candidate.error &&
+    typeof candidate.error === 'object' &&
+    'message' in candidate.error &&
+    typeof candidate.error.message === 'string' &&
+    candidate.error.message.trim()
+  ) {
+    return candidate.error.message;
+  }
+
+  if (typeof candidate.error === 'string' && candidate.error.trim()) {
+    return candidate.error;
+  }
+
+  return 'การยืนยันสลิปไม่สำเร็จ';
 }
 
 function useCountdown(expiresAt: string) {
@@ -73,11 +141,27 @@ export function PromptPayQR({
   const [pollCount, setPollCount] = useState(0);
   const [status, setStatus] = useState<StatusResponse['order']['status']>(initialStatus);
   const [error, setError] = useState<string | null>(initialErrorMessage ?? null);
-  const [slipImageUrl, setSlipImageUrl] = useState('');
+  const [slipFile, setSlipFile] = useState<File | null>(null);
+  const [slipPreviewUrl, setSlipPreviewUrl] = useState<string | null>(null);
   const [submittingSlip, setSubmittingSlip] = useState(false);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const successFiredRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { remaining, label: timer } = useCountdown(expiresAt);
+
+  useEffect(() => {
+    if (!slipFile) {
+      setSlipPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(slipFile);
+    setSlipPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [slipFile]);
 
   useEffect(() => {
     const run = async () => {
@@ -135,26 +219,32 @@ export function PromptPayQR({
   }, [onCredited, onExpired, orderId]);
 
   const submitSlip = useCallback(async () => {
-    const normalizedUrl = slipImageUrl.trim();
-    if (!normalizedUrl) {
-      toast.error('กรุณากรอก URL ของสลิป');
+    if (!slipFile) {
+      toast.error('กรุณาเลือกไฟล์รูปสลิป');
+      return;
+    }
+
+    const validationError = validateSlipFile(slipFile);
+    if (validationError) {
+      setError(validationError);
+      toast.error(validationError);
       return;
     }
 
     setSubmittingSlip(true);
     try {
+      const formData = new FormData();
+      formData.append('slipFile', slipFile);
+
       const res = await fetch(`/api/payment/orders/${orderId}/slip`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ slipImageUrl: normalizedUrl }),
+        body: formData,
       });
 
       const payload = await res.json();
       if (!res.ok) {
         setStatus(payload.status ?? 'REJECTED');
-        setError(payload.errorMessage ?? payload.error ?? 'การยืนยันสลิปไม่สำเร็จ');
+        setError(extractErrorMessage(payload));
         if (payload.status === 'EXPIRED') {
           onExpired();
         }
@@ -162,7 +252,7 @@ export function PromptPayQR({
       }
 
       setStatus(payload.status ?? 'VERIFYING');
-      setError(null);
+      setError(extractErrorMessage(payload) === 'การยืนยันสลิปไม่สำเร็จ' ? null : extractErrorMessage(payload));
       setPollCount(0);
       toast.success('ส่งสลิปแล้ว ระบบกำลังตรวจสอบ');
       await poll();
@@ -171,7 +261,34 @@ export function PromptPayQR({
     } finally {
       setSubmittingSlip(false);
     }
-  }, [onExpired, orderId, poll, slipImageUrl]);
+  }, [onExpired, orderId, poll, slipFile]);
+
+  const handleFileSelection = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+
+    if (!nextFile) {
+      return;
+    }
+
+    const validationError = validateSlipFile(nextFile);
+    if (validationError) {
+      setSlipFile(null);
+      setError(validationError);
+      event.target.value = '';
+      toast.error(validationError);
+      return;
+    }
+
+    setSlipFile(nextFile);
+    setError(null);
+    if (status === 'REJECTED') {
+      setStatus('PENDING_PAYMENT');
+    }
+  }, [status]);
+
+  const openFilePicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   // Start polling
   useEffect(() => {
@@ -198,7 +315,7 @@ export function PromptPayQR({
 
   const statusLabel =
     status === 'PENDING_PAYMENT'
-      ? 'รอส่งสลิปเพื่อยืนยันยอด'
+      ? 'เลือกสลิปแล้วกดส่งเพื่อยืนยันยอด'
       : status === 'SLIP_UPLOADED'
         ? 'รับสลิปแล้ว กำลังจัดคิวตรวจสอบ'
         : status === 'VERIFYING' || status === 'VERIFIED'
@@ -268,21 +385,59 @@ export function PromptPayQR({
         )}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="slip-url" className="text-xs text-muted-foreground">
-          แนบลิงก์รูปสลิป (URL)
-        </label>
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <label htmlFor="slip-file" className="text-xs text-muted-foreground">
+            อัปโหลดรูปสลิปการโอน
+          </label>
+          <p className="text-[11px] text-muted-foreground/70">
+            รองรับ JPG, PNG, WEBP, JFIF สูงสุด 10MB และควรโอนตามยอด ฿{amount.toFixed(2)} ให้ตรงกับ QR
+          </p>
+        </div>
+
         <input
-          id="slip-url"
-          type="url"
-          value={slipImageUrl}
-          onChange={(event) => setSlipImageUrl(event.target.value)}
-          placeholder="https://..."
-          className="w-full rounded-xl border bg-white/5 backdrop-blur-sm px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors duration-200 border-white/10 hover:border-white/20"
+          ref={fileInputRef}
+          id="slip-file"
+          type="file"
+          accept={ACCEPTED_FILE_TYPES}
+          onChange={handleFileSelection}
+          className="sr-only"
         />
+
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-white/25 hover:bg-white/15"
+            >
+              {slipFile ? 'เปลี่ยนรูปสลิป' : 'เลือกไฟล์สลิป'}
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {slipFile ? slipFile.name : 'ยังไม่ได้เลือกไฟล์'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {slipFile ? `${formatFileSize(slipFile.size)} · พร้อมส่งยืนยัน` : 'เลือกจากมือถือหรือคอมพิวเตอร์ได้ทันที'}
+              </p>
+            </div>
+          </div>
+
+          {slipPreviewUrl && slipFile && (
+            <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/10">
+              <img
+                src={slipPreviewUrl}
+                alt={`ตัวอย่างสลิป ${slipFile.name}`}
+                className="h-48 w-full object-cover"
+              />
+            </div>
+          )}
+        </div>
+
         <GlassButton
           onClick={submitSlip}
-          disabled={submittingSlip || !slipImageUrl.trim()}
+          disabled={submittingSlip || !slipFile}
           variant="primary"
           className="w-full"
         >
@@ -291,7 +446,12 @@ export function PromptPayQR({
       </div>
 
       {error && status !== 'REJECTED' && (
-        <p className="text-center text-xs text-destructive">{error}</p>
+        <p className={cn(
+          'text-center text-xs',
+          status === 'VERIFYING' || status === 'VERIFIED' ? 'text-primary' : 'text-destructive',
+        )}>
+          {error}
+        </p>
       )}
 
       <GlassButton onClick={onClose} variant="outline" className="w-full">
