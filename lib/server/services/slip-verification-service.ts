@@ -1,8 +1,10 @@
 import { VerificationProvider } from '@prisma/client';
+import type { SlipFileInput } from '@/lib/server/services/payment-fulfillment-service';
 
 export interface VerifySlipInput {
   paymentOrderId: string;
-  slipImageUrl: string;
+  slipFile?: SlipFileInput;
+  slipImageUrl?: string;
   expectedAmountTHB?: number;
 }
 
@@ -273,9 +275,14 @@ export const slipVerificationService = {
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       try {
         const requestPayload: Record<string, unknown> = {
-          url: input.slipImageUrl,
           log: verifyLog,
         };
+
+        if (input.slipFile) {
+          requestPayload.data = input.slipFile.buffer.toString('base64');
+        } else if (input.slipImageUrl) {
+          requestPayload.url = input.slipImageUrl;
+        }
 
         if (typeof input.expectedAmountTHB === 'number' && Number.isFinite(input.expectedAmountTHB)) {
           requestPayload.amount = Math.round(input.expectedAmountTHB * 100) / 100;

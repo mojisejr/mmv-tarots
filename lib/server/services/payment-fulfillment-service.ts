@@ -4,10 +4,16 @@ import { emitPaymentEvent } from '@/lib/server/payment-observability';
 import { CreditService } from '@/services/credit-service';
 import { slipVerificationService } from '@/lib/server/services/slip-verification-service';
 
+export interface SlipFileInput {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+}
+
 export interface SubmitSlipInput {
   orderId: string;
   userId: string;
-  slipImageUrl: string;
+  slipFile: SlipFileInput;
 }
 
 export interface SubmitSlipResult {
@@ -96,7 +102,7 @@ export const paymentFulfillmentService = {
       where: { id: order.id },
       data: {
         status: PaymentOrderStatus.SLIP_UPLOADED,
-        slipImageUrl: input.slipImageUrl,
+        slipImageUrl: `direct-upload://${input.slipFile.filename}`,
       },
     });
 
@@ -109,7 +115,7 @@ export const paymentFulfillmentService = {
 
     const verifyResult = await slipVerificationService.verify({
       paymentOrderId: order.id,
-      slipImageUrl: input.slipImageUrl,
+      slipFile: input.slipFile,
       expectedAmountTHB: Number(order.amountTHB),
     });
 
@@ -126,7 +132,7 @@ export const paymentFulfillmentService = {
         status: verificationLogStatus,
         errorCode: verifyResult.errorCode,
         errorMessage: verifyResult.errorMessage,
-        requestPayload: { slipImageUrl: input.slipImageUrl },
+        requestPayload: { filename: input.slipFile.filename, mimeType: input.slipFile.mimeType },
         responsePayload: verifyResult.raw as Prisma.InputJsonValue,
       },
     });

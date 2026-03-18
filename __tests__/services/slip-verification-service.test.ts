@@ -37,6 +37,7 @@ describe('slip-verification-service phase1 contract', () => {
     process.env.SLIPOK_API_KEY = 'sk_test_123';
     process.env.SLIPOK_BRANCH_ID = 'branch_789';
     process.env.SLIPOK_MAX_RETRIES = '0';
+    delete process.env.SLIPOK_API_URL;
 
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true,

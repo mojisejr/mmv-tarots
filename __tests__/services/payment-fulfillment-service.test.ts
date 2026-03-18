@@ -33,8 +33,15 @@ vi.mock('@/lib/server/services/slip-verification-service', () => ({
 import { db } from '@/lib/server/db';
 import { emitPaymentEvent } from '@/lib/server/payment-observability';
 import { paymentFulfillmentService } from '@/lib/server/services/payment-fulfillment-service';
+import type { SlipFileInput } from '@/lib/server/services/payment-fulfillment-service';
 import { slipVerificationService } from '@/lib/server/services/slip-verification-service';
 import { CreditService } from '@/services/credit-service';
+
+const STUB_SLIP_FILE: SlipFileInput = {
+  buffer: Buffer.from([0xFF, 0xD8, 0xFF, 0xE0]),
+  filename: 'slip.jpg',
+  mimeType: 'image/jpeg',
+};
 
 function buildOrder(overrides: Partial<any> = {}) {
   return {
@@ -74,7 +81,7 @@ describe('payment-fulfillment-service phase3 state machine', () => {
     const result = await paymentFulfillmentService.submitSlip({
       orderId: 'ord_001',
       userId: 'user_001',
-      slipImageUrl: 'https://cdn.example/slip.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.status).toBe(PaymentOrderStatus.VERIFYING);
@@ -122,7 +129,7 @@ describe('payment-fulfillment-service phase3 state machine', () => {
     const result = await paymentFulfillmentService.submitSlip({
       orderId: 'ord_001',
       userId: 'user_001',
-      slipImageUrl: 'https://cdn.example/slip.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.status).toBe(PaymentOrderStatus.VERIFYING);
@@ -152,7 +159,7 @@ describe('payment-fulfillment-service phase3 state machine', () => {
     const result = await paymentFulfillmentService.submitSlip({
       orderId: 'ord_001',
       userId: 'user_001',
-      slipImageUrl: 'https://cdn.example/slip.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.status).toBe(PaymentOrderStatus.REJECTED);
@@ -212,7 +219,7 @@ describe('payment-fulfillment-service phase3 state machine', () => {
     const result = await paymentFulfillmentService.submitSlip({
       orderId: 'ord_001',
       userId: 'user_001',
-      slipImageUrl: 'https://cdn.example/slip.jpg',
+      slipFile: STUB_SLIP_FILE,
     });
 
     expect(result.status).toBe(PaymentOrderStatus.CREDITED);
