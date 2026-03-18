@@ -217,3 +217,14 @@ related_files:
   - Lint: PASS
   - Test: PASS (42 files, 212 tests)
 
+## Phase Execution Update (2026-03-18 08:13 +0700)
+- Phase 5 status: DONE (desktop topnav exposure follow-up)
+- Completed:
+  - Added `Transactions` and `Billing` shortcuts to desktop top navigation user menu (`components/layout/profile-dropdown.tsx`)
+  - Kept mobile navigation unchanged per rollout decision (desktop-only)
+  - Preserved existing `/transactions` and `/billing` route wiring without changing payment/business logic
+- Hard Gate:
+  - Build: PASS
+  - Lint: PASS
+  - Test: PASS (42 files, 212 tests)
+
