@@ -3,6 +3,7 @@ import { VerificationProvider } from '@prisma/client';
 export interface VerifySlipInput {
   paymentOrderId: string;
   slipImageUrl: string;
+  expectedAmountTHB?: number;
 }
 
 export interface VerifySlipResult {
@@ -18,6 +19,63 @@ export interface VerifySlipResult {
 const DEFAULT_SLIPOK_TIMEOUT_MS = 10000;
 const DEFAULT_SLIPOK_MAX_RETRIES = 2;
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+interface SlipOkClientConfig {
+  endpointUrl: string;
+  apiKey: string;
+  timeoutMs: number;
+  maxRetries: number;
+  verifyLog: boolean;
+}
+
+function parseIntEnv(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function resolveSlipOkConfig():
+  | { ok: true; config: SlipOkClientConfig }
+  | { ok: false; missing: string[] } {
+  const apiKey = process.env.SLIPOK_API_KEY?.trim();
+  const branchId = process.env.SLIPOK_BRANCH_ID?.trim();
+
+  const missing: string[] = [];
+  if (!apiKey) {
+    missing.push('SLIPOK_API_KEY');
+  }
+  if (!branchId) {
+    missing.push('SLIPOK_BRANCH_ID');
+  }
+
+  if (missing.length > 0) {
+    return { ok: false, missing };
+  }
+
+  const resolvedBranchId = branchId as string;
+  const resolvedApiKey = apiKey as string;
+
+  const timeoutMs = parseIntEnv(process.env.SLIPOK_TIMEOUT_MS, DEFAULT_SLIPOK_TIMEOUT_MS);
+  const maxRetries = parseIntEnv(process.env.SLIPOK_MAX_RETRIES, DEFAULT_SLIPOK_MAX_RETRIES);
+  const verifyLog = process.env.SLIPOK_VERIFY_LOG !== 'false';
+
+  const apiUrlOverride = process.env.SLIPOK_API_URL?.trim();
+  const baseUrl = (process.env.SLIPOK_API_BASE_URL ?? 'https://api.slipok.com').replace(/\/+$/, '');
+  const endpointUrl =
+    apiUrlOverride && apiUrlOverride.length > 0
+      ? apiUrlOverride
+      : `${baseUrl}/api/line/apikey/${encodeURIComponent(resolvedBranchId)}`;
+
+  return {
+    ok: true,
+    config: {
+      endpointUrl,
+      apiKey: resolvedApiKey,
+      timeoutMs,
+      maxRetries,
+      verifyLog,
+    },
+  };
+}
 
 function parseAmountTHB(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -40,7 +98,8 @@ function extractExternalRef(payload: Record<string, unknown>): string | undefine
 
   const data = payload.data;
   if (typeof data === 'object' && data !== null) {
-    const nested = (data as Record<string, unknown>).transactionId;
+    const nestedPayload = data as Record<string, unknown>;
+    const nested = nestedPayload.transactionId ?? nestedPayload.transRef;
     if (typeof nested === 'string' && nested.length > 0) {
       return nested;
     }
@@ -63,10 +122,13 @@ function normalizeVerifyResponse(payload: unknown): VerifySlipResult {
   }
 
   const data = payload as Record<string, unknown>;
-  const successRaw = data.success ?? data.ok ?? data.valid;
+  const nestedData =
+    typeof data.data === 'object' && data.data !== null ? (data.data as Record<string, unknown>) : null;
+
+  const successRaw = nestedData?.success ?? data.success ?? data.ok ?? data.valid;
   const success = successRaw === true || successRaw === 'true' || successRaw === 1;
 
-  const amountRaw = data.amountTHB ?? data.amount ?? data.amount_thb;
+  const amountRaw = nestedData?.amount ?? data.amountTHB ?? data.amount ?? data.amount_thb;
   const amountTHB = parseAmountTHB(amountRaw);
 
   const errorCode =
@@ -74,6 +136,8 @@ function normalizeVerifyResponse(payload: unknown): VerifySlipResult {
       ? data.errorCode
       : typeof data.code === 'string'
         ? data.code
+        : typeof data.code === 'number'
+          ? String(data.code)
         : undefined;
 
   const errorMessage =
@@ -116,41 +180,39 @@ async function fetchWithTimeout(
 
 export const slipVerificationService = {
   async verify(input: VerifySlipInput): Promise<VerifySlipResult> {
-    const apiUrl = process.env.SLIPOK_API_URL ?? 'https://api.slipok.com/api/v1/verify';
-    const apiKey = process.env.SLIPOK_API_KEY;
-    const timeoutMs = Number.parseInt(
-      process.env.SLIPOK_TIMEOUT_MS ?? String(DEFAULT_SLIPOK_TIMEOUT_MS),
-      10
-    );
-    const maxRetries = Number.parseInt(
-      process.env.SLIPOK_MAX_RETRIES ?? String(DEFAULT_SLIPOK_MAX_RETRIES),
-      10
-    );
+    const configResult = resolveSlipOkConfig();
 
-    if (!apiKey) {
+    if (!configResult.ok) {
       return {
         success: false,
         provider: VerificationProvider.SLIP_OK,
         errorCode: 'SLIPOK_NOT_CONFIGURED',
-        errorMessage: 'Missing SLIPOK_API_KEY in environment configuration.',
+        errorMessage: `Missing required SlipOK configuration: ${configResult.missing.join(', ')}`,
       };
     }
 
+    const { endpointUrl, apiKey, timeoutMs, maxRetries, verifyLog } = configResult.config;
+
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       try {
+        const requestPayload: Record<string, unknown> = {
+          url: input.slipImageUrl,
+          log: verifyLog,
+        };
+
+        if (typeof input.expectedAmountTHB === 'number' && Number.isFinite(input.expectedAmountTHB)) {
+          requestPayload.amount = Math.round(input.expectedAmountTHB * 100) / 100;
+        }
+
         const response = await fetchWithTimeout(
-          apiUrl,
+          endpointUrl,
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${apiKey}`,
+              'x-authorization': apiKey,
               'Content-Type': 'application/json',
-              'X-Payment-Order-Id': input.paymentOrderId,
             },
-            body: JSON.stringify({
-              paymentOrderId: input.paymentOrderId,
-              slipImageUrl: input.slipImageUrl,
-            }),
+            body: JSON.stringify(requestPayload),
           },
           timeoutMs
         );

@@ -104,6 +104,7 @@ export const paymentFulfillmentService = {
     const verifyResult = await slipVerificationService.verify({
       paymentOrderId: order.id,
       slipImageUrl: input.slipImageUrl,
+      expectedAmountTHB: Number(order.amountTHB),
     });
 
     await db.paymentVerificationLog.create({
