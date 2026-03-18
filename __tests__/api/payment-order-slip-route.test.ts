@@ -103,6 +103,58 @@ describe('POST /api/payment/orders/[id]/slip', () => {
     expect(lineOaNotificationService.notifyPaymentCredited).not.toHaveBeenCalled();
   });
 
+  it('returns 200 with VERIFYING for delayed recheck status', async () => {
+    vi.mocked(paymentFulfillmentService.submitSlip).mockResolvedValue({
+      orderId: 'ord_001',
+      status: 'VERIFYING',
+      credited: false,
+      alreadyCredited: false,
+      starsGranted: 0,
+      errorCode: '1010',
+      errorMessage: 'กรุณารอการตรวจสอบสลิปหลังการโอนประมาณ 7 นาที',
+    } as any);
+
+    const request = new Request('http://localhost/api/payment/orders/ord_001/slip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slipImageUrl: 'https://cdn.example/slip.jpg' }),
+    });
+
+    const response = await POST(request as any, { params: Promise.resolve({ id: 'ord_001' }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.status).toBe('VERIFYING');
+    expect(lineOaNotificationService.notifyPaymentCredited).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 for expired orders', async () => {
+    vi.mocked(paymentFulfillmentService.submitSlip).mockResolvedValue({
+      orderId: 'ord_001',
+      status: 'EXPIRED',
+      credited: false,
+      alreadyCredited: false,
+      starsGranted: 0,
+      errorCode: 'ORDER_EXPIRED',
+      errorMessage: 'Payment order has expired.',
+    } as any);
+
+    const request = new Request('http://localhost/api/payment/orders/ord_001/slip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slipImageUrl: 'https://cdn.example/slip.jpg' }),
+    });
+
+    const response = await POST(request as any, { params: Promise.resolve({ id: 'ord_001' }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body.success).toBe(false);
+    expect(body.status).toBe('EXPIRED');
+    expect(lineOaNotificationService.notifyPaymentCredited).not.toHaveBeenCalled();
+  });
+
   it('returns 404 when order is missing', async () => {
     vi.mocked(paymentFulfillmentService.submitSlip).mockRejectedValue(
       new Error('PAYMENT_ORDER_NOT_FOUND')
