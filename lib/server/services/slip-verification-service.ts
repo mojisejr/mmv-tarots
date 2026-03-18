@@ -12,9 +12,19 @@ export interface VerifySlipResult {
   externalRef?: string;
   amountTHB?: number;
   errorCode?: string;
+  errorCategory?: SlipVerificationErrorCategory;
   errorMessage?: string;
+  retryAfterMinutes?: number;
   raw?: unknown;
 }
+
+export type SlipVerificationErrorCategory =
+  | 'TEMPORARY'
+  | 'DELAYED_RECHECK'
+  | 'DUPLICATE'
+  | 'AMOUNT_MISMATCH'
+  | 'RECEIVER_MISMATCH'
+  | 'INVALID';
 
 const DEFAULT_SLIPOK_TIMEOUT_MS = 10000;
 const DEFAULT_SLIPOK_MAX_RETRIES = 2;
@@ -90,6 +100,74 @@ function parseAmountTHB(value: unknown): number | undefined {
   return undefined;
 }
 
+function parseErrorCode(payload: Record<string, unknown>, nestedData: Record<string, unknown> | null): string | undefined {
+  const raw = payload.errorCode ?? payload.code ?? nestedData?.errorCode ?? nestedData?.code;
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return String(raw);
+  }
+  return undefined;
+}
+
+function parseRetryAfterMinutes(message: string): number | undefined {
+  const minuteMatch = message.match(/(\d+)\s*(?:นาที|minute|minutes)/i);
+  if (!minuteMatch) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(minuteMatch[1], 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function mapErrorTaxonomy(errorCode: string | undefined, errorMessage: string | undefined): {
+  errorCategory: SlipVerificationErrorCategory;
+  retryAfterMinutes?: number;
+} {
+  const normalizedCode = errorCode?.trim();
+
+  if (normalizedCode === '1009') {
+    return {
+      errorCategory: 'TEMPORARY',
+      retryAfterMinutes: 15,
+    };
+  }
+
+  if (normalizedCode === '1010') {
+    return {
+      errorCategory: 'DELAYED_RECHECK',
+      retryAfterMinutes: errorMessage ? parseRetryAfterMinutes(errorMessage) ?? 15 : 15,
+    };
+  }
+
+  if (normalizedCode === '1012') {
+    return {
+      errorCategory: 'DUPLICATE',
+    };
+  }
+
+  if (normalizedCode === '1013') {
+    return {
+      errorCategory: 'AMOUNT_MISMATCH',
+    };
+  }
+
+  if (normalizedCode === '1014') {
+    return {
+      errorCategory: 'RECEIVER_MISMATCH',
+    };
+  }
+
+  return {
+    errorCategory: 'INVALID',
+  };
+}
+
 function extractExternalRef(payload: Record<string, unknown>): string | undefined {
   const direct = payload.transactionId ?? payload.transRef ?? payload.reference;
   if (typeof direct === 'string' && direct.length > 0) {
@@ -131,21 +209,18 @@ function normalizeVerifyResponse(payload: unknown): VerifySlipResult {
   const amountRaw = nestedData?.amount ?? data.amountTHB ?? data.amount ?? data.amount_thb;
   const amountTHB = parseAmountTHB(amountRaw);
 
-  const errorCode =
-    typeof data.errorCode === 'string'
-      ? data.errorCode
-      : typeof data.code === 'string'
-        ? data.code
-        : typeof data.code === 'number'
-          ? String(data.code)
-        : undefined;
+  const errorCode = parseErrorCode(data, nestedData);
 
   const errorMessage =
     typeof data.errorMessage === 'string'
       ? data.errorMessage
       : typeof data.message === 'string'
         ? data.message
+        : typeof nestedData?.message === 'string'
+          ? nestedData.message
         : undefined;
+
+  const { errorCategory, retryAfterMinutes } = mapErrorTaxonomy(errorCode, errorMessage);
 
   return {
     success,
@@ -153,7 +228,9 @@ function normalizeVerifyResponse(payload: unknown): VerifySlipResult {
     externalRef: extractExternalRef(data),
     amountTHB,
     errorCode,
+    errorCategory,
     errorMessage,
+    retryAfterMinutes,
     raw: payload,
   };
 }
