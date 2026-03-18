@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { GlassButton } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import type { PaymentErrorCategory } from '@/lib/shared/payment-error-semantics';
 
 type BillingStatus =
   | 'PENDING_PAYMENT'
@@ -24,11 +25,22 @@ interface BillingItem {
   creditedAt: string | null;
   verificationErrorCode: string | null;
   verificationErrorMessage: string | null;
+  errorCategory: PaymentErrorCategory;
+  retryAfterMinutes: number | null;
+  delayMinutes: number | null;
   package: {
     id: string;
     name: string;
     stars: number;
   };
+  latestVerificationLog: {
+    id: string;
+    provider: string;
+    status: string;
+    errorCode: string | null;
+    errorMessage: string | null;
+    createdAt: string;
+  } | null;
 }
 
 interface BillingResponse {
@@ -41,8 +53,24 @@ interface BillingResponse {
       total: number;
       totalPages: number;
     };
+    filters: {
+      status: BillingStatus[];
+    };
   };
 }
+
+const FILTER_OPTIONS: Array<{ value: 'ALL' | BillingStatus; label: string }> = [
+  { value: 'ALL', label: 'ทุกสถานะ' },
+  { value: 'PENDING_PAYMENT', label: 'รอชำระเงิน' },
+  { value: 'SLIP_UPLOADED', label: 'ส่งสลิปแล้ว' },
+  { value: 'VERIFYING', label: 'กำลังตรวจสอบ' },
+  { value: 'VERIFIED', label: 'ยืนยันแล้ว' },
+  { value: 'REJECTED', label: 'ไม่ผ่านการตรวจสอบ' },
+  { value: 'EXPIRED', label: 'หมดเวลา' },
+  { value: 'CREDITED', label: 'เครดิตเข้าแล้ว' },
+];
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
 const STATUS_META: Record<BillingStatus, { label: string; className: string }> = {
   PENDING_PAYMENT: {
@@ -93,8 +121,35 @@ function shouldShowSupportCTA(status: BillingStatus): boolean {
   return status === 'REJECTED' || status === 'EXPIRED' || status === 'VERIFYING';
 }
 
+function getErrorGuidance(item: BillingItem): string | null {
+  if (item.errorCategory === 'RECEIVER_MISMATCH') {
+    return 'บัญชีปลายทางไม่ตรงกับบัญชีร้าน กรุณาตรวจสอบบัญชีผู้รับแล้วชำระใหม่';
+  }
+
+  if (item.errorCategory === 'DELAYED_RECHECK') {
+    const delay = item.delayMinutes ?? item.retryAfterMinutes ?? 15;
+    return `ธนาคารยังประมวลผลไม่เสร็จ กรุณารอประมาณ ${delay} นาที แล้วตรวจสอบอีกครั้ง`;
+  }
+
+  if (item.errorCategory === 'TEMPORARY') {
+    const retry = item.retryAfterMinutes ?? 15;
+    return `ระบบธนาคารขัดข้องชั่วคราว แนะนำให้รอ ${retry} นาที แล้วลองใหม่อีกครั้ง`;
+  }
+
+  if (item.errorCategory === 'AMOUNT_MISMATCH') {
+    return 'ยอดเงินในสลิปไม่ตรงกับยอดคำสั่งซื้อ กรุณาตรวจสอบจำนวนเงินก่อนส่งสลิป';
+  }
+
+  if (item.errorCategory === 'DUPLICATE') {
+    return 'สลิปนี้ถูกใช้งานไปแล้ว กรุณาใช้สลิปรายการใหม่ที่ยังไม่เคยส่ง';
+  }
+
+  return null;
+}
+
 function buildSupportMessage(item: BillingItem): string {
   const statusLabel = STATUS_META[item.status].label;
+  const guidance = getErrorGuidance(item);
   const parts = [
     'สวัสดีทีมงาน MMV,',
     '',
@@ -104,6 +159,9 @@ function buildSupportMessage(item: BillingItem): string {
     `Package: ${item.package.name} (${item.package.stars} Stars)`,
     `Amount: ${item.amountTHB} THB`,
     `CreatedAt: ${item.createdAt}`,
+    `ErrorCategory: ${item.errorCategory}`,
+    `RetryAfterMinutes: ${item.retryAfterMinutes ?? '-'}`,
+    `DelayMinutes: ${item.delayMinutes ?? '-'}`,
   ];
 
   if (item.verificationErrorCode || item.verificationErrorMessage) {
@@ -113,35 +171,68 @@ function buildSupportMessage(item: BillingItem): string {
     );
   }
 
+  if (item.latestVerificationLog) {
+    parts.push(
+      `LatestLogStatus: ${item.latestVerificationLog.status}`,
+      `LatestLogProvider: ${item.latestVerificationLog.provider}`,
+      `LatestLogAt: ${item.latestVerificationLog.createdAt}`
+    );
+  }
+
+  if (guidance) {
+    parts.push(`SuggestedGuidance: ${guidance}`);
+  }
+
   return parts.join('\n');
 }
 
 export function BillingHistoryList() {
   const [items, setItems] = useState<BillingItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(20);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | BillingStatus>('ALL');
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBilling = async () => {
       try {
-        const res = await fetch('/api/payment/orders/me?page=1&pageSize=20');
+        setLoading(true);
+        setError(null);
+
+        const params = new URLSearchParams({
+          page: String(page),
+          pageSize: String(pageSize),
+        });
+
+        if (statusFilter !== 'ALL') {
+          params.set('status', statusFilter);
+        }
+
+        const res = await fetch(`/api/payment/orders/me?${params.toString()}`);
         if (!res.ok) {
           setError('ไม่สามารถโหลดประวัติการชำระเงินได้ในขณะนี้');
+          setItems([]);
           return;
         }
 
         const payload = (await res.json()) as BillingResponse;
         setItems(payload.data?.items ?? []);
+        setTotalPages(payload.data?.pagination?.totalPages ?? 0);
+        setTotalItems(payload.data?.pagination?.total ?? 0);
       } catch (fetchError) {
         console.error('Failed to fetch billing history:', fetchError);
         setError('ไม่สามารถโหลดประวัติการชำระเงินได้ในขณะนี้');
+        setItems([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchBilling();
-  }, []);
+  }, [page, pageSize, statusFilter]);
 
   const hasItems = useMemo(() => items.length > 0, [items]);
 
@@ -171,11 +262,57 @@ export function BillingHistoryList() {
 
   return (
     <div className="space-y-4">
+      <GlassCard className="p-4 sm:p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label className="text-sm text-muted-foreground flex flex-col gap-1.5">
+            สถานะ
+            <select
+              value={statusFilter}
+              onChange={(event) => {
+                setPage(1);
+                setStatusFilter(event.target.value as 'ALL' | BillingStatus);
+              }}
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              {FILTER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="bg-slate-900 text-slate-100">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm text-muted-foreground flex flex-col gap-1.5">
+            จำนวนต่อหน้า
+            <select
+              value={String(pageSize)}
+              onChange={(event) => {
+                setPage(1);
+                setPageSize(Number(event.target.value));
+              }}
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size} className="bg-slate-900 text-slate-100">
+                  {size} รายการ
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="text-sm text-muted-foreground flex flex-col justify-end">
+            <p>หน้าปัจจุบัน: {page}</p>
+            <p>ทั้งหมด: {totalItems} รายการ</p>
+          </div>
+        </div>
+      </GlassCard>
+
       {items.map((item) => {
         const createdAt = formatDate(item.createdAt);
         const verifiedAt = formatDate(item.verifiedAt);
         const creditedAt = formatDate(item.creditedAt);
         const statusMeta = STATUS_META[item.status];
+        const guidance = getErrorGuidance(item);
 
         return (
           <GlassCard key={item.id} className="p-4 sm:p-5 space-y-4">
@@ -205,6 +342,10 @@ export function BillingHistoryList() {
                 <p className="font-medium">รายละเอียดข้อผิดพลาด</p>
                 <p>Code: {item.verificationErrorCode || '-'}</p>
                 <p>Message: {item.verificationErrorMessage || '-'}</p>
+                <p>Category: {item.errorCategory}</p>
+                {item.retryAfterMinutes ? <p>Retry After: {item.retryAfterMinutes} นาที</p> : null}
+                {item.delayMinutes ? <p>Delay: {item.delayMinutes} นาที</p> : null}
+                {guidance ? <p className="font-medium">คำแนะนำ: {guidance}</p> : null}
               </div>
             )}
 
@@ -228,6 +369,30 @@ export function BillingHistoryList() {
           </GlassCard>
         );
       })}
+
+      <GlassCard className="p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <GlassButton
+            variant="outline"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+          >
+            หน้าก่อนหน้า
+          </GlassButton>
+
+          <p className="text-xs text-muted-foreground">
+            หน้า {page} / {totalPages > 0 ? totalPages : 1}
+          </p>
+
+          <GlassButton
+            variant="outline"
+            disabled={loading || totalPages <= 0 || page >= totalPages}
+            onClick={() => setPage((prev) => (totalPages > 0 ? Math.min(totalPages, prev + 1) : prev + 1))}
+          >
+            หน้าถัดไป
+          </GlassButton>
+        </div>
+      </GlassCard>
     </div>
   );
 }
