@@ -1,10 +1,47 @@
 import { db } from '../db';
-import { REFERRAL_REWARDS, ReferralStatus } from '@/constants/referral';
+import {
+  REFERRAL_REWARDS,
+  ReferralEligibilityState,
+  ReferralSource,
+  ReferralStatus,
+} from '@/constants/referral';
 import { User, TransactionType, TransactionStatus } from '@prisma/client';
-import { CreditService } from '@/services/credit-service';
+import {
+  captureReferralException,
+  detectReferralRewardAnomalies,
+  emitReferralEvent,
+  notifyReferralAlert,
+} from '@/lib/server/referral-observability';
 
 export const referralService = {
-  async processReferralSignup(user: User, referralCode?: string, ipAddress: string = 'unknown') {
+  async getReferralSourceForReferee(refereeId: string): Promise<ReferralSource | null> {
+    const history = await db.referralHistory.findFirst({
+      where: { refereeId },
+      orderBy: { createdAt: 'desc' },
+      select: { source: true },
+    });
+
+    if (!history?.source) {
+      return null;
+    }
+
+    if (history.source === ReferralSource.MANUAL_CODE) {
+      return ReferralSource.MANUAL_CODE;
+    }
+
+    if (history.source === ReferralSource.LINK) {
+      return ReferralSource.LINK;
+    }
+
+    return null;
+  },
+
+  async processReferralSignup(
+    user: User,
+    referralCode?: string,
+    ipAddress: string = 'unknown',
+    options?: { source?: ReferralSource }
+  ) {
     if (!referralCode) {
       // Just record IP
       await db.user.update({
@@ -50,6 +87,10 @@ export const referralService = {
 
     const isSuspicious = existingReferralsFromIp >= 3; // Limit 3 referrals per IP per day
     const initialStatus = isSuspicious ? ReferralStatus.BLOCKED : ReferralStatus.PENDING;
+    const initialEligibilityState = isSuspicious
+      ? ReferralEligibilityState.BLOCKED
+      : ReferralEligibilityState.PENDING_FIRST_PREDICTION;
+    const source = options?.source ?? ReferralSource.LINK;
 
     // Phase 2: Record Intent ONLY (No reward granting here)
     // We just link the user and create the history record.
@@ -70,6 +111,8 @@ export const referralService = {
           refereeId: user.id,
           ipAddress: ipAddress,
           status: initialStatus,
+          source,
+          eligibilityState: initialEligibilityState,
           // Calculate expected reward but don't give it yet
           rewardAmount: REFERRAL_REWARDS.REFERRER, 
         },
@@ -78,64 +121,137 @@ export const referralService = {
   },
 
   async grantReferralReward(refereeId: string) {
-    const history = await db.referralHistory.findFirst({
-      where: { 
-        refereeId, 
-        status: ReferralStatus.PENDING 
-      },
-      include: { referrer: true, referee: true },
-    });
-
-    if (!history) return;
-
-    await db.$transaction([
-      // 1. Give stars to Referrer
-      db.user.update({
-        where: { id: history.referrerId },
-        data: { stars: { increment: REFERRAL_REWARDS.REFERRER } },
-      }),
-      // Create Transaction Log for Referrer
-      db.creditTransaction.create({
-        data: {
-          userId: history.referrerId,
-          amount: REFERRAL_REWARDS.REFERRER,
-          balanceAfter: history.referrer.stars + REFERRAL_REWARDS.REFERRER,
-          type: TransactionType.TOPUP,
-          status: TransactionStatus.SUCCESS,
-          metadata: {
-            source: 'referral_reward',
-            refereeId: history.refereeId,
-            note: 'Reward for referring a new user (first usage)',
+    try {
+      const payoutOutcome = await db.$transaction(async (tx) => {
+        const history = await tx.referralHistory.findFirst({
+          where: {
+            refereeId,
+            status: ReferralStatus.PENDING,
+            eligibilityState: ReferralEligibilityState.PENDING_FIRST_PREDICTION,
           },
-        },
-      }),
+          include: { referrer: true, referee: true },
+          orderBy: { createdAt: 'desc' },
+        });
 
-      // 2. Give stars to Referee (Bonus)
-      db.user.update({
-        where: { id: history.refereeId },
-        data: { stars: { increment: REFERRAL_REWARDS.REFEREE } },
-      }),
-      // Create Transaction Log for Referee
-      db.creditTransaction.create({
-        data: {
-          userId: history.refereeId,
-          amount: REFERRAL_REWARDS.REFEREE,
-          balanceAfter: history.referee.stars + REFERRAL_REWARDS.REFEREE,
-          type: TransactionType.TOPUP,
-          status: TransactionStatus.SUCCESS,
-          metadata: {
-            source: 'referral_bonus',
-            referrerId: history.referrerId,
-            note: 'Welcome bonus for using referral link (first usage)',
+        if (!history) {
+          emitReferralEvent('referral_reward.skipped_no_pending_history', { refereeId });
+          return null;
+        }
+
+        const claimResult = await tx.referralHistory.updateMany({
+          where: {
+            id: history.id,
+            status: ReferralStatus.PENDING,
+            eligibilityState: ReferralEligibilityState.PENDING_FIRST_PREDICTION,
           },
-        },
-      }),
+          data: {
+            status: ReferralStatus.GRANTED,
+            eligibilityState: ReferralEligibilityState.GRANTED,
+          },
+        });
 
-      // 3. Update History Status
-      db.referralHistory.update({
-        where: { id: history.id },
-        data: { status: ReferralStatus.GRANTED },
-      }),
-    ]);
+        if (claimResult.count === 0) {
+          emitReferralEvent('referral_reward.skipped_race_claimed', {
+            refereeId,
+            referralHistoryId: history.id,
+          });
+          return null;
+        }
+
+        const referralSource = history.source ?? ReferralSource.LINK;
+
+        await tx.user.update({
+          where: { id: history.referrerId },
+          data: { stars: { increment: REFERRAL_REWARDS.REFERRER } },
+        });
+
+        await tx.creditTransaction.create({
+          data: {
+            userId: history.referrerId,
+            amount: REFERRAL_REWARDS.REFERRER,
+            balanceAfter: history.referrer.stars + REFERRAL_REWARDS.REFERRER,
+            type: TransactionType.TOPUP,
+            status: TransactionStatus.SUCCESS,
+            externalRef: `referrer_bonus:${history.id}`,
+            metadata: {
+              source: 'referral_reward',
+              refereeId: history.refereeId,
+              note: 'Reward for referring a new user (first usage)',
+            },
+          },
+        });
+
+        let refereeReward = 0;
+        if (referralSource === ReferralSource.MANUAL_CODE) {
+          await tx.user.update({
+            where: { id: history.refereeId },
+            data: { stars: { increment: REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE } },
+          });
+
+          await tx.creditTransaction.create({
+            data: {
+              userId: history.refereeId,
+              amount: REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE,
+              balanceAfter: history.referee.stars + REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE,
+              type: TransactionType.TOPUP,
+              status: TransactionStatus.SUCCESS,
+              externalRef: `manual_claim_referee_bonus:${history.id}`,
+              metadata: {
+                source: 'referral_bonus',
+                referrerId: history.referrerId,
+                note: 'Manual claim bonus at first successful prediction',
+              },
+            },
+          });
+
+          refereeReward = REFERRAL_REWARDS.MANUAL_CLAIM_REFEREE;
+        }
+
+        return {
+          referralHistoryId: history.id,
+          refereeId: history.refereeId,
+          referrerId: history.referrerId,
+          source: referralSource,
+          referrerReward: REFERRAL_REWARDS.REFERRER,
+          refereeReward,
+        };
+      });
+
+      if (!payoutOutcome) {
+        return;
+      }
+
+      emitReferralEvent('referral_reward.granted', {
+        referralHistoryId: payoutOutcome.referralHistoryId,
+        refereeId: payoutOutcome.refereeId,
+        referrerId: payoutOutcome.referrerId,
+        source: payoutOutcome.source,
+        referrerReward: payoutOutcome.referrerReward,
+        refereeReward: payoutOutcome.refereeReward,
+      });
+
+      const anomalies = detectReferralRewardAnomalies(payoutOutcome);
+      for (const anomaly of anomalies) {
+        emitReferralEvent('referral_reward.anomaly_detected', {
+          code: anomaly.code,
+          message: anomaly.message,
+          ...anomaly.details,
+        });
+
+        await notifyReferralAlert({
+          title: `Referral anomaly: ${anomaly.code}`,
+          severity: 'critical',
+          details: {
+            refereeId: payoutOutcome.refereeId,
+            referrerId: payoutOutcome.referrerId,
+            source: payoutOutcome.source,
+            ...anomaly.details,
+          },
+        });
+      }
+    } catch (error) {
+      captureReferralException('grant_referral_reward', error, { refereeId });
+      throw error;
+    }
   }
 };

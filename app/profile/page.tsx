@@ -4,38 +4,22 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from '@/lib/client/auth-client';
-import { GlassCard, GlassButton, HistoryCard, Modal } from '@/components';
+import { GlassCard, GlassButton, Modal } from '@/components';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
-import { fetchUserPredictions } from '@/lib/client/api';
-import { TransactionHistoryList } from '@/components/features/transaction-history-list';
-import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info, HelpCircle, Send, Loader2 } from 'lucide-react';
+import { User, Gift, QrCode, LogOut, Sparkles, History, Copy, Check, Info, HelpCircle, Send, Loader2, ReceiptText } from 'lucide-react';
 import { toast } from 'sonner';
 import { REFERRAL_REWARDS } from '@/constants/referral';
 import { ReferralUtils } from '@/lib/referral-utils';
 import { isLiffEnvironment } from '@/lib/client/liff-environment';
-
-interface Prediction {
-  id: string;
-  question: string;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
-  createdAt: string;
-  completedAt?: string;
-  selectedCards?: any[];
-}
 
 function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setCurrentPage } = useNavigation();
   const { data: session, isPending } = useSession();
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [stars, setStars] = useState(0);
-  const [activeTab, setActiveTab] = useState<'predictions' | 'transactions'>('predictions');
   const [referralCode, setReferralCode] = useState<string>('');
   const [referredById, setReferredById] = useState<string | null>(null);
-  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [claimCode, setClaimCode] = useState('');
   const [isClaimingCode, setIsClaimingCode] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -102,7 +86,6 @@ function ProfilePageContent() {
 
     // Load predictions when user is authenticated
     if (session?.user?.id) {
-      loadPredictions();
       fetchUserStars();
       fetchUserProfile();
     }
@@ -117,7 +100,6 @@ function ProfilePageContent() {
           setReferralCode(data.referralCode);
         }
         setReferredById(data.referredById ?? null);
-        setOnboardingCompleted(Boolean(data.onboardingCompleted));
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
@@ -234,34 +216,6 @@ function ProfilePageContent() {
     }
   };
 
-  const loadPredictions = async () => {
-    try {
-      setLoading(true);
-      // Fetch only recent 3 predictions for profile page
-      const data = await fetchUserPredictions(3);
-      
-      const transformedPredictions: Prediction[] = data.predictions.map(p => ({
-        id: p.jobId,
-        question: p.question,
-        status: p.status,
-        createdAt: p.createdAt,
-        completedAt: p.completedAt,
-        selectedCards: p.finalReading ? (p.finalReading as any).selectedCards : undefined,
-      }));
-
-      setPredictions(transformedPredictions);
-    } catch (err) {
-      console.error('Failed to load predictions:', err);
-      setError('Failed to load predictions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePredictionClick = (predictionId: string) => {
-    router.push(`/history/${predictionId}`);
-  };
-
   const handleSignOut = async () => {
     const { signOut } = await import('@/lib/client/auth-client');
     await signOut();
@@ -283,7 +237,7 @@ function ProfilePageContent() {
   }
 
   const user = session.user;
-  const canClaimReferral = !referredById && !onboardingCompleted;
+  const canClaimReferral = !referredById;
   const liffMode = isLiffEnvironment();
 
   return (
@@ -426,62 +380,49 @@ function ProfilePageContent() {
             </div>
           ) : (
             <div className="mt-3 rounded-lg border border-white/10 bg-white/40 px-3 py-2 text-[11px] text-foreground/60">
-              สิทธิ์ผู้ถูกแนะนำถูกใช้ไปแล้วหรือพ้นช่วง claim แล้ว
+              สิทธิ์ผู้ถูกแนะนำถูกใช้ไปแล้ว
             </div>
           )}
         </GlassCard>
       )}
 
-      {/* Tabs Control */}
-      <div className="flex p-1 bg-primary/10 backdrop-blur-md rounded-2xl mb-6 border border-primary/20">
-        <button
-          onClick={() => setActiveTab('predictions')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-            activeTab === 'predictions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-foreground/40'
-          }`}
-        >
-          <History className="w-4 h-4" />
-          <span className="text-sm font-medium">Predictions</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('transactions')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
-            activeTab === 'transactions' ? 'bg-white/70 text-foreground shadow-warm' : 'text-foreground/40'
-          }`}
-        >
-          <QrCode className="w-4 h-4" />
-          <span className="text-sm font-medium">Transactions</span>
-        </button>
-      </div>
-
-      {activeTab === 'predictions' ? (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-[10px] font-semibold text-foreground/40 uppercase tracking-widest">Recent Predictions</h3>
-            <GlassButton 
-              onClick={() => router.push('/history')}
-              className="text-[10px] px-3 py-1 uppercase tracking-tighter"
-            >
-              View All
-            </GlassButton>
-          </div>
-          {loading ? (
-            <div className="text-center py-10 text-muted-foreground/40">Loading predictions...</div>
-          ) : predictions.length > 0 ? (
-            predictions.map((prediction) => (
-              <HistoryCard
-                key={prediction.id}
-                prediction={prediction}
-                onClick={() => handlePredictionClick(prediction.id)}
-              />
-            ))
-          ) : (
-            <div className="text-center py-10 text-muted-foreground/40">No predictions yet</div>
-          )}
+      <GlassCard className="mb-6 border-primary/15 bg-primary/5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[10px] font-semibold text-foreground/40 uppercase tracking-widest">Account Hub</h3>
         </div>
-      ) : (
-        <TransactionHistoryList />
-      )}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link
+            href="/history"
+            className="rounded-xl border border-white/15 bg-white/60 px-4 py-3 transition-colors hover:bg-white/80"
+          >
+            <div className="flex items-center gap-2 text-foreground/80">
+              <History className="w-4 h-4" />
+              <span className="text-sm font-semibold">Prediction History</span>
+            </div>
+            <p className="mt-1 text-xs text-foreground/60">ดูประวัติการเปิดไพ่ทั้งหมด</p>
+          </Link>
+          <Link
+            href="/transactions"
+            className="rounded-xl border border-white/15 bg-white/60 px-4 py-3 transition-colors hover:bg-white/80"
+          >
+            <div className="flex items-center gap-2 text-foreground/80">
+              <QrCode className="w-4 h-4" />
+              <span className="text-sm font-semibold">Transactions</span>
+            </div>
+            <p className="mt-1 text-xs text-foreground/60">เช็กการเคลื่อนไหว Stars</p>
+          </Link>
+          <Link
+            href="/billing"
+            className="rounded-xl border border-white/15 bg-white/60 px-4 py-3 transition-colors hover:bg-white/80"
+          >
+            <div className="flex items-center gap-2 text-foreground/80">
+              <ReceiptText className="w-4 h-4" />
+              <span className="text-sm font-semibold">Billing</span>
+            </div>
+            <p className="mt-1 text-xs text-foreground/60">ติดตามสถานะการชำระเงิน</p>
+          </Link>
+        </div>
+      </GlassCard>
 
       <GlassCard className="mt-8 border-primary/10 bg-primary/5">
         <div className="flex items-start gap-3">

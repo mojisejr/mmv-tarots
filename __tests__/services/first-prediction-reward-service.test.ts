@@ -1,0 +1,157 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '@prisma/client';
+import { REFERRAL_REWARDS, REWARD_POLICY_EVENTS } from '@/constants/referral';
+
+const testMocks = vi.hoisted(() => ({
+  mockDbTransaction: vi.fn(),
+  mockCreditFindUnique: vi.fn(),
+  mockUserFindUnique: vi.fn(),
+  mockUserUpdate: vi.fn(),
+  mockCreditCreate: vi.fn(),
+  mockGetReferralSourceForReferee: vi.fn(),
+  mockGrantReferralReward: vi.fn(),
+}));
+
+vi.mock('@/lib/server/db', () => ({
+  db: {
+    $transaction: testMocks.mockDbTransaction,
+  },
+}));
+
+vi.mock('@/lib/server/services/referral-service', () => ({
+  referralService: {
+    getReferralSourceForReferee: testMocks.mockGetReferralSourceForReferee,
+    grantReferralReward: testMocks.mockGrantReferralReward,
+  },
+}));
+
+vi.mock('@/constants/referral', async () => {
+  const actual = await vi.importActual<typeof import('@/constants/referral')>('@/constants/referral');
+  return actual;
+});
+
+import { firstPredictionRewardService } from '@/lib/server/services/first-prediction-reward-service';
+import { ReferralSource } from '@/constants/referral';
+
+describe('firstPredictionRewardService', () => {
+  const previousKillSwitch = process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
+
+    testMocks.mockDbTransaction.mockImplementation(async (cb: any) =>
+      cb({
+        creditTransaction: {
+          findUnique: testMocks.mockCreditFindUnique,
+          create: testMocks.mockCreditCreate,
+        },
+        user: {
+          findUnique: testMocks.mockUserFindUnique,
+          update: testMocks.mockUserUpdate,
+        },
+      })
+    );
+
+    testMocks.mockCreditFindUnique.mockResolvedValue(null);
+    testMocks.mockUserFindUnique.mockResolvedValue({ stars: 5 });
+    testMocks.mockUserUpdate.mockResolvedValue({});
+    testMocks.mockCreditCreate.mockResolvedValue({});
+    testMocks.mockGetReferralSourceForReferee.mockResolvedValue(null);
+    testMocks.mockGrantReferralReward.mockResolvedValue(undefined);
+  });
+
+  afterAll(() => {
+    if (previousKillSwitch === undefined) {
+      delete process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED;
+      return;
+    }
+
+    process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED = previousKillSwitch;
+  });
+
+  it('grants universal first prediction bonus once and then triggers referral payout flow', async () => {
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockUserUpdate).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { stars: 6 },
+    });
+
+    expect(testMocks.mockCreditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        amount: REFERRAL_REWARDS.FIRST_PREDICTION,
+        balanceAfter: 6,
+        externalRef: 'first_prediction_bonus:user-1',
+        metadata: expect.objectContaining({
+          event: REWARD_POLICY_EVENTS.FIRST_PREDICTION_BONUS,
+        }),
+      }),
+    });
+
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
+  });
+
+  it('skips universal bonus for manual-code source and still triggers referral payout flow', async () => {
+    testMocks.mockGetReferralSourceForReferee.mockResolvedValue(ReferralSource.MANUAL_CODE);
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
+    expect(testMocks.mockUserUpdate).not.toHaveBeenCalled();
+    expect(testMocks.mockCreditCreate).not.toHaveBeenCalled();
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
+  });
+
+  it('is idempotent for universal first prediction bonus and still evaluates referral payout', async () => {
+    testMocks.mockCreditFindUnique.mockResolvedValue({ id: 'existing-first-prediction-tx' });
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockUserUpdate).not.toHaveBeenCalled();
+    expect(testMocks.mockCreditCreate).not.toHaveBeenCalled();
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
+  });
+
+  it('skips reward engine when kill-switch is enabled', async () => {
+    process.env.MMV_REFERRAL_REWARD_ENGINE_DISABLED = '1';
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockGetReferralSourceForReferee).not.toHaveBeenCalled();
+    expect(testMocks.mockDbTransaction).not.toHaveBeenCalled();
+    expect(testMocks.mockGrantReferralReward).not.toHaveBeenCalled();
+  });
+
+  it('stays deterministic across replayed callbacks and grants universal bonus once', async () => {
+    testMocks.mockCreditFindUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'existing-first-prediction-tx' })
+      .mockResolvedValueOnce({ id: 'existing-first-prediction-tx' });
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockUserUpdate).toHaveBeenCalledTimes(1);
+    expect(testMocks.mockCreditCreate).toHaveBeenCalledTimes(1);
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledTimes(3);
+  });
+
+  it('continues referral payout flow when universal bonus hits unique-constraint race', async () => {
+    const raceError = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test-client',
+      }
+    );
+
+    testMocks.mockDbTransaction.mockRejectedValueOnce(raceError);
+
+    await firstPredictionRewardService.processFirstSuccessfulPrediction('user-1');
+
+    expect(testMocks.mockGrantReferralReward).toHaveBeenCalledWith('user-1');
+  });
+});

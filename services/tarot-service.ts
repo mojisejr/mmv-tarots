@@ -3,7 +3,7 @@
 
 import { PredictionService } from './prediction-service'
 import { CreditService } from './credit-service'
-import { referralService } from '@/lib/server/services/referral-service'
+import { firstPredictionRewardService } from '@/lib/server/services/first-prediction-reward-service'
 import { gatekeeperAgent } from '@/lib/server/ai/agents/gatekeeper'
 import { analystAgent } from '@/lib/server/ai/agents/analyst'
 import type { AnalystResponse } from '@/lib/server/ai/agents/analyst'
@@ -126,13 +126,13 @@ export async function startTarotWorkflow(params: StartWorkflowParams): Promise<v
         completedAt: new Date()
       })
 
-      // Step 7: Grant Referral Reward (if applicable)
+      // Step 7: Process first-prediction rewards (universal + referral)
       if (params.userId) {
         try {
-          await referralService.grantReferralReward(params.userId)
-          console.log('Checked referral reward for user:', params.userId)
+          await firstPredictionRewardService.processFirstSuccessfulPrediction(params.userId)
+          console.log('Processed first-prediction rewards for user:', params.userId)
         } catch (referralError) {
-          console.error('Failed to grant referral reward (non-blocking):', referralError)
+          console.error('Failed to process first-prediction rewards (non-blocking):', referralError)
         }
       }
     } catch (dbError) {

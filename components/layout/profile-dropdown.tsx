@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { User, History, Sparkles, LogOut, ChevronDown } from 'lucide-react';
+import { User, History, Sparkles, LogOut, ChevronDown, ArrowLeftRight, ReceiptText } from 'lucide-react';
 
 interface ProfileDropdownProps {
   user?: {
@@ -34,6 +34,8 @@ export function ProfileDropdown({ user, onLogout }: ProfileDropdownProps) {
   const menuItems = [
     { label: 'Profile', icon: User, href: '/profile' },
     { label: 'History', icon: History, href: '/history' },
+    { label: 'Transactions', icon: ArrowLeftRight, href: '/transactions' },
+    { label: 'Billing', icon: ReceiptText, href: '/billing' },
     { label: 'Package', icon: Sparkles, href: '/package' },
   ];
 

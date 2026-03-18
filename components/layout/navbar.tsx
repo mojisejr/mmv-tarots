@@ -35,7 +35,7 @@ export function Navigation({
   const [scrolled, setScrolled] = useState(false);
   
   // Define main pages where Back button should be hidden
-  const mainPages = ['home', 'history', 'profile', 'package'];
+  const mainPages = ['home', 'history', 'profile', 'package', 'transactions', 'billing'];
   const showBackButton = !mainPages.includes(currentPage);
   const isHomePage = currentPage === 'home';
 
@@ -56,6 +56,8 @@ export function Navigation({
       case 'history': return 'ประวัติการทำนาย';
       case 'profile': return 'ข้อมูลส่วนตัว';
       case 'package': return 'แพ็กเกจ';
+      case 'transactions': return 'รายการ Stars';
+      case 'billing': return 'ประวัติการเติมเครดิต';
       case 'result': return 'ผลการทำนาย';
       case 'submitted': return 'กำลังทำนาย';
       default: return '';

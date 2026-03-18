@@ -1,6 +1,6 @@
 import { db } from '@/lib/server/db';
 import { TransactionType, TransactionStatus, PaymentChannel, Prisma } from '@prisma/client';
-import { REFERRAL_REWARDS } from '@/constants/referral';
+import { REFERRAL_REWARDS, REWARD_POLICY_EVENTS } from '@/constants/referral';
 import { referralService } from '@/lib/server/services/referral-service';
 
 function resolvePaymentChannel(metadata?: Record<string, unknown>): PaymentChannel | null {
@@ -211,6 +211,61 @@ export const CreditService = {
           status: TransactionStatus.SUCCESS,
           metadata: {
             note: 'Welcome bonus for new user',
+          },
+        },
+      });
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await db.$transaction(execute);
+    }
+  },
+
+  /**
+   * Grant +1 onboarding bonus for LINK-attributed users only.
+   * Uses externalRef idempotency to avoid duplicate payout on retries/replays.
+   */
+  async grantLinkOnboardingBonus(userId: string, tx?: Prisma.TransactionClient): Promise<void> {
+    const amount = REFERRAL_REWARDS.REFEREE;
+    const externalRef = `link_onboarding_bonus:${userId}`;
+
+    const execute = async (prisma: Prisma.TransactionClient) => {
+      const existingTx = await prisma.creditTransaction.findUnique({
+        where: { externalRef },
+        select: { id: true },
+      });
+
+      if (existingTx) {
+        return;
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { stars: true },
+      });
+
+      const currentStars = user?.stars ?? 0;
+      const newBalance = currentStars + amount;
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { stars: newBalance },
+      });
+
+      await prisma.creditTransaction.create({
+        data: {
+          userId,
+          amount,
+          balanceAfter: newBalance,
+          type: TransactionType.TOPUP,
+          status: TransactionStatus.SUCCESS,
+          externalRef,
+          metadata: {
+            event: REWARD_POLICY_EVENTS.LINK_ONBOARDING_BONUS,
+            source: 'onboarding_orchestration',
+            note: 'Extra onboarding bonus for LINK-attributed user',
           },
         },
       });
