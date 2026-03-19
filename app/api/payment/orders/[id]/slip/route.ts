@@ -99,6 +99,15 @@ export async function POST(
       where: { id },
       select: {
         referenceCode: true,
+        amountTHB: true,
+        creditedAt: true,
+        packagePrice: {
+          select: {
+            package: {
+              select: { name: true },
+            },
+          },
+        },
       },
     });
 
@@ -107,6 +116,9 @@ export async function POST(
         userId: session.user.id,
         stars: result.starsGranted,
         orderReferenceCode: order.referenceCode,
+        packageName: order.packagePrice?.package?.name ?? '',
+        amountTHB: Number(order.amountTHB),
+        creditedAt: order.creditedAt ?? undefined,
       });
 
       emitPaymentEvent('payment.order.credit_notification', {

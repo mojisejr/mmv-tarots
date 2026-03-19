@@ -1,22 +1,19 @@
 import { db } from '@/lib/server/db';
+import { buildLineOaMessage } from '@/lib/shared/payment-success-presenter';
+import type { PaymentSuccessSummary } from '@/lib/shared/payment-success-presenter';
 
 export interface PaymentCreditedNotificationInput {
   userId: string;
   stars: number;
   orderReferenceCode: string;
+  packageName: string;
+  amountTHB: number;
+  creditedAt?: Date;
 }
 
 export interface PaymentCreditedNotificationResult {
   sent: boolean;
   reason?: string;
-}
-
-function buildPaymentSuccessMessage(input: PaymentCreditedNotificationInput): string {
-  return [
-    'Payment completed successfully.',
-    `Stars added: +${input.stars}`,
-    `Reference: ${input.orderReferenceCode}`,
-  ].join('\n');
 }
 
 export const lineOaNotificationService = {
@@ -45,6 +42,14 @@ export const lineOaNotificationService = {
       return { sent: false, reason: 'LINE_ACCOUNT_NOT_FOUND' };
     }
 
+    const summary: PaymentSuccessSummary = {
+      referenceCode: input.orderReferenceCode,
+      starsGranted: input.stars,
+      packageName: input.packageName,
+      amountTHB: input.amountTHB,
+      creditedAt: input.creditedAt ?? new Date(),
+    };
+
     const response = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
       headers: {
@@ -56,7 +61,7 @@ export const lineOaNotificationService = {
         messages: [
           {
             type: 'text',
-            text: buildPaymentSuccessMessage(input),
+            text: buildLineOaMessage(summary),
           },
         ],
       }),

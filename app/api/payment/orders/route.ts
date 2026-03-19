@@ -86,6 +86,43 @@ export async function POST(request: NextRequest) {
 
     const amountTHB = Number(packagePrice.amount);
     const amountSatang = toSatang(amountTHB);
+    const channel = 'PROMPTPAY_QR';
+
+    const activeOrder = await paymentOrderService.findActiveOrder(
+      session.user.id,
+      packagePrice.id,
+      channel,
+    );
+
+    if (activeOrder) {
+      const existingFull = await db.paymentOrder.findUnique({
+        where: { id: activeOrder.id },
+        select: { expiresAt: true },
+      });
+
+      return NextResponse.json({
+        success: true,
+        order: {
+          id: activeOrder.id,
+          referenceCode: activeOrder.referenceCode,
+          status: activeOrder.status,
+          amountTHB,
+          amountSatang,
+          currency: (packagePrice.currency ?? 'THB').toUpperCase(),
+          expiresAt: existingFull?.expiresAt?.toISOString() ?? new Date().toISOString(),
+          package: {
+            id: packagePrice.package.id,
+            name: packagePrice.package.name,
+            stars: packagePrice.package.stars,
+          },
+          promptpay: {
+            targetId: promptPayTarget,
+          },
+          reused: true,
+        },
+      });
+    }
+
     const expiresAt = getOrderExpiry();
 
     const order = await paymentOrderService.createOrder({
@@ -126,6 +163,7 @@ export async function POST(request: NextRequest) {
         promptpay: {
           targetId: promptPayTarget,
         },
+        reused: false,
       },
     });
   } catch (error) {

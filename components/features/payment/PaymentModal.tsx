@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { PromptPayQR } from './PromptPayQR';
 import { PaymentReceipt } from './PaymentReceipt';
+import { buildToastMessage } from '@/lib/shared/payment-success-presenter';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -213,8 +214,14 @@ export function PaymentModal({
     clearActiveOrder();
     setReceipt({ transactionRef, paidAt: new Date() });
     setStep('receipt');
-    toast.success('ชำระเงินสำเร็จ! ดาวเพิ่มเข้าบัญชีแล้ว 🌟');
-  }, [clearActiveOrder]);
+    toast.success(buildToastMessage({
+      referenceCode: transactionRef,
+      starsGranted: stars,
+      packageName,
+      amountTHB: amount,
+      creditedAt: new Date(),
+    }));
+  }, [clearActiveOrder, amount, packageName, stars]);
 
   // ── Render step titles ───────────────────────────────────────────────────
   const titleMap: Record<Step, string> = {
