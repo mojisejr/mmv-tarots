@@ -35,6 +35,7 @@ interface OrderPayload {
   amountTHB: number;
   currency: string;
   expiresAt: string;
+  promptPayTargetId: string;
   creditedAt?: string | null;
   verificationErrorMessage?: string | null;
 }
@@ -146,6 +147,7 @@ export function PaymentModal({
       amountTHB: payload.order.amountTHB,
       currency: payload.order.currency,
       expiresAt: new Date(payload.order.expiresAt).toISOString(),
+      promptPayTargetId: payload.order.promptpay?.targetId ?? '',
       creditedAt: payload.order.creditedAt ? new Date(payload.order.creditedAt).toISOString() : null,
       verificationErrorMessage: payload.order.verificationErrorMessage ?? null,
     };
@@ -172,6 +174,7 @@ export function PaymentModal({
       amountTHB: payload.order.amountTHB,
       currency: payload.order.currency,
       expiresAt: payload.order.expiresAt,
+      promptPayTargetId: payload.order.promptpay?.targetId ?? '',
     };
 
     persistActiveOrder(created.id);
@@ -246,7 +249,7 @@ export function PaymentModal({
             referenceCode={order.referenceCode}
             expiresAt={order.expiresAt}
             amount={order.amountTHB}
-            promptPayTargetId={process.env.NEXT_PUBLIC_PROMPTPAY_TARGET_ID ?? ''}
+            promptPayTargetId={order.promptPayTargetId}
             initialStatus={order.status}
             initialErrorMessage={order.verificationErrorMessage ?? null}
             onCredited={handleCredited}

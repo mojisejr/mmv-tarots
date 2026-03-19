@@ -4,6 +4,15 @@ import { auth } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
 import { emitPaymentEvent } from '@/lib/server/payment-observability';
 
+function getPromptPayTarget(): string | null {
+  return (
+    process.env.PROMPTPAY_TARGET_ID ??
+    process.env.PROMPTPAY_RECEIVER_ID ??
+    process.env.NEXT_PUBLIC_PROMPTPAY_TARGET_ID ??
+    null
+  );
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -61,6 +70,8 @@ export async function GET(
     status,
   });
 
+  const promptPayTarget = getPromptPayTarget();
+
   return NextResponse.json({
     success: true,
     order: {
@@ -81,6 +92,9 @@ export async function GET(
       verificationErrorCode: order.verificationErrorCode,
       verificationErrorMessage: order.verificationErrorMessage,
       creditedTransaction: order.creditTransaction,
+      promptpay: {
+        targetId: promptPayTarget,
+      },
     },
   });
 }
