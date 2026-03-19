@@ -51,6 +51,7 @@ function PackagePageContent() {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [modalPrice,  setModalPrice]  = useState<{ priceId: string; name: string; stars: number; amount: number } | null>(null);
   const [resumeOrderId, setResumeOrderId] = useState<string | null>(null);
+  const returnTo = searchParams?.get('returnTo') ?? undefined;
 
   useEffect(() => {
     setCurrentPage('package');
@@ -363,6 +364,7 @@ function PackagePageContent() {
         stars={modalPrice.stars}
         amount={modalPrice.amount}
         resumeOrderId={resumeOrderId}
+        returnTo={returnTo}
       />
     )}
     </>

@@ -207,4 +207,59 @@ describe('GET /api/payment/orders/me', () => {
     expect(body.data.items[1].retryAfterMinutes).toBeNull();
     expect(body.data.items[1].delayMinutes).toBeNull();
   });
+
+  it('applies default visibility policy excluding PENDING_PAYMENT without slip', async () => {
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    expect(db.paymentOrder.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        userId: 'user_001',
+        OR: expect.arrayContaining([
+          expect.objectContaining({
+            status: {
+              in: ['SLIP_UPLOADED', 'VERIFYING', 'VERIFIED', 'REJECTED', 'CREDITED'],
+            },
+          }),
+          expect.objectContaining({
+            status: 'PENDING_PAYMENT',
+            slipImageUrl: { not: null },
+          }),
+          expect.objectContaining({
+            status: 'EXPIRED',
+            slipImageUrl: { not: null },
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it('bypasses visibility policy when showAll=true', async () => {
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10&showAll=true', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    const countCall = vi.mocked(db.paymentOrder.count).mock.calls[0][0];
+    expect(countCall?.where).toEqual({ userId: 'user_001' });
+    expect(countCall?.where).not.toHaveProperty('OR');
+  });
+
+  it('skips visibility policy when explicit status filter is provided', async () => {
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10&status=PENDING_PAYMENT', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    const countCall = vi.mocked(db.paymentOrder.count).mock.calls[0][0];
+    expect(countCall?.where).toEqual({
+      userId: 'user_001',
+      status: { in: ['PENDING_PAYMENT'] },
+    });
+  });
 });

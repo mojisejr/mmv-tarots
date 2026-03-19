@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GlassButton } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -55,18 +55,17 @@ interface BillingResponse {
     };
     filters: {
       status: BillingStatus[];
+      showAll: boolean;
     };
   };
 }
 
-const FILTER_OPTIONS: Array<{ value: 'ALL' | BillingStatus; label: string }> = [
-  { value: 'ALL', label: 'ทุกสถานะ' },
-  { value: 'PENDING_PAYMENT', label: 'รอชำระเงิน' },
+const MEANINGFUL_FILTER_OPTIONS: Array<{ value: 'ALL' | BillingStatus; label: string }> = [
+  { value: 'ALL', label: 'รายการชำระเงินจริง' },
   { value: 'SLIP_UPLOADED', label: 'ส่งสลิปแล้ว' },
   { value: 'VERIFYING', label: 'กำลังตรวจสอบ' },
   { value: 'VERIFIED', label: 'ยืนยันแล้ว' },
   { value: 'REJECTED', label: 'ไม่ผ่านการตรวจสอบ' },
-  { value: 'EXPIRED', label: 'หมดเวลา' },
   { value: 'CREDITED', label: 'เครดิตเข้าแล้ว' },
 ];
 
@@ -160,24 +159,7 @@ function buildSupportMessage(item: BillingItem): string {
     `Amount: ${item.amountTHB} THB`,
     `CreatedAt: ${item.createdAt}`,
     `ErrorCategory: ${item.errorCategory}`,
-    `RetryAfterMinutes: ${item.retryAfterMinutes ?? '-'}`,
-    `DelayMinutes: ${item.delayMinutes ?? '-'}`,
   ];
-
-  if (item.verificationErrorCode || item.verificationErrorMessage) {
-    parts.push(
-      `VerificationErrorCode: ${item.verificationErrorCode || '-'}`,
-      `VerificationErrorMessage: ${item.verificationErrorMessage || '-'}`
-    );
-  }
-
-  if (item.latestVerificationLog) {
-    parts.push(
-      `LatestLogStatus: ${item.latestVerificationLog.status}`,
-      `LatestLogProvider: ${item.latestVerificationLog.provider}`,
-      `LatestLogAt: ${item.latestVerificationLog.createdAt}`
-    );
-  }
 
   if (guidance) {
     parts.push(`SuggestedGuidance: ${guidance}`);
@@ -186,15 +168,48 @@ function buildSupportMessage(item: BillingItem): string {
   return parts.join('\n');
 }
 
+type SupportTicketState = 'idle' | 'submitting' | 'success' | 'error';
+
+async function submitBillingSupportTicket(item: BillingItem): Promise<void> {
+  const res = await fetch('/api/support', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: buildSupportMessage(item),
+      context: {
+        url: '/billing',
+      },
+      billing: {
+        referenceCode: item.referenceCode,
+        status: item.status,
+        packageName: item.package.name,
+        amountTHB: item.amountTHB,
+        errorCategory: item.errorCategory,
+        verificationErrorCode: item.verificationErrorCode,
+        verificationErrorMessage: item.verificationErrorMessage,
+        latestLogStatus: item.latestVerificationLog?.status ?? null,
+        latestLogProvider: item.latestVerificationLog?.provider ?? null,
+        latestLogAt: item.latestVerificationLog?.createdAt ?? null,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error('Support ticket submission failed');
+  }
+}
+
 export function BillingHistoryList() {
   const [items, setItems] = useState<BillingItem[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [statusFilter, setStatusFilter] = useState<'ALL' | BillingStatus>('ALL');
+  const [showAll, setShowAll] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ticketStates, setTicketStates] = useState<Record<string, SupportTicketState>>({});
 
   useEffect(() => {
     const fetchBilling = async () => {
@@ -209,6 +224,8 @@ export function BillingHistoryList() {
 
         if (statusFilter !== 'ALL') {
           params.set('status', statusFilter);
+        } else if (showAll) {
+          params.set('showAll', 'true');
         }
 
         const res = await fetch(`/api/payment/orders/me?${params.toString()}`);
@@ -232,7 +249,17 @@ export function BillingHistoryList() {
     };
 
     fetchBilling();
-  }, [page, pageSize, statusFilter]);
+  }, [page, pageSize, statusFilter, showAll]);
+
+  const handleSupportTicket = useCallback(async (item: BillingItem) => {
+    setTicketStates((prev) => ({ ...prev, [item.id]: 'submitting' }));
+    try {
+      await submitBillingSupportTicket(item);
+      setTicketStates((prev) => ({ ...prev, [item.id]: 'success' }));
+    } catch {
+      setTicketStates((prev) => ({ ...prev, [item.id]: 'error' }));
+    }
+  }, []);
 
   const hasItems = useMemo(() => items.length > 0, [items]);
 
@@ -274,7 +301,7 @@ export function BillingHistoryList() {
               }}
               className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
-              {FILTER_OPTIONS.map((option) => (
+              {MEANINGFUL_FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value} className="bg-slate-900 text-slate-100">
                   {option.label}
                 </option>
@@ -300,9 +327,23 @@ export function BillingHistoryList() {
             </select>
           </label>
 
-          <div className="text-sm text-muted-foreground flex flex-col justify-end">
-            <p>หน้าปัจจุบัน: {page}</p>
+          <div className="text-sm text-muted-foreground flex flex-col justify-end gap-1">
             <p>ทั้งหมด: {totalItems} รายการ</p>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAll}
+                onChange={(event) => {
+                  setPage(1);
+                  setShowAll(event.target.checked);
+                  if (event.target.checked) {
+                    setStatusFilter('ALL');
+                  }
+                }}
+                className="h-3.5 w-3.5 rounded border-border-subtle"
+              />
+              <span className="text-xs">ดูรายการทั้งหมด (รวม QR ที่ยังไม่ได้ชำระ)</span>
+            </label>
           </div>
         </div>
       </GlassCard>
@@ -351,19 +392,33 @@ export function BillingHistoryList() {
 
             {shouldShowSupportCTA(item.status) && (
               <div className="pt-1">
-                <GlassButton
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  onClick={() => {
-                    const subject = encodeURIComponent(
-                      `Billing Support: ${item.referenceCode} (${item.status})`
-                    );
-                    const body = encodeURIComponent(buildSupportMessage(item));
-                    window.location.href = `mailto:support@mmv-tarots.com?subject=${subject}&body=${body}`;
-                  }}
-                >
-                  ติดต่อทีมงานพร้อมข้อมูลรายการนี้
-                </GlassButton>
+                {ticketStates[item.id] === 'success' ? (
+                  <p className="text-xs text-emerald-600 font-medium">
+                    ส่งคำขอช่วยเหลือเรียบร้อยแล้ว ทีมงานจะตรวจสอบโดยเร็ว
+                  </p>
+                ) : ticketStates[item.id] === 'error' ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-rose-600">ไม่สามารถส่งคำขอได้ กรุณาลองใหม่อีกครั้ง</p>
+                    <GlassButton
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                      onClick={() => handleSupportTicket(item)}
+                    >
+                      ลองส่งอีกครั้ง
+                    </GlassButton>
+                  </div>
+                ) : (
+                  <GlassButton
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    disabled={ticketStates[item.id] === 'submitting'}
+                    onClick={() => handleSupportTicket(item)}
+                  >
+                    {ticketStates[item.id] === 'submitting'
+                      ? 'กำลังส่ง...'
+                      : 'ติดต่อทีมงานพร้อมข้อมูลรายการนี้'}
+                  </GlassButton>
+                )}
               </div>
             )}
           </GlassCard>

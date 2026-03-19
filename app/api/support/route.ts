@@ -13,6 +13,18 @@ const supportSchema = z.object({
     userId: z.string().optional(),
     email: z.string().optional(),
   }).optional(),
+  billing: z.object({
+    referenceCode: z.string(),
+    status: z.string(),
+    packageName: z.string(),
+    amountTHB: z.number(),
+    errorCategory: z.string().optional(),
+    verificationErrorCode: z.string().nullable().optional(),
+    verificationErrorMessage: z.string().nullable().optional(),
+    latestLogStatus: z.string().nullable().optional(),
+    latestLogProvider: z.string().nullable().optional(),
+    latestLogAt: z.string().nullable().optional(),
+  }).optional(),
 });
 
 export async function POST(req: Request) {
@@ -39,7 +51,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message, context } = result.data;
+    const { message, context, billing } = result.data;
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
 
     if (!webhookUrl) {
@@ -51,39 +63,81 @@ export async function POST(req: Request) {
     }
 
     // Format Discord Embed
+    const isBillingTicket = Boolean(billing);
+    const embedTitle = isBillingTicket ? "💳 Billing Support Ticket" : "🎫 New Support Ticket";
+    const embedColor = isBillingTicket ? 0xE74C3C : 0xD4AF37;
+
+    const baseFields = [
+      {
+        name: "👤 User",
+        value: `${session.user.name} (${session.user.email})`,
+        inline: true
+      },
+      {
+        name: "🆔 User ID",
+        value: `\`${session.user.id}\``,
+        inline: true
+      },
+      {
+        name: "📱 Device Info",
+        value: [
+          `**OS/Browser**: ${context?.userAgent || "Unknown"}`,
+          `**Resolution**: ${context?.resolution || "Unknown"}`,
+          `**Page**: ${context?.url || "Unknown"}`
+        ].join("\n"),
+        inline: false
+      }
+    ];
+
+    const billingFields = billing ? [
+      {
+        name: "📋 Reference",
+        value: `\`${billing.referenceCode}\``,
+        inline: true
+      },
+      {
+        name: "📦 Package",
+        value: `${billing.packageName} · ฿${billing.amountTHB}`,
+        inline: true
+      },
+      {
+        name: "🔄 Status",
+        value: billing.status,
+        inline: true
+      },
+      ...(billing.errorCategory && billing.errorCategory !== 'UNKNOWN' ? [{
+        name: "⚠️ Error",
+        value: [
+          `Category: ${billing.errorCategory}`,
+          billing.verificationErrorCode ? `Code: ${billing.verificationErrorCode}` : null,
+          billing.verificationErrorMessage ? `Message: ${billing.verificationErrorMessage}` : null,
+        ].filter(Boolean).join("\n"),
+        inline: false
+      }] : []),
+      ...(billing.latestLogStatus ? [{
+        name: "🔍 Latest Verification",
+        value: [
+          `Status: ${billing.latestLogStatus}`,
+          billing.latestLogProvider ? `Provider: ${billing.latestLogProvider}` : null,
+          billing.latestLogAt ? `At: ${billing.latestLogAt}` : null,
+        ].filter(Boolean).join("\n"),
+        inline: false
+      }] : []),
+    ] : [];
+
     const discordPayload = {
       username: "MMV Support Bot",
-      avatar_url: "https://www.mimivibe-tarot.com/images/logo.png", // Optional: Add a logo if available
+      avatar_url: "https://www.mimivibe-tarot.com/images/logo.png",
       embeds: [
         {
-          title: "🎫 New Support Ticket",
-          color: 0xD4AF37, // Gold
+          title: embedTitle,
+          color: embedColor,
           description: message,
           timestamp: new Date().toISOString(),
           footer: {
             text: `Ticket ID: ${Date.now().toString().slice(-6)}`
           },
-          fields: [
-            {
-              name: "👤 User",
-              value: `${session.user.name} (${session.user.email})`,
-              inline: true
-            },
-            {
-              name: "🆔 User ID",
-              value: `\`${session.user.id}\``,
-              inline: true
-            },
-            {
-              name: "📱 Device Info",
-              value: [
-                `**OS/Browser**: ${context?.userAgent || "Unknown"}`,
-                `**Resolution**: ${context?.resolution || "Unknown"}`,
-                `**Page**: ${context?.url || "Unknown"}`
-              ].join("\n"),
-              inline: false
-            }
-          ]
+          fields: [...baseFields, ...billingFields]
         }
       ]
     };

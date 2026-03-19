@@ -63,11 +63,38 @@ export async function GET(request: NextRequest) {
   );
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
   const statuses = parseStatusFilter(url.searchParams.get('status'));
+  const showAll = url.searchParams.get('showAll') === 'true';
 
-  const whereClause = {
+  const whereClause: Record<string, unknown> = {
     userId: session.user.id,
-    ...(statuses.length > 0 ? { status: { in: statuses } } : {}),
   };
+
+  if (statuses.length > 0) {
+    whereClause.status = { in: statuses };
+  } else if (!showAll) {
+    // Default visibility: exclude noise orders (PENDING_PAYMENT and EXPIRED without slip evidence)
+    whereClause.OR = [
+      {
+        status: {
+          in: [
+            PaymentOrderStatus.SLIP_UPLOADED,
+            PaymentOrderStatus.VERIFYING,
+            PaymentOrderStatus.VERIFIED,
+            PaymentOrderStatus.REJECTED,
+            PaymentOrderStatus.CREDITED,
+          ],
+        },
+      },
+      {
+        status: PaymentOrderStatus.PENDING_PAYMENT,
+        slipImageUrl: { not: null },
+      },
+      {
+        status: PaymentOrderStatus.EXPIRED,
+        slipImageUrl: { not: null },
+      },
+    ];
+  }
 
   const [total, orders] = await Promise.all([
     db.paymentOrder.count({ where: whereClause }),
@@ -169,6 +196,7 @@ export async function GET(request: NextRequest) {
       },
       filters: {
         status: statuses,
+        showAll,
       },
     },
   });

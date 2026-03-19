@@ -55,6 +55,7 @@ export interface PaymentModalProps {
   stars: number;
   amount: number;
   resumeOrderId?: string | null;
+  returnTo?: string;
 }
 
 const ACTIVE_ORDER_KEY = 'mmv_active_payment_order';
@@ -70,6 +71,7 @@ export function PaymentModal({
   stars,
   amount,
   resumeOrderId,
+  returnTo,
 }: PaymentModalProps) {
   const amountLabel = amount.toFixed(2);
   const [step, setStep] = useState<Step>('creating-order');
@@ -293,6 +295,7 @@ export function PaymentModal({
             amount={amount}
             paidAt={receiptData.paidAt}
             onClose={handleClose}
+            returnTo={returnTo}
           />
         )}
       </div>

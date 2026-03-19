@@ -214,4 +214,30 @@ describe('POST /api/payment/orders/[id]/slip', () => {
     expect(response.status).toBe(422);
     expect(paymentFulfillmentService.submitSlip).not.toHaveBeenCalled();
   });
+
+  it('returns success even when LINE notification fails', async () => {
+    vi.mocked(paymentFulfillmentService.submitSlip).mockResolvedValue({
+      orderId: 'ord_001',
+      status: 'CREDITED',
+      credited: true,
+      alreadyCredited: false,
+      starsGranted: 50,
+    } as any);
+
+    vi.mocked(lineOaNotificationService.notifyPaymentCredited).mockResolvedValue({
+      sent: false,
+      reason: 'LINE_ACCOUNT_NOT_FOUND',
+    });
+
+    const formData = buildSlipFormData();
+    const request = buildMultipartRequest('http://localhost/api/payment/orders/ord_001/slip', formData);
+
+    const response = await POST(request as any, { params: Promise.resolve({ id: 'ord_001' }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.credited).toBe(true);
+    expect(body.starsGranted).toBe(50);
+  });
 });

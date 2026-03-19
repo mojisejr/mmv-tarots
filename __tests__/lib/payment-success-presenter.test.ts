@@ -58,6 +58,11 @@ describe('payment-success-presenter', () => {
       const action = buildPrimaryAction('https://evil.com');
       expect(action.href).toBe('/');
     });
+
+    it('returns default for non-allowlisted absolute path', () => {
+      const action = buildPrimaryAction('/admin/secret');
+      expect(action.href).toBe('/');
+    });
   });
 
   describe('getSecondaryAction', () => {
