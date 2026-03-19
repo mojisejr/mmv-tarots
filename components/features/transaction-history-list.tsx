@@ -12,7 +12,14 @@ interface Transaction {
   type: 'TOPUP' | 'PREDICTION' | 'REFUND' | 'REFERRAL' | 'ONBOARDING';
   status: 'SUCCESS' | 'FAILED' | 'PENDING';
   createdAt: string;
-  metadata?: any;
+  externalRef?: string | null;
+  paymentOrderId?: string | null;
+  channel?: 'PROMPTPAY_QR' | 'LINE_ADMIN_MANUAL' | 'SYSTEM' | null;
+  metadata?: {
+    amountTHB?: number;
+    paymentOrderId?: string;
+    creditedVia?: string;
+  } | null;
 }
 
 interface HistoryResponse {
@@ -23,6 +30,50 @@ interface HistoryResponse {
     total: number;
     totalPages: number;
   };
+}
+
+function getTransactionLabel(type: Transaction['type']): string {
+  if (type === 'TOPUP') {
+    return 'เติมดาว (Package)';
+  }
+
+  if (type === 'PREDICTION') {
+    return 'ทำนายไพ่';
+  }
+
+  if (type === 'REFERRAL') {
+    return 'โบนัสแนะนำเพื่อน';
+  }
+
+  if (type === 'ONBOARDING') {
+    return 'โบนัสเริ่มต้น';
+  }
+
+  return 'คืนดาว (Refund)';
+}
+
+function getPaymentChannelLabel(channel: Transaction['channel']): string | null {
+  if (channel === 'PROMPTPAY_QR') {
+    return 'PromptPay QR';
+  }
+
+  if (channel === 'LINE_ADMIN_MANUAL') {
+    return 'LINE Admin';
+  }
+
+  if (channel === 'SYSTEM') {
+    return 'System';
+  }
+
+  return null;
+}
+
+function formatPaidAmount(amountTHB: number | undefined): string | null {
+  if (typeof amountTHB !== 'number' || !Number.isFinite(amountTHB)) {
+    return null;
+  }
+
+  return `${amountTHB.toFixed(2)} THB`;
 }
 
 export function TransactionHistoryList() {
@@ -82,10 +133,7 @@ export function TransactionHistoryList() {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-foreground">
-                {tx.type === 'TOPUP' ? 'เติมดาว (Package)' : 
-                  tx.type === 'PREDICTION' ? 'ทำนายไพ่' :
-                  tx.type === 'REFERRAL' ? 'โบนัสแนะนำเพื่อน' :
-                  tx.type === 'ONBOARDING' ? 'โบนัสเริ่มต้น' : 'คืนดาว (Refund)'}
+                {getTransactionLabel(tx.type)}
               </span>
               <StatusBadge status={tx.status as any} />
             </div>
@@ -98,6 +146,18 @@ export function TransactionHistoryList() {
                 minute: '2-digit'
               })}
             </span>
+            {tx.type === 'TOPUP' && (tx.externalRef || tx.paymentOrderId || tx.metadata?.amountTHB || tx.channel) ? (
+              <div className="space-y-0.5 text-xs text-muted-foreground">
+                {tx.externalRef ? <p>อ้างอิงการชำระเงิน: {tx.externalRef}</p> : null}
+                {!tx.externalRef && tx.paymentOrderId ? <p>ออเดอร์ชำระเงิน: {tx.paymentOrderId}</p> : null}
+                {formatPaidAmount(tx.metadata?.amountTHB) ? (
+                  <p>ยอดที่ชำระ: {formatPaidAmount(tx.metadata?.amountTHB)}</p>
+                ) : null}
+                {getPaymentChannelLabel(tx.channel) ? (
+                  <p>ช่องทาง: {getPaymentChannelLabel(tx.channel)}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="text-right">
             <div className={`font-bold text-lg ${
