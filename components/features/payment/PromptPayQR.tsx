@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { Clock, RefreshCw } from 'lucide-react';
+import { Clock, Download, RefreshCw } from 'lucide-react';
 import generatePromptPayPayload from 'promptpay-qr';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
@@ -290,6 +290,26 @@ export function PromptPayQR({
     fileInputRef.current?.click();
   }, []);
 
+  const handleSaveQR = useCallback(async () => {
+    if (!qrImageUrl) return;
+    try {
+      const response = await fetch(qrImageUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `promptpay-${referenceCode}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      toast.success('บันทึก QR แล้ว');
+    } catch {
+      window.open(qrImageUrl, '_blank');
+      toast.info('กดค้างที่รูป QR เพื่อบันทึกลงเครื่อง');
+    }
+  }, [qrImageUrl, referenceCode]);
+
   // Start polling
   useEffect(() => {
     if (status === 'CREDITED' || status === 'EXPIRED' || status === 'REJECTED') {
@@ -360,11 +380,20 @@ export function PromptPayQR({
 
         <div className="text-center space-y-1">
           <p className="text-2xl font-bold text-foreground">฿{amount.toFixed(2)}</p>
-          <p className="text-xs text-muted-foreground">เปิด Mobile Banking แล้วสแกน QR ด้านบน</p>
+          <p className="text-xs text-muted-foreground">สแกน QR ด้านบน หรือบันทึกไว้เปิดในแอปธนาคาร</p>
           <p className="text-[11px] text-muted-foreground/80 font-mono">
             Ref: {referenceCode}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleSaveQR}
+          disabled={!qrImageUrl}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-white/25 hover:bg-white/15 disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" />
+          บันทึก QR
+        </button>
       </div>
 
       {/* Status indicator */}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import { BillingHistoryList } from '@/components/features/billing-history-list';
+import { PageShell } from '@/components';
 
 export default function BillingPage() {
   const router = useRouter();
@@ -23,9 +24,9 @@ export default function BillingPage() {
 
   if (isPending) {
     return (
-      <div className="max-w-4xl mx-auto pt-10 px-4 h-full flex items-center justify-center pb-24">
+      <PageShell className="h-full flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-primary/10 border-t-primary rounded-full animate-spin" />
-      </div>
+      </PageShell>
     );
   }
 
@@ -34,13 +35,13 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
+    <PageShell>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-serif text-foreground mb-2">Billing</h1>
         <p className="text-sm text-muted-foreground">ติดตามสถานะการชำระเงินและการเติมเครดิตของคุณ</p>
       </div>
 
       <BillingHistoryList />
-    </div>
+    </PageShell>
   );
 }

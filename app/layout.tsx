@@ -71,7 +71,7 @@ export default function RootLayout({
           <GlobalLoading />
           <WelcomeRitual />
           <MainNavigation />
-          <main className="flex-1 pt-16 md:pt-20 relative z-10 pb-[env(safe-area-inset-bottom)]">
+          <main className="flex-1 pt-16 md:pt-20 relative z-10 pb-[var(--mobile-bottom-clearance)] md:pb-0">
             {children}
           </main>
           <BottomNav />
