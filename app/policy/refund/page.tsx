@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { PageShell } from '@/components';
 
 export default function RefundPolicyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 md:py-14">
+    <PageShell maxWidth="3xl" className="md:pt-14">
       <h1 className="text-3xl font-serif text-foreground mb-4">Refund Policy</h1>
       <div className="rounded-2xl border border-white/10 bg-white/40 backdrop-blur-xl p-6 space-y-4 text-sm leading-relaxed text-foreground/80">
         <h2 className="text-base font-semibold text-foreground">ภาษาไทย</h2>
@@ -41,6 +42,6 @@ export default function RefundPolicyPage() {
         {' '}and{' '}
         <Link href="/policy/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
       </p>
-    </div>
+    </PageShell>
   );
 }

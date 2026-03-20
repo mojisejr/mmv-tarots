@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { GlassCard, GlassButton, Sparkles, ErrorBoundary, Check } from '@/components';
+import { GlassCard, GlassButton, Sparkles, ErrorBoundary, Check, PageShell } from '@/components';
 import { PaymentModal } from '@/components/features/payment';
 import { useSession } from '@/lib/client/auth-client';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
@@ -172,7 +172,7 @@ function PackagePageContent() {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto pt-10 px-4">
+    <PageShell>
       <div className="text-center mb-12 animate-fade-in-down">
         <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">
           เติม Digital Token
@@ -351,7 +351,7 @@ function PackagePageContent() {
           );
         })}
       </div>
-    </div>
+    </PageShell>
 
     {/* Payment Modal */}
     {modalPrice && session?.user && (
@@ -375,9 +375,9 @@ export default function PackagePage() {
   return (
     <ErrorBoundary>
       <Suspense fallback={
-        <div className="max-w-4xl mx-auto pt-10 px-4">
+        <PageShell>
           <div className="text-center text-muted-foreground">กำลังโหลด...</div>
-        </div>
+        </PageShell>
       }>
         <PackagePageContent />
       </Suspense>

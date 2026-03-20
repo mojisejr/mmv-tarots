@@ -4,3 +4,4 @@ export { BottomNav } from './bottom-nav';
 export { ProfileDropdown } from './profile-dropdown';
 export { GlobalLoading } from './global-loading';
 export { SiteFooter } from './site-footer';
+export { PageShell } from './page-shell';
