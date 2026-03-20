@@ -26,6 +26,8 @@ vi.mock('@/lib/server/services/payment-order-service', () => ({
   paymentOrderService: {
     createOrder: vi.fn(),
     findActiveOrder: vi.fn(),
+    findReusableDraftOrder: vi.fn(),
+    reviveDraftOrder: vi.fn(),
   },
 }));
 
@@ -66,11 +68,14 @@ describe('POST /api/payment/orders', () => {
 
     vi.mocked(paymentOrderService.findActiveOrder).mockResolvedValue(null);
 
+    vi.mocked(paymentOrderService.findReusableDraftOrder).mockResolvedValue(null);
+
     vi.mocked(paymentOrderService.createOrder).mockResolvedValue({
       id: 'ord_001',
       referenceCode: 'pay_ref_001',
       status: 'PENDING_PAYMENT',
       reused: false,
+      reuseMode: 'new',
     } as any);
   });
 
@@ -142,6 +147,7 @@ describe('POST /api/payment/orders', () => {
       referenceCode: 'pay_ref_existing',
       status: 'PENDING_PAYMENT',
       reused: true,
+      reuseMode: 'active',
     } as any);
 
     vi.mocked(db.paymentOrder.findUnique).mockResolvedValue({
@@ -176,6 +182,100 @@ describe('POST /api/payment/orders', () => {
 
     expect(response.status).toBe(200);
     expect(body.order.reused).toBe(false);
+    expect(body.order.reuseMode).toBe('new');
     expect(paymentOrderService.createOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it('revives expired draft when no active order exists but revivable draft found', async () => {
+    vi.mocked(paymentOrderService.findReusableDraftOrder).mockResolvedValue({
+      id: 'ord_draft_expired',
+      referenceCode: 'pay_ref_draft',
+      status: 'EXPIRED',
+      reused: true,
+      reuseMode: 'revived',
+    } as any);
+
+    vi.mocked(paymentOrderService.reviveDraftOrder).mockResolvedValue({
+      id: 'ord_draft_expired',
+      referenceCode: 'pay_ref_draft',
+      status: 'PENDING_PAYMENT',
+      reused: true,
+      reuseMode: 'revived',
+    } as any);
+
+    const request = new Request('http://localhost/api/payment/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packagePriceId: 'price_001' }),
+    });
+
+    const response = await POST(request as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.order.id).toBe('ord_draft_expired');
+    expect(body.order.reused).toBe(true);
+    expect(body.order.reuseMode).toBe('revived');
+    expect(paymentOrderService.reviveDraftOrder).toHaveBeenCalledWith(
+      'ord_draft_expired',
+      expect.any(Date),
+    );
+    expect(paymentOrderService.createOrder).not.toHaveBeenCalled();
+  });
+
+  it('creates new order when neither active nor revivable draft exists', async () => {
+    vi.mocked(paymentOrderService.findActiveOrder).mockResolvedValue(null);
+    vi.mocked(paymentOrderService.findReusableDraftOrder).mockResolvedValue(null);
+
+    const request = new Request('http://localhost/api/payment/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packagePriceId: 'price_001' }),
+    });
+
+    const response = await POST(request as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.order.reused).toBe(false);
+    expect(body.order.reuseMode).toBe('new');
+    expect(paymentOrderService.createOrder).toHaveBeenCalledTimes(1);
+    expect(paymentOrderService.reviveDraftOrder).not.toHaveBeenCalled();
+  });
+
+  it('emits payment.order.revived event when draft is revived', async () => {
+    const { emitPaymentEvent } = await import('@/lib/server/payment-observability');
+
+    vi.mocked(paymentOrderService.findReusableDraftOrder).mockResolvedValue({
+      id: 'ord_revive',
+      referenceCode: 'pay_ref_revive',
+      status: 'EXPIRED',
+      reused: true,
+      reuseMode: 'revived',
+    } as any);
+
+    vi.mocked(paymentOrderService.reviveDraftOrder).mockResolvedValue({
+      id: 'ord_revive',
+      referenceCode: 'pay_ref_revive',
+      status: 'PENDING_PAYMENT',
+      reused: true,
+      reuseMode: 'revived',
+    } as any);
+
+    const request = new Request('http://localhost/api/payment/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packagePriceId: 'price_001' }),
+    });
+
+    await POST(request as any);
+
+    expect(emitPaymentEvent).toHaveBeenCalledWith('payment.order.revived', {
+      orderId: 'ord_revive',
+      userId: 'user_001',
+      packagePriceId: 'price_001',
+      amountTHB: 299,
+    });
   });
 });

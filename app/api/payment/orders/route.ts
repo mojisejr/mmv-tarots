@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
     const amountSatang = toSatang(amountTHB);
     const channel = 'PROMPTPAY_QR';
 
+    // Path A: reuse active order (not expired, still in reusable status)
     const activeOrder = await paymentOrderService.findActiveOrder(
       session.user.id,
       packagePrice.id,
@@ -119,12 +120,58 @@ export async function POST(request: NextRequest) {
             targetId: promptPayTarget,
           },
           reused: true,
+          reuseMode: activeOrder.reuseMode,
         },
       });
     }
 
     const expiresAt = getOrderExpiry();
 
+    // Path B: revive latest expired/stale draft (no slip evidence)
+    const revivableDraft = await paymentOrderService.findReusableDraftOrder(
+      session.user.id,
+      packagePrice.id,
+      channel,
+    );
+
+    if (revivableDraft) {
+      const revivedOrder = await paymentOrderService.reviveDraftOrder(
+        revivableDraft.id,
+        expiresAt,
+      );
+
+      emitPaymentEvent('payment.order.revived', {
+        orderId: revivedOrder.id,
+        userId: session.user.id,
+        packagePriceId: packagePrice.id,
+        amountTHB,
+      });
+
+      return NextResponse.json({
+        success: true,
+        order: {
+          id: revivedOrder.id,
+          referenceCode: revivedOrder.referenceCode,
+          status: revivedOrder.status,
+          amountTHB,
+          amountSatang,
+          currency: (packagePrice.currency ?? 'THB').toUpperCase(),
+          expiresAt: expiresAt.toISOString(),
+          package: {
+            id: packagePrice.package.id,
+            name: packagePrice.package.name,
+            stars: packagePrice.package.stars,
+          },
+          promptpay: {
+            targetId: promptPayTarget,
+          },
+          reused: true,
+          reuseMode: revivedOrder.reuseMode,
+        },
+      });
+    }
+
+    // Path C: no active or revivable draft — create new order
     const order = await paymentOrderService.createOrder({
       userId: session.user.id,
       packagePriceId: packagePrice.id,
@@ -164,6 +211,7 @@ export async function POST(request: NextRequest) {
           targetId: promptPayTarget,
         },
         reused: false,
+        reuseMode: order.reuseMode,
       },
     });
   } catch (error) {
