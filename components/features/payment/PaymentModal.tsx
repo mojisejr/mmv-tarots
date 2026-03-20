@@ -180,6 +180,10 @@ export function PaymentModal({
       promptPayTargetId: payload.order.promptpay?.targetId ?? '',
     };
 
+    if (payload.order.reuseMode === 'revived') {
+      toast.info('กู้คืนคำสั่งชำระเงินเดิมแล้ว');
+    }
+
     persistActiveOrder(created.id);
     applyOrderState(created);
   }, [applyOrderState, persistActiveOrder, priceId]);

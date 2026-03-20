@@ -204,7 +204,6 @@ export function BillingHistoryList() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(20);
   const [statusFilter, setStatusFilter] = useState<'ALL' | BillingStatus>('ALL');
-  const [showAll, setShowAll] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -224,8 +223,6 @@ export function BillingHistoryList() {
 
         if (statusFilter !== 'ALL') {
           params.set('status', statusFilter);
-        } else if (showAll) {
-          params.set('showAll', 'true');
         }
 
         const res = await fetch(`/api/payment/orders/me?${params.toString()}`);
@@ -249,7 +246,7 @@ export function BillingHistoryList() {
     };
 
     fetchBilling();
-  }, [page, pageSize, statusFilter, showAll]);
+  }, [page, pageSize, statusFilter]);
 
   const handleSupportTicket = useCallback(async (item: BillingItem) => {
     setTicketStates((prev) => ({ ...prev, [item.id]: 'submitting' }));
@@ -329,21 +326,6 @@ export function BillingHistoryList() {
 
           <div className="text-sm text-muted-foreground flex flex-col justify-end gap-1">
             <p>ทั้งหมด: {totalItems} รายการ</p>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showAll}
-                onChange={(event) => {
-                  setPage(1);
-                  setShowAll(event.target.checked);
-                  if (event.target.checked) {
-                    setStatusFilter('ALL');
-                  }
-                }}
-                className="h-3.5 w-3.5 rounded border-border-subtle"
-              />
-              <span className="text-xs">ดูรายการทั้งหมด (รวม QR ที่ยังไม่ได้ชำระ)</span>
-            </label>
           </div>
         </div>
       </GlassCard>
