@@ -1,250 +1,271 @@
-# Workflow Template Repository
+# MMV Tarots
 
-This repository contains a production-ready agent-centric workflow template with required docs, issue/task templates, and comprehensive agent instructions. Use this repository as a GitHub template for future projects.
+AI Tarot platform with LINE LIFF login, async multi-agent readings, star-based credits, and PromptPay billing designed for real-world Thai mobile usage.
 
-**Latest Update:** November 2025 - Enhanced with .tmp folder enforcement, Response Quality Standards, Language Policy, and advanced commands (/pck, /aud)
+**Production**: `https://maemormimi.com`
 
-Quick goals:
-- Keep workflow rules, safety policies, and command templates intact.
-- Provide a simple `setup.sh` to help fill project-specific metadata into `CLAUDE.md`.
-- Support multiple execution modes (MANUAL/COPILOT) with agent-specific instructions.
-- Enforce response quality standards and language-matching policies.
+## Product Snapshot
 
-Files you should see in the root:
-- `AGENTS.md` — agent workflow, safety rules, response standards, and implementation checklist
-- `CLAUDE.md` — workflow and project metadata (template placeholders)
-- `docs/ISSUE-TEMP.md` — context issue template
-- `docs/TASK-ISSUE-TEMP.md` — atomic task issue template
-- `docs/KNOWLEDGE-TEMP.md` — knowledge capture template
-- `.claude/commands/` — 18 slash command definitions (init, mode, fcs, plan, plan2, pck, aud, impl, pr, khub, kupdate, klink, ksync, ksearch, krecent, kcategory, rrr)
-- `.claude/settings.local.json` — agent permissions and settings configuration
-- `.github/agents/` — agent-specific instruction files (7 files)
-- `.github/instructions/` — core response standards and domain-specific guidance (9 files)
-- `setup.sh` — interactive setup helper (run after cloning to fill project metadata)
+MMV Tarots combines four main systems in one product:
 
-## What's New in This Update
+- LINE-first authentication through LIFF and Better Auth
+- AI tarot prediction workflow with gatekeeper, analyst, and mystic agents
+- `stars` wallet for question credits, onboarding rewards, and referrals
+- PromptPay payment flow with billing history and support escalation
 
-### ✨ New Slash Commands
-- **`/pck [issue-number]`** — Plan check: analyze GitHub issue, scan codebase for context, show implementation steps
-- **`/aud [question]`** — Audit: find bugs, suggest fixes, validate assumptions, generate implementation plans
+The current payment model uses `single draft reuse`: one purchase journey should map to one active draft order, even if the user reopens the payment flow after expiration.
 
-### 📋 Enhanced Standards
-- **Response Quality Standards** (5-point framework)
-  - On-Point (ตรงประเด็น) — answer only what was asked
-  - Good Context Ordering — simple to complex progression
-  - Exact Details (ยึดมั่นในรายละเอียด) — accurate and specific
-  - Security-First Focus — always consider security
-  - Senior Developer Mindset — unbiased, expert feedback
+## Core Experience
 
-- **Language Matching Policy** (Automatic)
-  - Thai questions → Thai responses
-  - English questions → English responses
-  - Mixed → Follow primary language
-  - Technical terms always in English
+| Surface | Purpose |
+| --- | --- |
+| `app/page.tsx` | Ask a tarot question and start a reading |
+| `app/liff/page.tsx` | LINE LIFF gateway for mobile entry |
+| `app/submitted/page.tsx` | Track an in-flight prediction |
+| `app/history` | Review completed readings |
+| `app/package/page.tsx` | Buy star packages and restore recent payment flow |
+| `app/billing/page.tsx` | View meaningful billing states and request support |
+| `app/transactions/page.tsx` | Inspect star ledger activity |
+| `app/share/[id]` | Share prediction results |
 
-### 🏗️ New Directory Structure
-- `.claude/commands/` — 18 slash command implementations
-- `.claude/settings.local.json` — permissions and configuration
-- `.github/agents/` — 7 agent-specific instruction files
-- `.github/instructions/` — 9 core response and domain guidance files
+## Architecture at a Glance
 
-### 📁 Enhanced Temporary File Management
-- **Strict .tmp folder enforcement** — All temporary files created in project `.tmp/` folder only
-- **Automatic cleanup** — Temporary files removed immediately after each operation
-- **Zero system temp usage** — Never uses `/tmp/` or `$TEMP` directories
-- **Auto gitignore** — `.tmp/` automatically added to `.gitignore`
-- **Security-focused** — Project-scoped temporary file management
+```text
+LINE / Browser
+   -> Better Auth + LIFF verification
+   -> Session shell + wallet hydration
+   -> Ask question / buy stars
+   -> AI workflow or PromptPay lifecycle
+   -> Persist history, billing, and support context
+```
 
-### 📚 Complete Command Suite (18 Total)
-`/init` • `/mode` • `/fcs` • `/plan` • `/plan2` • `/pck` • `/aud` • `/impl` • `/pr` • `/khub` • `/kupdate` • `/klink` • `/ksync` • `/ksearch` • `/krecent` • `/kcategory` • `/rrr`
+### Main Domains
 
-Quick start (macOS, zsh)
+| Domain | Key Files |
+| --- | --- |
+| Auth / LIFF | `lib/server/auth.ts`, `app/api/auth/liff-verify/route.ts`, `lib/server/services/line-identity-service.ts` |
+| Prediction Workflow | `services/tarot-service.ts`, `app/api/predict/route.ts`, `services/prediction-service.ts` |
+| Credits / Wallet | `services/credit-service.ts`, `app/api/credits/*` |
+| Payment / Billing | `lib/server/services/payment-order-service.ts`, `lib/server/services/payment-fulfillment-service.ts`, `app/api/payment/orders/*` |
+| Referral | `lib/server/services/referral-service.ts`, `app/api/user/referral-claim/route.ts`, `middleware.ts` |
+| UI Shell | `lib/client/providers/navigation-provider.tsx`, `components/features/*`, `components/layout/*` |
 
-1) Clone this repo as a template for your project:
+## What Is Special Here
+
+### 1. LINE-first auth without mixing provider logic into UI
+- Better Auth remains the auth core.
+- LINE verification and identity linking live in dedicated server services.
+- The client restores target routes through the session shell contract.
+
+### 2. Async tarot pipeline instead of blocking request/response
+- A prediction request creates a job.
+- Gatekeeper and analyst run before mystic finalizes the reading.
+- The submitted page polls for completion while the workflow continues in the background.
+
+### 3. Stars as a real ledger, not just a counter
+- Questions spend stars.
+- Top-ups credit stars through payment fulfillment.
+- Referral and onboarding flows issue credits through explicit ledger entries.
+
+### 4. Payment semantics designed for user clarity
+- Active orders can be reused.
+- Expired no-slip drafts can be revived.
+- Orders with slip evidence are never revived back into draft state.
+- Billing UI hides raw noise drafts by default.
+
+## Database Overview
+
+Main Prisma domains:
+
+- `User`, `Session`, `Account`, `Verification`
+- `Prediction`, `Card`
+- `CreditTransaction`
+- `StarPackage`, `PackagePrice`
+- `PaymentOrder`, `PaymentVerificationLog`
+- `ReferralHistory`
+- `AgentConfig`, `SuggestedQuestion`
+
+Mermaid snapshot:
+
+```mermaid
+erDiagram
+  USER ||--o{ SESSION : has
+  USER ||--o{ ACCOUNT : has
+  USER ||--o{ PREDICTION : creates
+  USER ||--o{ CREDIT_TRANSACTION : owns
+  USER ||--o{ PAYMENT_ORDER : pays
+  USER ||--o{ REFERRAL_HISTORY : referrer
+  USER ||--o{ REFERRAL_HISTORY : referee
+  STAR_PACKAGE ||--o{ PACKAGE_PRICE : contains
+  PACKAGE_PRICE ||--o{ PAYMENT_ORDER : selected_by
+  PAYMENT_ORDER ||--o| CREDIT_TRANSACTION : credits
+  PAYMENT_ORDER ||--o{ PAYMENT_VERIFICATION_LOG : verifies
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- npm 10+
+- PostgreSQL database
+- LINE developer credentials
+- Gemini model access
+- SlipOK credentials for QR slip verification
+
+### Install
 
 ```bash
-git clone https://github.com/<your-account>/<template-repo>.git my-project
-cd my-project
+cd /Users/non/dev/opilot/projects/mmv-tarots
+npm install
 ```
 
-2) Initialize the workflow template for your specific project:
+### Configure Environment
+
+This project does not currently ship with a canonical `.env.example`, so create `.env.local` manually.
+
+Minimum variables used by the codebase:
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection for Prisma |
+| `BETTER_AUTH_SECRET` | Better Auth signing secret |
+| `LINE_CLIENT_ID` | LINE social provider client ID |
+| `LINE_CLIENT_SECRET` | LINE social provider client secret |
+| `LINE_REDIRECT_URI` | LINE callback URI |
+| `LINE_CHANNEL_ID` | LINE LIFF verification input |
+| `NEXT_PUBLIC_LIFF_ID` | LIFF app ID for client boot |
+| `NEXT_PUBLIC_BETTER_AUTH_URL` | Better Auth client URL |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL for referrals and SEO |
+| `NEXT_PUBLIC_SITE_URL` | Optional site URL for SEO metadata |
+| `PROMPTPAY_TARGET_ID` | PromptPay target ID |
+| `PROMPTPAY_RECEIVER_ID` | Receiver account identifier for payment status route |
+| `NEXT_PUBLIC_PROMPTPAY_TARGET_ID` | Public PromptPay identifier shown to client surfaces |
+| `PAYMENT_ORDER_TTL_MINUTES` | Draft order expiration window |
+| `PAYMENT_FLOW_VERSION` | Payment flow version tag for metadata/observability |
+| `SLIPOK_API_KEY` | SlipOK API key |
+| `SLIPOK_BRANCH_ID` | SlipOK branch identifier |
+| `SLIPOK_TIMEOUT_MS` | Optional SlipOK timeout override |
+| `SLIPOK_MAX_RETRIES` | Optional SlipOK retry count |
+| `SLIPOK_API_BASE_URL` | Optional SlipOK base URL override |
+| `SLIPOK_API_URL` | Optional full SlipOK endpoint override |
+| `SLIPOK_VERIFY_LOG` | Enable or disable provider-side verification logging |
+| `MODEL_NAME` | Gemini model name for AI agents |
+| `PROMPT_ENCRYPTION_KEY` | Encrypt stored agent prompts |
+| `DISCORD_WEBHOOK_URL` | Support/payment/referral observability hook |
+| `LINE_CHANNEL_ACCESS_TOKEN` | Optional LINE OA notification token |
+| `MMV_REFERRAL_REWARD_ENGINE_DISABLED` | Disable first-prediction referral reward engine |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry client/server DSN |
+
+## Local Development
+
+### Start the app
 
 ```bash
-/init                          # Automatically integrate workflow for your project
+npm run dev
 ```
 
-3) (Optional) Run the setup helper to populate additional `CLAUDE.md` metadata. The script will ask for your repository URL and the `claude` CLI alias (if you use a custom alias):
+### Build for production
 
 ```bash
-./setup.sh
+npm run build
 ```
 
-Notes about the setup script
-- The script attempts to call your `claude` CLI with `-p` and a prompt that instructs the assistant to fill top-level metadata while preserving workflow sections. If your claude CLI uses a different flag or interface, provide the correct alias that wraps it accordingly.
-- If the `claude` CLI is not available, the script can run in offline/manual mode and create a temporary file for manual editing.
-- The script always shows a diff and requires confirmation before overwriting `CLAUDE.md`.
+The build command runs:
 
-How to adapt the template for your stack
-- Replace placeholder tokens such as `[PROJECT_NAME]`, `[REPOSITORY_URL]`, `[PRIMARY_LANGUAGE]`, `[FRAMEWORK]` with real values.
-- Update `docs/TASK-ISSUE-TEMP.md` build/test commands to match your stack (for example, replace `[build command]` and `[test command]`).
-
-Optional next steps to make this a polished template repository:
-- Add a LICENSE (MIT recommended) and `CONTRIBUTING.md`.
-- Add `.github/ISSUE_TEMPLATE/*` and `PULL_REQUEST_TEMPLATE.md` for repo-level automation.
-- Add a minimal CI workflow that validates docs and runs basic checks.
-
-If you want, I can implement any of the optional steps above (LICENSE, CONTRIBUTING, GitHub meta, CI). Tell me which one to start with.
-
-## Advanced Features
-
-### Mode-Based Execution
-The template supports two execution modes controlled via `/mode`:
-- **MANUAL** — Tasks assigned to you for direct implementation
-- **COPILOT** — Tasks assigned to @copilot for automated implementation
-
-### Agent Instructions
-Comprehensive agent guidance in `.github/agents/` ensures consistent behavior:
-- `plan.agents.md` — Context hallucination prevention and task creation
-- `impl.agents.md` — Implementation workflow with Red-Green-Refactor TDD
-- `pr.agents.md` — Pull request creation and validation standards
-- `fcs.agents.md` — Context issue management and discussion
-- And more for mode-specific execution...
-
-### Response Instructions
-Domain-specific guidance in `.github/instructions/`:
-- `response.instructions.md` — Core response quality standards (MANDATORY for all responses)
-- `api.instructions.md` — API design, authentication, and error handling
-- `architect.instructions.md` — System architecture and technology stack patterns
-- `database.instructions.md` — Database schema, migrations, and security (RLS)
-- `impl.instructions.md` — Implementation workflow details and validation
-- `plan.instructions.md` — Task planning with hallucination prevention checklist
-- `pr.instructions.md` — Pull request workflow from staging to main
-- `fcs.instructions.md` — Context issue template and management
-- `ui.instructions.md` — UI/UX design systems and accessibility
-
-### Knowledge Management System
-Integrated knowledge capture and retrieval for project insights:
-- `/khub` — Central knowledge hub (GitHub Issue by default)
-- `/kupdate [category] "[topic]"` — Create knowledge entries with structured format
-- `/klink [issue-number]` — Automatically link knowledge to hub
-- `/ksync` — Synchronize hub with all knowledge entries
-- `/ksearch "[query]"` — Full-text search across knowledge base
-- `/krecent` — Show recent 5 knowledge updates
-- `/kcategory [category]` — Browse category-specific knowledge
-
-Categories include: device, database, architecture, debug, workflow, frontend, backend
-
-### Test-First Development (TDD)
-All task templates enforce Red-Green-Refactor cycle:
-- **Red Phase** — Write failing tests BEFORE code implementation
-- **Green Phase** — Implement minimal code to pass tests
-- **Refactor Phase** — Improve code quality while tests remain passing
-
-This ensures high test coverage and code quality from the start.
-
-## Workflow Architecture
-
-```
-🚀 Project Initialization (/init) - MANDATORY FIRST STEP
-- Analyze PRD.md or existing codebase
-- Auto-configure workflow commands
-- Set up Git staging workflow
-- Initialize project context tracking
-         ↓
-Context Discussion (/fcs)
-- Create context GitHub Issues
-- Iterative discussion and planning
-- Accumulate project context
-- Auto .tmp folder management for issue content
-         ↓
-     Planning (/plan OR /plan2)
-/plan: Detailed atomic tasks with comprehensive analysis
-/plan2: Rapid tasks with complexity validation
-- Create atomic task GitHub Issues
-- Test-first requirements specification
-- Same template, different modes (rapid vs detailed)
-- Auto .tmp folder management for task content
-         ↓
-  Pre-Implementation Check (/pck, /aud)
-- Codebase analysis for dependencies
-- Validate implementation approach
-- Security and architecture review
-         ↓
-  Implementation (/impl)
-  - Red Phase: Write failing tests
-  - Green Phase: Implement minimal code
-  - Refactor Phase: Improve code quality
-  - Auto .tmp folder management for issue metadata
-         ↓
-  Full Validation:
-  - Build: 100% success ([build command])
-  - Lint: 0 warnings ([lint command])
-  - Format: Consistent ([format command])
-  - Tests: All passing ([test command])
-         ↓
-   Pull Request (/pr)
-  - Feature branch → staging
-  - Validation report included
-  - Ready for team review
-  - Auto .tmp folder management for PR content
-         ↓
-  Knowledge Capture (/kupdate, /klink)
-  - Document learnings and insights
-  - Link to centralized knowledge hub
-  - Make discoveries discoverable
-  - Auto .tmp folder management for knowledge content
-```
-
-## Response Quality Standards (Mandatory)
-
-Every response from agents using this template follows these standards:
-
-1. **On-Point (ตรงประเด็น)** — Answer only what was asked, no out-of-scope information
-2. **Good Context Ordering** — Simple to complex progression, ordered for comprehension
-3. **Exact Details** — Accurate, specific information with file/function names
-4. **Security-First Focus** — Always consider security implications first
-5. **Senior Developer Mindset** — Provide unbiased, expert feedback
-
-## Language Matching Policy
-
-The template automatically matches user language:
-- **Thai questions** → Thai responses (except technical terms in English)
-- **English questions** → English responses
-- **Mixed language** → Follow the primary language
-- **Technical terms** — Always use English (Rust, Cargo, PostgreSQL, etc.)
-
-This ensures better communication and context preservation.
-
-## 📁 Temporary File Management (Critical Security Feature)
-
-All workflow commands enforce strict `.tmp` folder usage for temporary files:
-
-### 🚨 Strict Enforcement Policy
-- **NEVER** uses system temp directories (`/tmp/`, `$TEMP`)
-- **ALWAYS** creates temporary files in project `.tmp/` folder only
-- **ALWAYS** cleans up temporary files immediately after use
-- **ALWAYS** adds `.tmp/` to `.gitignore` automatically
-
-### 🔒 Security Benefits
-- **Project-scoped**: No temporary files left in system directories
-- **Automatic cleanup**: Zero pollution of file systems
-- **Git-safe**: Temporary files never committed accidentally
-- **Performance**: Project-local file operations are faster
-
-### 📋 Commands with .tmp Folder Integration
-- `/fcs` - Context issue creation with `.tmp/context-content.md`
-- `/plan`, `/plan2` - Task creation with `.tmp/task-content.md`
-- `/impl` - Implementation workflow with `.tmp/issue-details.md`
-- `/pr` - Pull request with `.tmp/issue-info.md` and `.tmp/pr-body.md`
-- `/kupdate` - Knowledge creation with `.tmp/knowledge-content.md`
-
-### 💡 Zero Manual Setup Required
-Every command automatically handles:
 ```bash
-mkdir -p .tmp && echo ".tmp/" >> .gitignore
-# Create temporary file in .tmp/
-# Use with GitHub CLI --body-file .tmp/[filename]
-# rm .tmp/[filename] (automatic cleanup)
+prisma generate && prisma migrate deploy && next build
 ```
 
-This approach ensures clean, secure, and efficient temporary file management across the entire workflow.
+### Start production server locally
+
+```bash
+npm run start
+```
+
+## Test and Validation
+
+### Standard commands
+
+```bash
+npm run lint
+npm run test
+```
+
+### Focused test suites
+
+```bash
+npm run test:unit
+npm run test:integration
+npm run test:api
+npm run test:component
+npm run test:e2e
+npm run test:db
+npm run test:coverage
+```
+
+### Payment-focused checks
+
+Useful files when touching payment or billing:
+
+- `__tests__/api/payment-orders-route.test.ts`
+- `__tests__/api/payment-orders-me-route.test.ts`
+- `__tests__/api/payment-order-slip-route.test.ts`
+- `__tests__/services/payment-order-service.test.ts`
+- `__tests__/services/payment-fulfillment-service.test.ts`
+- `__tests__/services/slip-verification-service.test.ts`
+
+## Operational Notes
+
+### Payment lifecycle
+
+Status model in practice:
+
+- `PENDING_PAYMENT`
+- `SLIP_UPLOADED`
+- `VERIFYING`
+- `VERIFIED`
+- `REJECTED`
+- `EXPIRED`
+- `CREDITED`
+
+Important semantics:
+
+- Active orders can be reused.
+- Expired orders with no slip evidence can be revived.
+- Orders with slip evidence, verification history, or credited state must not be revived.
+- Billing history intentionally excludes noise drafts by default.
+
+### Manual smoke still matters
+
+Before rollout, verify at least these flows manually:
+
+1. LIFF login from LINE and redirect restoration.
+2. Submit a prediction and wait for the reading to complete.
+3. Open package page, create QR, let it expire, reopen, and confirm draft revive behavior.
+4. Submit a slip and confirm billing/support surfaces show the expected state.
+5. Confirm credited orders increase the star balance and appear in transaction history.
+
+## Project Commands
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start local development server |
+| `npm run build` | Generate Prisma client, apply deploy migrations, and build Next.js |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint on JS/MJS/CJS files |
+| `npm run test` | Run full Vitest suite |
+| `npm run test:coverage` | Generate coverage report |
+| `npm run db:snapshot-prod` | Run Neon snapshot rotation script |
+| `npm run migrate:safe` | Run Prisma safety check, then deploy migrations |
+
+## Current Risks
+
+- Manual smoke remains a required release gate for LIFF and payment journeys.
+- Payment observability exists, but there is no full reconciliation dashboard yet.
+- Slip verification depends on an external provider and can linger in delayed states.
+- There is still no canonical `.env.example`, which makes onboarding slower than it should be.
+
+## Recommended Next Improvement
+
+The highest-value documentation follow-up would be adding a real `.env.example` that matches the variables already used by the codebase.
