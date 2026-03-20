@@ -76,7 +76,7 @@ describe('Billing Page Phase 4', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Starter Pack')).toBeTruthy();
-      expect(screen.getByText('เครดิตเข้าแล้ว')).toBeTruthy();
+      expect(screen.getAllByText('เครดิตเข้าแล้ว').length).toBeGreaterThan(0);
     });
   });
 

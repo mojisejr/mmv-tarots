@@ -4,10 +4,16 @@ import { emitPaymentEvent } from '@/lib/server/payment-observability';
 import { CreditService } from '@/services/credit-service';
 import { slipVerificationService } from '@/lib/server/services/slip-verification-service';
 
+export interface SlipFileInput {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+}
+
 export interface SubmitSlipInput {
   orderId: string;
   userId: string;
-  slipImageUrl: string;
+  slipFile: SlipFileInput;
 }
 
 export interface SubmitSlipResult {
@@ -18,6 +24,12 @@ export interface SubmitSlipResult {
   starsGranted: number;
   errorCode?: string;
   errorMessage?: string;
+}
+
+function isRetryableVerificationFailure(
+  category: string | undefined
+): boolean {
+  return category === 'TEMPORARY' || category === 'DELAYED_RECHECK';
 }
 
 function isOrderTerminal(status: PaymentOrderStatus): boolean {
@@ -90,7 +102,7 @@ export const paymentFulfillmentService = {
       where: { id: order.id },
       data: {
         status: PaymentOrderStatus.SLIP_UPLOADED,
-        slipImageUrl: input.slipImageUrl,
+        slipImageUrl: `direct-upload://${input.slipFile.filename}`,
       },
     });
 
@@ -103,31 +115,58 @@ export const paymentFulfillmentService = {
 
     const verifyResult = await slipVerificationService.verify({
       paymentOrderId: order.id,
-      slipImageUrl: input.slipImageUrl,
+      slipFile: input.slipFile,
+      expectedAmountTHB: Number(order.amountTHB),
     });
+
+    const verificationLogStatus = verifyResult.success
+      ? 'SUCCESS'
+      : isRetryableVerificationFailure(verifyResult.errorCategory)
+        ? 'PENDING_RECHECK'
+        : 'FAILED';
 
     await db.paymentVerificationLog.create({
       data: {
         paymentOrderId: order.id,
         provider: verifyResult.provider,
-        status: verifyResult.success ? 'SUCCESS' : 'FAILED',
+        status: verificationLogStatus,
         errorCode: verifyResult.errorCode,
         errorMessage: verifyResult.errorMessage,
-        requestPayload: { slipImageUrl: input.slipImageUrl },
+        requestPayload: { filename: input.slipFile.filename, mimeType: input.slipFile.mimeType },
         responsePayload: verifyResult.raw as Prisma.InputJsonValue,
       },
     });
 
     if (!verifyResult.success) {
+      const retryable = isRetryableVerificationFailure(verifyResult.errorCategory);
+
       await db.paymentOrder.update({
         where: { id: order.id },
         data: {
-          status: PaymentOrderStatus.REJECTED,
+          status: retryable ? PaymentOrderStatus.VERIFYING : PaymentOrderStatus.REJECTED,
           verificationProvider: verifyResult.provider,
           verificationErrorCode: verifyResult.errorCode,
           verificationErrorMessage: verifyResult.errorMessage,
         },
       });
+
+      if (retryable) {
+        emitPaymentEvent('payment.order.verification_pending', {
+          orderId: order.id,
+          userId: input.userId,
+          reason: verifyResult.errorCode ?? verifyResult.errorCategory ?? 'UNKNOWN',
+        });
+
+        return {
+          orderId: order.id,
+          status: PaymentOrderStatus.VERIFYING,
+          credited: false,
+          alreadyCredited: false,
+          starsGranted: 0,
+          errorCode: verifyResult.errorCode,
+          errorMessage: verifyResult.errorMessage,
+        };
+      }
 
       emitPaymentEvent('payment.order.rejected', {
         orderId: order.id,

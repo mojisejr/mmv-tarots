@@ -46,6 +46,11 @@ describe('Transactions Page Phase 2', () => {
               type: 'TOPUP',
               status: 'SUCCESS',
               createdAt: '2026-03-17T10:00:00.000Z',
+              externalRef: 'MMV-PAY-001',
+              channel: 'PROMPTPAY_QR',
+              metadata: {
+                amountTHB: 199,
+              },
             },
           ],
           pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
@@ -66,6 +71,10 @@ describe('Transactions Page Phase 2', () => {
     await waitFor(() => {
       expect(screen.getByText('เติมดาว (Package)')).toBeTruthy();
     });
+
+    expect(screen.getByText('อ้างอิงการชำระเงิน: MMV-PAY-001')).toBeTruthy();
+    expect(screen.getByText('ยอดที่ชำระ: 199.00 THB')).toBeTruthy();
+    expect(screen.getByText('ช่องทาง: PromptPay QR')).toBeTruthy();
   });
 
   it('shows empty state when no transactions are returned', async () => {

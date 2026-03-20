@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PaymentOrderStatus } from '@prisma/client';
 import { auth } from '@/lib/server/auth';
 import { db } from '@/lib/server/db';
+import { mapPaymentErrorSemantics } from '@/lib/shared/payment-error-semantics';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -62,11 +63,38 @@ export async function GET(request: NextRequest) {
   );
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
   const statuses = parseStatusFilter(url.searchParams.get('status'));
+  const showAll = url.searchParams.get('showAll') === 'true';
 
-  const whereClause = {
+  const whereClause: Record<string, unknown> = {
     userId: session.user.id,
-    ...(statuses.length > 0 ? { status: { in: statuses } } : {}),
   };
+
+  if (statuses.length > 0) {
+    whereClause.status = { in: statuses };
+  } else if (!showAll) {
+    // Default visibility: exclude noise orders (PENDING_PAYMENT and EXPIRED without slip evidence)
+    whereClause.OR = [
+      {
+        status: {
+          in: [
+            PaymentOrderStatus.SLIP_UPLOADED,
+            PaymentOrderStatus.VERIFYING,
+            PaymentOrderStatus.VERIFIED,
+            PaymentOrderStatus.REJECTED,
+            PaymentOrderStatus.CREDITED,
+          ],
+        },
+      },
+      {
+        status: PaymentOrderStatus.PENDING_PAYMENT,
+        slipImageUrl: { not: null },
+      },
+      {
+        status: PaymentOrderStatus.EXPIRED,
+        slipImageUrl: { not: null },
+      },
+    ];
+  }
 
   const [total, orders] = await Promise.all([
     db.paymentOrder.count({ where: whereClause }),
@@ -112,44 +140,54 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     success: true,
     data: {
-      items: orders.map((order) => ({
-        id: order.id,
-        referenceCode: order.referenceCode,
-        status: order.status,
-        amountTHB: Number(order.amountTHB),
-        amountSatang: order.amountSatang,
-        currency: order.currency,
-        createdAt: order.createdAt,
-        verifiedAt: order.verifiedAt,
-        creditedAt: order.creditedAt,
-        verificationErrorCode: order.verificationErrorCode,
-        verificationErrorMessage: order.verificationErrorMessage,
-        package: {
-          packagePriceId: order.packagePrice.id,
-          id: order.packagePrice.package.id,
-          name: order.packagePrice.package.name,
-          stars: order.packagePrice.package.stars,
-        },
-        creditedTransaction: order.creditTransaction
-          ? {
-              id: order.creditTransaction.id,
-              amount: order.creditTransaction.amount,
-              status: order.creditTransaction.status,
-              createdAt: order.creditTransaction.createdAt,
-            }
-          : null,
-        latestVerificationLog:
-          order.verificationLogs.length > 0
+      items: orders.map((order) => {
+        const semantics = mapPaymentErrorSemantics({
+          verificationErrorCode: order.verificationErrorCode,
+          verificationErrorMessage: order.verificationErrorMessage,
+        });
+
+        return {
+          id: order.id,
+          referenceCode: order.referenceCode,
+          status: order.status,
+          amountTHB: Number(order.amountTHB),
+          amountSatang: order.amountSatang,
+          currency: order.currency,
+          createdAt: order.createdAt,
+          verifiedAt: order.verifiedAt,
+          creditedAt: order.creditedAt,
+          verificationErrorCode: order.verificationErrorCode,
+          verificationErrorMessage: order.verificationErrorMessage,
+          errorCategory: semantics.errorCategory,
+          retryAfterMinutes: semantics.retryAfterMinutes,
+          delayMinutes: semantics.delayMinutes,
+          package: {
+            packagePriceId: order.packagePrice.id,
+            id: order.packagePrice.package.id,
+            name: order.packagePrice.package.name,
+            stars: order.packagePrice.package.stars,
+          },
+          creditedTransaction: order.creditTransaction
             ? {
-                id: order.verificationLogs[0].id,
-                provider: order.verificationLogs[0].provider,
-                status: order.verificationLogs[0].status,
-                errorCode: order.verificationLogs[0].errorCode,
-                errorMessage: order.verificationLogs[0].errorMessage,
-                createdAt: order.verificationLogs[0].createdAt,
+                id: order.creditTransaction.id,
+                amount: order.creditTransaction.amount,
+                status: order.creditTransaction.status,
+                createdAt: order.creditTransaction.createdAt,
               }
             : null,
-      })),
+          latestVerificationLog:
+            order.verificationLogs.length > 0
+              ? {
+                  id: order.verificationLogs[0].id,
+                  provider: order.verificationLogs[0].provider,
+                  status: order.verificationLogs[0].status,
+                  errorCode: order.verificationLogs[0].errorCode,
+                  errorMessage: order.verificationLogs[0].errorMessage,
+                  createdAt: order.verificationLogs[0].createdAt,
+                }
+              : null,
+        };
+      }),
       pagination: {
         page,
         pageSize,
@@ -158,6 +196,7 @@ export async function GET(request: NextRequest) {
       },
       filters: {
         status: statuses,
+        showAll,
       },
     },
   });

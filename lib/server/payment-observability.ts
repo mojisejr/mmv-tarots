@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 
-type EventPayload = Record<string, string | number | boolean | null | undefined>;
+type EventPayload = Record<string, unknown>;
 
 function asError(error: unknown): Error {
   if (error instanceof Error) {

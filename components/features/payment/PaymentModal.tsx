@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { PromptPayQR } from './PromptPayQR';
 import { PaymentReceipt } from './PaymentReceipt';
+import { buildToastMessage } from '@/lib/shared/payment-success-presenter';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ interface OrderPayload {
   amountTHB: number;
   currency: string;
   expiresAt: string;
+  promptPayTargetId: string;
   creditedAt?: string | null;
   verificationErrorMessage?: string | null;
 }
@@ -53,6 +55,7 @@ export interface PaymentModalProps {
   stars: number;
   amount: number;
   resumeOrderId?: string | null;
+  returnTo?: string;
 }
 
 const ACTIVE_ORDER_KEY = 'mmv_active_payment_order';
@@ -68,7 +71,9 @@ export function PaymentModal({
   stars,
   amount,
   resumeOrderId,
+  returnTo,
 }: PaymentModalProps) {
+  const amountLabel = amount.toFixed(2);
   const [step, setStep] = useState<Step>('creating-order');
   const [loading,       setLoading] = useState(false);
   const [order, setOrder] = useState<OrderPayload | null>(null);
@@ -145,6 +150,7 @@ export function PaymentModal({
       amountTHB: payload.order.amountTHB,
       currency: payload.order.currency,
       expiresAt: new Date(payload.order.expiresAt).toISOString(),
+      promptPayTargetId: payload.order.promptpay?.targetId ?? '',
       creditedAt: payload.order.creditedAt ? new Date(payload.order.creditedAt).toISOString() : null,
       verificationErrorMessage: payload.order.verificationErrorMessage ?? null,
     };
@@ -171,7 +177,12 @@ export function PaymentModal({
       amountTHB: payload.order.amountTHB,
       currency: payload.order.currency,
       expiresAt: payload.order.expiresAt,
+      promptPayTargetId: payload.order.promptpay?.targetId ?? '',
     };
+
+    if (payload.order.reuseMode === 'revived') {
+      toast.info('กู้คืนคำสั่งชำระเงินเดิมแล้ว');
+    }
 
     persistActiveOrder(created.id);
     applyOrderState(created);
@@ -209,13 +220,19 @@ export function PaymentModal({
     clearActiveOrder();
     setReceipt({ transactionRef, paidAt: new Date() });
     setStep('receipt');
-    toast.success('ชำระเงินสำเร็จ! ดาวเพิ่มเข้าบัญชีแล้ว 🌟');
-  }, [clearActiveOrder]);
+    toast.success(buildToastMessage({
+      referenceCode: transactionRef,
+      starsGranted: stars,
+      packageName,
+      amountTHB: amount,
+      creditedAt: new Date(),
+    }));
+  }, [clearActiveOrder, amount, packageName, stars]);
 
   // ── Render step titles ───────────────────────────────────────────────────
   const titleMap: Record<Step, string> = {
-    'creating-order': `เติม ${stars} Stars · ฿${amount}`,
-    'qr-display': `สแกน QR · ฿${amount}`,
+    'creating-order': `เติม ${stars} Stars · ฿${amountLabel}`,
+    'qr-display': `สแกน QR · ฿${amountLabel}`,
     'failed': 'ไม่สามารถดำเนินการชำระเงิน',
     'receipt': 'ใบเสร็จ',
   };
@@ -245,7 +262,7 @@ export function PaymentModal({
             referenceCode={order.referenceCode}
             expiresAt={order.expiresAt}
             amount={order.amountTHB}
-            promptPayTargetId={process.env.NEXT_PUBLIC_PROMPTPAY_TARGET_ID ?? ''}
+            promptPayTargetId={order.promptPayTargetId}
             initialStatus={order.status}
             initialErrorMessage={order.verificationErrorMessage ?? null}
             onCredited={handleCredited}
@@ -282,6 +299,7 @@ export function PaymentModal({
             amount={amount}
             paidAt={receiptData.paidAt}
             onClose={handleClose}
+            returnTo={returnTo}
           />
         )}
       </div>

@@ -28,6 +28,7 @@ import { db } from '@/lib/server/db';
 describe('GET /api/payment/orders/[id]/status', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.PROMPTPAY_TARGET_ID = '004999039549117';
 
     vi.mocked(auth.api.getSession).mockResolvedValue({
       user: { id: 'user_001' },
@@ -72,6 +73,7 @@ describe('GET /api/payment/orders/[id]/status', () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.order.status).toBe('CREDITED');
+    expect(body.order.promptpay.targetId).toBe('004999039549117');
   });
 
   it('marks expired order as EXPIRED', async () => {

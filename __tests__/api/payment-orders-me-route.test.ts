@@ -99,6 +99,9 @@ describe('GET /api/payment/orders/me', () => {
     expect(body.data.items[0].package.name).toBe('Starter Pack');
     expect(body.data.items[0].creditedTransaction.id).toBe('txn_001');
     expect(body.data.items[0].latestVerificationLog.id).toBe('vlog_001');
+    expect(body.data.items[0].errorCategory).toBe('UNKNOWN');
+    expect(body.data.items[0].retryAfterMinutes).toBeNull();
+    expect(body.data.items[0].delayMinutes).toBeNull();
     expect(body.data.pagination.total).toBe(1);
 
     expect(db.paymentOrder.findMany).toHaveBeenCalledWith(
@@ -132,6 +135,131 @@ describe('GET /api/payment/orders/me', () => {
           in: ['CREDITED', 'REJECTED'],
         },
       },
+    });
+  });
+
+  it('maps semantic fields for delayed and receiver mismatch errors', async () => {
+    vi.mocked(db.paymentOrder.count).mockResolvedValue(2);
+    vi.mocked(db.paymentOrder.findMany).mockResolvedValue([
+      {
+        id: 'ord_1010',
+        referenceCode: 'pay_ref_1010',
+        status: 'VERIFYING',
+        amountTHB: 299,
+        amountSatang: 29900,
+        currency: 'THB',
+        createdAt: new Date('2026-03-17T14:00:00.000Z'),
+        verifiedAt: null,
+        creditedAt: null,
+        verificationErrorCode: '1010',
+        verificationErrorMessage: 'กรุณารอการตรวจสอบสลิปหลังการโอนประมาณ 7 นาที',
+        packagePrice: {
+          id: 'price_001',
+          package: {
+            id: 'pkg_001',
+            name: 'Starter Pack',
+            stars: 120,
+          },
+        },
+        creditTransaction: null,
+        verificationLogs: [],
+      },
+      {
+        id: 'ord_1014',
+        referenceCode: 'pay_ref_1014',
+        status: 'REJECTED',
+        amountTHB: 299,
+        amountSatang: 29900,
+        currency: 'THB',
+        createdAt: new Date('2026-03-17T14:00:00.000Z'),
+        verifiedAt: null,
+        creditedAt: null,
+        verificationErrorCode: '1014',
+        verificationErrorMessage: 'บัญชีผู้รับไม่ตรงกับบัญชีหลักของร้าน',
+        packagePrice: {
+          id: 'price_002',
+          package: {
+            id: 'pkg_002',
+            name: 'Pro Pack',
+            stars: 300,
+          },
+        },
+        creditTransaction: null,
+        verificationLogs: [],
+      },
+    ] as any);
+
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10', {
+      method: 'GET',
+    });
+
+    const response = await GET(request as any);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.data.items).toHaveLength(2);
+
+    expect(body.data.items[0].errorCategory).toBe('DELAYED_RECHECK');
+    expect(body.data.items[0].retryAfterMinutes).toBe(7);
+    expect(body.data.items[0].delayMinutes).toBe(7);
+
+    expect(body.data.items[1].errorCategory).toBe('RECEIVER_MISMATCH');
+    expect(body.data.items[1].retryAfterMinutes).toBeNull();
+    expect(body.data.items[1].delayMinutes).toBeNull();
+  });
+
+  it('applies default visibility policy excluding PENDING_PAYMENT without slip', async () => {
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    expect(db.paymentOrder.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        userId: 'user_001',
+        OR: expect.arrayContaining([
+          expect.objectContaining({
+            status: {
+              in: ['SLIP_UPLOADED', 'VERIFYING', 'VERIFIED', 'REJECTED', 'CREDITED'],
+            },
+          }),
+          expect.objectContaining({
+            status: 'PENDING_PAYMENT',
+            slipImageUrl: { not: null },
+          }),
+          expect.objectContaining({
+            status: 'EXPIRED',
+            slipImageUrl: { not: null },
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it('bypasses visibility policy when showAll=true', async () => {
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10&showAll=true', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    const countCall = vi.mocked(db.paymentOrder.count).mock.calls[0][0];
+    expect(countCall?.where).toEqual({ userId: 'user_001' });
+    expect(countCall?.where).not.toHaveProperty('OR');
+  });
+
+  it('skips visibility policy when explicit status filter is provided', async () => {
+    const request = new Request('http://localhost/api/payment/orders/me?page=1&pageSize=10&status=PENDING_PAYMENT', {
+      method: 'GET',
+    });
+
+    await GET(request as any);
+
+    const countCall = vi.mocked(db.paymentOrder.count).mock.calls[0][0];
+    expect(countCall?.where).toEqual({
+      userId: 'user_001',
+      status: { in: ['PENDING_PAYMENT'] },
     });
   });
 });

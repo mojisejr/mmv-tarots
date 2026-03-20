@@ -50,6 +50,7 @@ export const createErrorResponse = (
     if (error.code === ERROR_CODES.UNAUTHORIZED) status = 401;
     if (error.code === ERROR_CODES.PAYMENT_REQUIRED) status = 402;
     if (error.code === ERROR_CODES.INVALID_REQUEST) status = 400;
+    if (error.code === ERROR_CODES.VALIDATION_ERROR) status = 422;
   } else if (error instanceof Error) {
     errorData = {
       code: ERROR_CODES.INTERNAL_ERROR,

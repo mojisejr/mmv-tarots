@@ -3,6 +3,11 @@
 import { CheckCircle2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { GlassButton } from '@/components';
+import {
+  buildPrimaryAction,
+  getSecondaryAction,
+} from '@/lib/shared/payment-success-presenter';
+import type { SuccessAction } from '@/lib/shared/payment-success-presenter';
 
 interface PaymentReceiptProps {
   transactionRef: string;
@@ -11,6 +16,7 @@ interface PaymentReceiptProps {
   amount: number;
   paidAt: Date;
   onClose: () => void;
+  returnTo?: string;
 }
 
 export function PaymentReceipt({
@@ -20,17 +26,20 @@ export function PaymentReceipt({
   amount,
   paidAt,
   onClose,
+  returnTo,
 }: PaymentReceiptProps) {
   const router = useRouter();
 
+  const primary: SuccessAction = buildPrimaryAction(returnTo);
+  const secondary: SuccessAction = getSecondaryAction();
+
   const rows: Array<{ label: string; value: string }> = [
-    { label: 'Transaction Ref', value: transactionRef },
     { label: 'แพ็กเกจ',        value: packageName },
-    { label: 'จำนวนดาว',       value: `${stars} Stars` },
+    { label: 'จำนวนดาว',       value: `+${stars} ดวง` },
     { label: 'ยอดชำระ',        value: `฿${amount.toFixed(0)}` },
-    { label: 'ช่องทาง',        value: 'PromptPay QR + SlipOK' },
+    { label: 'ช่องทาง',        value: 'PromptPay QR' },
     { label: 'วันที่',          value: paidAt.toLocaleString('th-TH') },
-    { label: 'สถานะ',          value: 'Delivered ✓' },
+    { label: 'สถานะ',          value: 'สำเร็จ ✓' },
   ];
 
   return (
@@ -46,7 +55,7 @@ export function PaymentReceipt({
       </div>
 
       <div className="text-center space-y-1">
-        <h3 className="text-xl font-serif font-bold text-foreground">ชำระเงินสำเร็จ!</h3>
+        <h3 className="text-xl font-serif font-bold text-foreground">เติมดาวสำเร็จ!</h3>
         <p className="text-sm text-muted-foreground">
           ดาว <span className="font-semibold text-primary">{stars}</span> ดวงได้รับการเพิ่มเข้าบัญชีแล้ว
         </p>
@@ -62,6 +71,11 @@ export function PaymentReceipt({
         ))}
       </div>
 
+      {/* Reference - secondary prominence */}
+      <p className="text-[10px] text-muted-foreground/60 font-mono break-all text-center">
+        Ref: {transactionRef}
+      </p>
+
       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2.5 text-center">
         <p className="text-[11px] text-emerald-700">
           บริการ Digital Token ส่งมอบทันทีเมื่อชำระเงิน · ไม่สามารถคืนเงินได้
@@ -71,13 +85,24 @@ export function PaymentReceipt({
       <GlassButton
         onClick={() => {
           onClose();
-          router.push('/');
+          router.push(primary.href);
         }}
         variant="primary"
         className="w-full py-5 font-bold text-base"
       >
-        ไปดูดวงเลย →
+        {primary.label} →
       </GlassButton>
+
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          router.push(secondary.href);
+        }}
+        className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+      >
+        {secondary.label}
+      </button>
     </div>
   );
 }
