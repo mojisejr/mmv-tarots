@@ -172,7 +172,7 @@ function PackagePageContent() {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
+    <div className="max-w-4xl mx-auto pt-10 px-4">
       <div className="text-center mb-12 animate-fade-in-down">
         <h1 className="text-4xl md:text-5xl font-serif text-foreground mb-4">
           เติม Digital Token
@@ -375,7 +375,7 @@ export default function PackagePage() {
   return (
     <ErrorBoundary>
       <Suspense fallback={
-        <div className="max-w-4xl mx-auto pt-10 px-4 pb-24">
+        <div className="max-w-4xl mx-auto pt-10 px-4">
           <div className="text-center text-muted-foreground">กำลังโหลด...</div>
         </div>
       }>

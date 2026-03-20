@@ -81,6 +81,21 @@
   --color-foreground: #592E2E;
   --color-primary: #FFD6D1;
   --color-accent: #D4AF37;
+
+  /* ── Mobile Shell Tokens ──────────────────────────── */
+  --mobile-bottom-nav-height: 80px;
+  --mobile-bottom-nav-margin: 16px;
+  --mobile-bottom-clearance: calc(
+    var(--mobile-bottom-nav-height) + var(--mobile-bottom-nav-margin) + env(safe-area-inset-bottom, 0px)
+  );
+
+  /* ── Z-Index Hierarchy ────────────────────────────── */
+  --z-content: 1;
+  --z-bottom-nav: 50;
+  --z-toast: 60;
+  --z-overlay: 70;
+  --z-modal: 80;
+  --z-critical-overlay: 100;
 }
 
 /* Base styles */
