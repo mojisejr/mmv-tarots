@@ -1,0 +1,57 @@
+---
+type: snapshot
+project: mmv-tarots
+topic: refactor-roadmap
+status: completed
+---
+
+# แผนผังการปรับปรุงโครงสร้างโค้ด (Refactor Roadmap Tracking)
+
+**วันที่เริ่มต้น:** 22 ธันวาคม 2025
+**สถานะปัจจุบัน:** ✅ Phase 5 เสร็จสมบูรณ์ (Phase 1-4 เสร็จสมบูรณ์)
+
+เอกสารฉบับนี้ใช้สำหรับติดตามความคืบหน้าในการจัดระเบียบ Codebase ของ `mmv-tarots` เพื่อให้ Clean และเหมาะกับ Solo Dev
+
+---
+
+## 🛠 Phase 1: UI & Components Cleanup (จัดระเบียบหน้าบ้าน) ✅
+**เป้าหมาย:** ย้าย Generic UI เข้าที่และลบไฟล์ขยะ
+- [x] ย้าย `components/*.tsx` (Generic UI) เข้าสู่ `components/ui/`
+- [x] แก้ไข Import paths ในทุกไฟล์ที่ได้รับผลกระทบ
+- [x] ลบโฟลเดอร์เปล่า: `components/pages`, `components/features/pages`
+- [x] ตรวจสอบความถูกต้องด้วย `npm run lint` (และ `tsc --noEmit`)
+
+## 🧠 Phase 2: Service Layer & Logic Extraction (แยกสมองออกจากร่างกาย) ✅
+**เป้าหมาย:** แยก Business Logic ออกจาก Routing Layer
+- [x] สร้างโฟลเดอร์ `services/` หรือ `lib/services/`
+- [x] ย้าย `app/workflows/` ไปยังโครงสร้างใหม่
+- [x] Refactor API Routes (`app/api/*`) ให้เรียกใช้ Service แทนการเขียน Logic ตรงๆ
+- [x] ยืนยันการทำงานด้วย Integration Tests (Build passed)
+
+## 📦 Phase 3: Lib Reorganization (แยก Client/Server) ✅
+**เป้าหมาย:** จัดกลุ่ม Utility ให้ชัดเจนตาม Environment
+- [x] แยก `lib/` เป็น `lib/client/` และ `lib/server/`
+- [x] ย้าย `api.ts` (fetch logic) ไปยัง `lib/client/`
+- [x] ย้าย `db.ts`, `auth.ts` ไปยัง `lib/server/`
+- [x] ตรวจสอบว่าไม่มีการเรียก Server-only code บน Client
+
+## 🧹 Phase 4: Import Standardization (ทำความสะอาดสายไฟ) ✅
+**เป้าหมาย:** ใช้ Alias `@/` ให้เป็นมาตรฐานเดียวกันทั้งโปรเจกต์
+- [x] ค้นหาและเปลี่ยน Relative paths (`../../`) เป็น `@/`
+- [x] ตรวจสอบความสม่ำเสมอของการตั้งชื่อไฟล์ (Kebab-case)
+- [x] รัน `npm run build` เพื่อยืนยันว่าระบบยังทำงานได้สมบูรณ์
+
+## 🏁 Phase 5: Final Audit & Polish (ตรวจสอบความเรียบร้อยขั้นสุดท้าย) ✅
+**เป้าหมาย:** ลบไฟล์ขยะและตรวจสอบความสม่ำเสมอของ Codebase
+- [x] ตรวจสอบและลบไฟล์ที่ไม่ได้ใช้งาน (Unused files)
+- [x] ตรวจสอบความสม่ำเสมอของการตั้งชื่อไฟล์ (Kebab-case) ทั่วทั้งโปรเจกต์
+- [x] ตรวจสอบโฟลเดอร์ว่างที่อาจหลงเหลือจากการย้ายไฟล์
+- [x] รัน `npx tsc --noEmit` และ `npm run build` เป็นครั้งสุดท้าย (Verified: tsc & build passed)
+
+---
+
+## 📝 บันทึกการเปลี่ยนแปลง (Change Log)
+- **2025-12-22:** สร้าง Roadmap และกำหนดขอบเขตงาน 4 Phase
+
+---
+*หมายเหตุ: AI จะทำการ Snapshot ทุกครั้งที่จบแต่ละ Phase เพื่อบันทึกความคืบหน้า*
