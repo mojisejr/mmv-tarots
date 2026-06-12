@@ -69,4 +69,34 @@ describe("publishToFeed — publish ตอน approve", () => {
     expect(JSON.parse(String(form.get("attached_media[0]")))).toEqual({ media_fbid: "media_99" });
     expect(String(spy.mock.calls[0][0])).toContain("P/feed");
   });
+
+  it("[P1] ไม่ retry เมื่อ 503 — กันโพสต์ซ้ำ (POST /feed ไม่ idempotent)", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(okJson({ error: "down" }, 503));
+    await expect(
+      publishToFeed({ pageId: "P", token: "t", mediaFbid: "m", message: "hi" }),
+    ).rejects.toThrow(/FB Graph 503/);
+    expect(spy).toHaveBeenCalledTimes(1); // ไม่ retry แม้ 503 (retryable status) — กันโพสต์ซ้ำ
+  });
+});
+
+describe("[P2] timeout ครอบการอ่าน response body", () => {
+  it("abort เมื่อ body ค้างเกิน timeout (ไม่ใช่แค่ headers)", async () => {
+    // fetch resolve headers ทันที แต่ .json() ค้าง — ยกเลิกเมื่อ signal abort เท่านั้น
+    vi.spyOn(globalThis, "fetch").mockImplementation((_url, init) => {
+      const signal = (init as RequestInit).signal as AbortSignal | undefined;
+      return Promise.resolve({
+        ok: true,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            if (signal?.aborted) return reject(new DOMException("aborted", "AbortError"));
+            signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+          }),
+        text: () => Promise.resolve(""),
+      } as unknown as Response);
+    });
+
+    // timer ต้องยัง active ตอนอ่าน body → abort fire → throw
+    // (ถ้า clear timer ก่อนอ่าน body แบบเก่า test นี้จะ hang)
+    await expect(fbFetch("x/feed", { token: "t", timeoutMs: 50, maxRetries: 0 })).rejects.toThrow();
+  });
 });

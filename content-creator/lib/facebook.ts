@@ -41,8 +41,8 @@ export async function fbFetch<T = unknown>(path: string, opts: FbFetchOptions): 
         body,
         signal: controller.signal,
       });
-      clearTimeout(timer);
-
+      // P2: อ่าน body "ก่อน" clear timer — timeout จึงครอบการอ่าน body ที่อาจค้างด้วย
+      // (clear timer ใน finally หลังอ่านเสร็จ/พังเสมอ)
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         if (RETRYABLE_STATUS.has(res.status) && attempt < maxRetries) {
@@ -54,7 +54,6 @@ export async function fbFetch<T = unknown>(path: string, opts: FbFetchOptions): 
       }
       return (await res.json()) as T;
     } catch (err) {
-      clearTimeout(timer);
       const isAbort = err instanceof Error && err.name === "AbortError";
       if (isAbort && attempt < maxRetries) {
         lastError = err as Error;
@@ -62,6 +61,8 @@ export async function fbFetch<T = unknown>(path: string, opts: FbFetchOptions): 
         continue;
       }
       throw err;
+    } finally {
+      clearTimeout(timer); // P2: clear หลัง body read เสมอ (ไม่ clear ก่อนอ่าน body)
     }
   }
   throw lastError ?? new Error("fbFetch: exhausted retries");
@@ -108,10 +109,14 @@ export async function publishToFeed(input: PublishInput): Promise<string> {
   form.append("message", input.message);
   form.append("attached_media[0]", JSON.stringify({ media_fbid: input.mediaFbid }));
 
+  // P1: ปิด auto-retry — POST /feed ไม่ idempotent. ถ้า FB สร้าง public post สำเร็จแล้ว
+  // แต่ response หาย/5xx การ retry จะโพสต์ซ้ำ. fail ชัด ๆ ให้ caller ตัดสิน (reconcile/แจ้งคน)
+  // ดีกว่าโพสต์ซ้ำบนเพจ
   const data = await fbFetch<{ id: string }>(`${input.pageId}/feed`, {
     token: input.token,
     method: "POST",
     body: form,
+    maxRetries: 0,
   });
   return data.id; // post id
 }
