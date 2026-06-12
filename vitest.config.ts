@@ -10,6 +10,7 @@ export default defineConfig({
     globals: true,
     include: [
       '__tests__/**/*.{test,spec}.{js,ts,tsx}',
+      'content-creator/**/*.{test,spec}.{js,ts,tsx}',
     ],
   },
   resolve: {
