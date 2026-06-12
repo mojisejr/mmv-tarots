@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // content-creator ใช้ better-sqlite3 (native module) — กัน Next bundle, require ตอน runtime (server-only)
+  serverExternalPackages: ["better-sqlite3"],
   images: {
     remotePatterns: [
       {
