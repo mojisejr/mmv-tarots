@@ -46,7 +46,8 @@ async function main() {
   form.append("message", caption);
   form.append("published", "false");
   form.append("access_token", PAGE_TOKEN);
-  form.append("source", new Blob([image.uint8Array], { type: "image/png" }), "tarot.png");
+  // wrap ใน new Uint8Array(...) → Uint8Array<ArrayBuffer> (BlobPart ที่ TS strict ยอมรับ)
+  form.append("source", new Blob([new Uint8Array(image.uint8Array)], { type: "image/png" }), "tarot.png");
 
   const res = await fetch(`https://graph.facebook.com/${V}/${PAGE_ID}/photos`, {
     method: "POST",
