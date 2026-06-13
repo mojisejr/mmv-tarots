@@ -86,17 +86,32 @@ export default function NewContentPage() {
         body: JSON.stringify({ requestKey: pending.requestKey, templateId, inputData }),
       });
       const d = await res.json().catch(() => ({}));
-      // 202 = ยังไม่ terminal (request อื่นกำลัง gen) → เก็บ key ไว้ (ไม่ clear) → retry idempotent [ตู๋ P1]
+
+      // 202 = ยังไม่ terminal (request อื่นกำลัง gen) → เก็บ key ไว้ → retry idempotent [ตู๋ P1]
       if (res.status === 202 || d.inProgress) {
         setError("คำขอนี้กำลังประมวลผลอยู่ — รอสักครู่แล้วรีเฟรชคิว/กดใหม่ได้ (ระบบจะไม่สร้าง/จ่ายซ้ำ)");
         setSubmitting(false);
         return;
       }
-      clearPending(); // terminal (สำเร็จ/ล้ม definitive) → submit ครั้งหน้า = attempt ใหม่
-      if (!res.ok || !d.ok) throw new Error(d.error ?? `สร้างไม่สำเร็จ (${res.status})`);
-      router.push("/content-creator"); // เด้งกลับคิว approve — เห็นโพสต์ใหม่ (GENERATED)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "สร้างล้ม");
+      // สำเร็จ definitive → clear + เด้งกลับคิว
+      if (res.status === 200 && d.ok && d.status === "GENERATED") {
+        clearPending();
+        router.push("/content-creator");
+        return;
+      }
+      // ล้ม definitive (gen FAILED) → clear → retry = attempt ใหม่
+      if (res.status === 502 && d.status === "FAILED") {
+        clearPending();
+        setError("gen ไม่สำเร็จ (Gemini) — ลองสร้างใหม่ได้");
+        setSubmitting(false);
+        return;
+      }
+      // อื่น ๆ (500/409/network/ผลไม่ชัด) → ไม่ clear (ไม่รู้ผลแน่ → เก็บ key ปลอดภัยกว่า, retry idempotent) [ตู๋ P1]
+      setError(d.error ?? `ไม่สำเร็จ (${res.status}) — ลองใหม่ได้ ระบบจะไม่จ่ายซ้ำ`);
+      setSubmitting(false);
+    } catch {
+      // network/parse error — ไม่รู้ว่า server ทำสำเร็จไหม → เก็บ key ไว้ (ไม่ clear) retry idempotent
+      setError("เชื่อมต่อไม่ได้ — ลองใหม่ได้ ระบบจะไม่สร้าง/จ่ายซ้ำ");
       setSubmitting(false);
     }
   }, [templateId, card, meaning, router]);

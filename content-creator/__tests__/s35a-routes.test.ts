@@ -199,4 +199,25 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
     expect(getContentDb().select().from(contentPosts).where(eq(contentPosts.requestKey, key)).all()).toHaveLength(1);
     expect(mockGenCaption).toHaveBeenCalledTimes(1); // gen ครั้งเดียวตลอด lifecycle
   });
+
+  // [P1] crash-after-insert-before-claim: row PENDING ค้าง (process เดิมตายก่อน claim) →
+  // retry key เดิม ต้อง "resume" gen row เดิม (ไม่ค้าง 202 ตลอด, ไม่สร้าง row ใหม่)
+  it("PENDING ค้างจาก crash → retry key เดิม resume gen → GENERATED (row เดิม ไม่สร้างใหม่)", async () => {
+    const key = "resume-stale-pending";
+    const id = crypto.randomUUID();
+    // จำลอง: insert PENDING สำเร็จ แล้ว process ตายก่อน claimForGenerate
+    getContentDb()
+      .insert(contentPosts)
+      .values({ id, requestKey: key, templateId: "finance-daily", inputData: { card: "X", meaning: "Y" }, status: "PENDING" })
+      .run();
+
+    const res = await createPOST(req({ requestKey: key, templateId: "finance-daily", inputData: { card: "X", meaning: "Y" } }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe("GENERATED"); // resume สำเร็จ ไม่ค้าง 202
+
+    const rows = getContentDb().select().from(contentPosts).where(eq(contentPosts.requestKey, key)).all();
+    expect(rows).toHaveLength(1); // resume row เดิม
+    expect(rows[0].id).toBe(id);
+    expect(rows[0].status).toBe("GENERATED");
+  });
 });

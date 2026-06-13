@@ -49,17 +49,20 @@ export async function POST(request: Request) {
   }
 
   const db = getContentDb();
-  const id = crypto.randomUUID();
   // atomic get-or-create: insert ผ่านเฉพาะถ้า requestKey ยังไม่มี (unique). retry/concurrent →
-  // changes 0 → ไม่ยิง Gemini ซ้ำ, คืน row เดิม [ตู๋ P1]. ใช้ parsed.data (canonical) ไม่ใช่ raw [ตู๋ P2]
+  // changes 0 → ไม่สร้าง row ใหม่ [ตู๋ P1]. ใช้ parsed.data (canonical) ไม่ใช่ raw [ตู๋ P2]
+  const id = crypto.randomUUID();
   const ins = db
     .insert(contentPosts)
     .values({ id, requestKey: body.requestKey, templateId: body.templateId, inputData: parsed.data as Record<string, unknown>, status: "PENDING" })
     .onConflictDoNothing({ target: contentPosts.requestKey })
     .run();
 
+  // genId = row ที่จะ gen: ของใหม่ (เราสร้าง) หรือของเดิม (resume)
+  let genId = id;
+
   if (ins.changes === 0) {
-    // requestKey นี้สร้างไปแล้ว (retry/reload/concurrent) — คืน row เดิม ไม่ gen ซ้ำ (ไม่จ่าย Gemini ซ้ำ)
+    // requestKey นี้มี row อยู่แล้ว (retry/reload/concurrent/crash-after-insert)
     const existing = db.select().from(contentPosts).where(eq(contentPosts.requestKey, body.requestKey)).get();
     if (!existing) {
       return NextResponse.json({ ok: false, error: "conflict แต่หา row เดิมไม่เจอ" }, { status: 409 });
@@ -69,32 +72,30 @@ export async function POST(request: Request) {
       existing.templateId === body.templateId &&
       JSON.stringify(existing.inputData) === JSON.stringify(parsed.data);
     if (!samePayload) {
-      return NextResponse.json(
-        { ok: false, error: "requestKey ซ้ำแต่ payload ต่าง (key reuse ผิด)" },
-        { status: 409 },
-      );
+      return NextResponse.json({ ok: false, error: "requestKey ซ้ำแต่ payload ต่าง (key reuse ผิด)" }, { status: 409 });
     }
-    // outcome ยังไม่ definitive (อีก request กำลัง gen) → 202 in-progress.
-    // client ต้อง "เก็บ key ไว้" (ไม่ clear) → retry ถัดไปยัง idempotent ไม่จ่าย Gemini ซ้ำ [ตู๋ P1]
-    const inProgress = existing.status === "PENDING" || existing.status === "GENERATING";
-    if (inProgress) {
-      return NextResponse.json(
-        { ok: false, inProgress: true, id: existing.id, status: existing.status, idempotent: true },
-        { status: 202 },
-      );
+    // terminal (definitive) → ตอบทันที ไม่ gen ซ้ำ
+    if (["GENERATED", "APPROVED", "PUBLISHING", "POSTED"].includes(existing.status)) {
+      return NextResponse.json({ ok: true, id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true }, { status: 200 });
     }
-    // terminal แล้ว (definitive) → 200 ; ok เฉพาะที่ผ่าน gen สำเร็จ (ไม่ใช่ FAILED/CANCELED)
-    const ok = existing.status !== "FAILED" && existing.status !== "CANCELED";
-    return NextResponse.json(
-      { ok, id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true },
-      { status: 200 },
-    );
+    if (existing.status === "FAILED" || existing.status === "CANCELED") {
+      return NextResponse.json({ ok: false, id: existing.id, status: existing.status, idempotent: true }, { status: 200 });
+    }
+    // PENDING/GENERATING → resume ผ่าน generate() (atomic claim):
+    //   PENDING (เช่น process เดิม crash หลัง insert ก่อน claim) → claim ได้ → gen ต่อ (resume) [ตู๋ P1]
+    //   GENERATING (อีก request กำลังทำ) → claim ไม่ได้ → SKIPPED → 202
+    genId = existing.id;
   }
 
-  // เราเป็นคนสร้าง row นี้ → gen (sync, เรียก Gemini)
-  const res = await generate(db, id);
+  // gen (เราสร้างใหม่ หรือ resume PENDING ที่ค้าง) — generate() claim atomic ภายใน
+  const res = await generate(db, genId);
+  if (res.status === "SKIPPED") {
+    // claim ไม่ได้ = อีก request กำลัง gen (GENERATING) — ยังไม่ definitive, client เก็บ key ไว้
+    const cur = db.select().from(contentPosts).where(eq(contentPosts.id, genId)).get();
+    return NextResponse.json({ ok: false, inProgress: true, id: genId, status: cur?.status ?? "GENERATING", idempotent: true }, { status: 202 });
+  }
   return NextResponse.json(
-    { ok: res.ok, id, status: res.status, caption: res.caption, error: res.error },
+    { ok: res.ok, id: genId, status: res.status, caption: res.caption, error: res.error },
     { status: res.ok ? 200 : 502 }, // 502 = gen ล้ม (upstream Gemini) ; row จะเป็น FAILED
   );
 }
