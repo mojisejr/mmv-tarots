@@ -18,6 +18,15 @@ feature นี้ **รันบนเครื่อง local เท่าน�
   - `POST /content-creator/api/approve` — `{id, action: approve|cancel}` → `tryTransition` GENERATED→APPROVED/CANCELED (atomic, double-approve → 409)
   - `GET  /content-creator/api/media/[name]` — serve ภาพจาก `CONTENT_MEDIA_DIR` ; **path-safe** (`basename` + assert ใต้ media root + บังคับ `.png` — กัน traversal เหมือน S2 P2)
 
+## ➕ Seeding UI (S3.5a) — ทางเข้า
+
+หน้า `/content-creator/new` (client) → สร้าง content เอง (แทน dev script) → pipeline ครบ input→approve ผ่าน UI
+- กรอก template + input (finance-daily: card + meaning) → **สร้าง + Generate (sync, ~10s)** → เด้งกลับคิว approve
+- API:
+  - `GET  /content-creator/api/templates` — list template (dropdown)
+  - `POST /content-creator/api/preview` — build prompt ที่จะส่ง Gemini **โดยไม่ gen** (ฟรี — ดูก่อนกด)
+  - `POST /content-creator/api/create` — `{templateId, inputData}` → validate → insert PENDING → `generate()` **sync** → GENERATED (gen ล้ม → 502 + row FAILED)
+
 ## ▶️ วิธีรัน (runnable target)
 
 ```bash
