@@ -74,7 +74,21 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    return NextResponse.json({ ok: existing.status !== "FAILED", id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true });
+    // outcome ยังไม่ definitive (อีก request กำลัง gen) → 202 in-progress.
+    // client ต้อง "เก็บ key ไว้" (ไม่ clear) → retry ถัดไปยัง idempotent ไม่จ่าย Gemini ซ้ำ [ตู๋ P1]
+    const inProgress = existing.status === "PENDING" || existing.status === "GENERATING";
+    if (inProgress) {
+      return NextResponse.json(
+        { ok: false, inProgress: true, id: existing.id, status: existing.status, idempotent: true },
+        { status: 202 },
+      );
+    }
+    // terminal แล้ว (definitive) → 200 ; ok เฉพาะที่ผ่าน gen สำเร็จ (ไม่ใช่ FAILED/CANCELED)
+    const ok = existing.status !== "FAILED" && existing.status !== "CANCELED";
+    return NextResponse.json(
+      { ok, id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true },
+      { status: 200 },
+    );
   }
 
   // เราเป็นคนสร้าง row นี้ → gen (sync, เรียก Gemini)

@@ -28,14 +28,15 @@ export default function NewContentPage() {
 
   // โหลด template list + restore pending draft (เผื่อ reload ระหว่าง in-flight → คงค่า+ใช้ key เดิม) [ตู๋ P1]
   useEffect(() => {
+    const pending = readPending();
     fetch("/content-creator/api/templates", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { templates: [] }))
       .then((d) => {
         setTemplates(d.templates ?? []);
-        if (d.templates?.[0]) setTemplateId(d.templates[0].id);
+        // อย่า overwrite templateId ที่ restore จาก pending (กัน async fetch ทับ draft) [ตู๋ P2]
+        if (!pending && d.templates?.[0]) setTemplateId(d.templates[0].id);
       })
       .catch(() => {});
-    const pending = readPending();
     if (pending) {
       setTemplateId(pending.payload.templateId);
       setCard(pending.payload.card);
@@ -85,11 +86,16 @@ export default function NewContentPage() {
         body: JSON.stringify({ requestKey: pending.requestKey, templateId, inputData }),
       });
       const d = await res.json().catch(() => ({}));
+      // 202 = ยังไม่ terminal (request อื่นกำลัง gen) → เก็บ key ไว้ (ไม่ clear) → retry idempotent [ตู๋ P1]
+      if (res.status === 202 || d.inProgress) {
+        setError("คำขอนี้กำลังประมวลผลอยู่ — รอสักครู่แล้วรีเฟรชคิว/กดใหม่ได้ (ระบบจะไม่สร้าง/จ่ายซ้ำ)");
+        setSubmitting(false);
+        return;
+      }
+      clearPending(); // terminal (สำเร็จ/ล้ม definitive) → submit ครั้งหน้า = attempt ใหม่
       if (!res.ok || !d.ok) throw new Error(d.error ?? `สร้างไม่สำเร็จ (${res.status})`);
-      clearPending(); // สำเร็จแล้ว → submit ครั้งหน้า = attempt ใหม่
       router.push("/content-creator"); // เด้งกลับคิว approve — เห็นโพสต์ใหม่ (GENERATED)
     } catch (e) {
-      // ไม่ clear pending → reload/retry ใช้ key เดิม ไม่จ่าย Gemini ซ้ำ
       setError(e instanceof Error ? e.message : "สร้างล้ม");
       setSubmitting(false);
     }

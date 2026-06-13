@@ -160,4 +160,43 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
     );
     expect(res.status).toBe(409);
   });
+
+  // [P1] lifecycle: duplicate ตอนยัง in-progress → 202 (ไม่ใช่ 200 ok), key valid จน terminal
+  it("duplicate ตอน A กำลัง gen → B ได้ 202 in-progress ; หลัง terminal → 200 GENERATED (1 row, gen ครั้งเดียว)", async () => {
+    mockGenCaption.mockClear();
+    const key = "lifecycle";
+    // A: ค้างที่ genCaption (deferred) — row จะอยู่ GENERATING
+    let releaseA!: () => void;
+    let aAtGen!: () => void;
+    const aReached = new Promise<void>((r) => (aAtGen = r));
+    mockGenCaption.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          aAtGen();
+          releaseA = () => resolve("ปังมากแม่");
+        }),
+    );
+    const aPromise = createPOST(req({ requestKey: key, ...GOOD })); // A: PENDING→GENERATING, ค้าง
+    await aReached;
+
+    // B: duplicate ตอน A ยัง GENERATING → ต้อง 202 (ไม่ใช่ 200 ok:true)
+    const bRes = await createPOST(req({ requestKey: key, ...GOOD }));
+    expect(bRes.status).toBe(202);
+    const bJson = await bRes.json();
+    expect(bJson.inProgress).toBe(true);
+    expect(bJson.ok).toBe(false); // ยังไม่ definitive
+
+    releaseA(); // A gen เสร็จ
+    expect((await aPromise).status).toBe(200);
+
+    // C: หลัง terminal → 200 ok GENERATED (definitive idempotent)
+    const cRes = await createPOST(req({ requestKey: key, ...GOOD }));
+    expect(cRes.status).toBe(200);
+    const cJson = await cRes.json();
+    expect(cJson.ok).toBe(true);
+    expect(cJson.status).toBe("GENERATED");
+
+    expect(getContentDb().select().from(contentPosts).where(eq(contentPosts.requestKey, key)).all()).toHaveLength(1);
+    expect(mockGenCaption).toHaveBeenCalledTimes(1); // gen ครั้งเดียวตลอด lifecycle
+  });
 });
