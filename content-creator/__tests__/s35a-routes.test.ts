@@ -220,4 +220,22 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
     expect(rows[0].id).toBe(id);
     expect(rows[0].status).toBe("GENERATED");
   });
+
+  // [P1] lost-response: gen ล้ม (502) แล้ว response แรกหาย → retry key เดิม → 200 definitive FAILED
+  // (ไม่ใช่ 502 ซ้ำ) → client ต้อง clear ได้ (definitive:true) ไม่ค้าง stuck
+  it("duplicate row FAILED → 200 definitive:true (ไม่ stuck), client clear ได้", async () => {
+    mockGenImage.mockRejectedValueOnce(new Error("gemini down"));
+    const key = "lost-fail";
+    const first = await createPOST(req({ requestKey: key, ...GOOD }));
+    expect(first.status).toBe(502); // ครั้งแรก gen ล้ม
+    expect((await first.json()).definitive).toBe(true);
+
+    // retry key เดิม (จำลอง response แรกหาย) → duplicate FAILED → 200 definitive (ไม่ 502 ซ้ำ, ไม่ค้าง 202)
+    const retry = await createPOST(req({ requestKey: key, ...GOOD }));
+    expect(retry.status).toBe(200);
+    const d = await retry.json();
+    expect(d.definitive).toBe(true);
+    expect(d.ok).toBe(false);
+    expect(d.status).toBe("FAILED");
+  });
 });

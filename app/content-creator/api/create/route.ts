@@ -74,12 +74,12 @@ export async function POST(request: Request) {
     if (!samePayload) {
       return NextResponse.json({ ok: false, error: "requestKey ซ้ำแต่ payload ต่าง (key reuse ผิด)" }, { status: 409 });
     }
-    // terminal (definitive) → ตอบทันที ไม่ gen ซ้ำ
+    // terminal (definitive) → ตอบทันที ไม่ gen ซ้ำ. definitive:true → client clear key ได้ทุกกรณี [ตู๋ P1]
     if (["GENERATED", "APPROVED", "PUBLISHING", "POSTED"].includes(existing.status)) {
-      return NextResponse.json({ ok: true, id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true }, { status: 200 });
+      return NextResponse.json({ ok: true, definitive: true, id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true }, { status: 200 });
     }
     if (existing.status === "FAILED" || existing.status === "CANCELED") {
-      return NextResponse.json({ ok: false, id: existing.id, status: existing.status, idempotent: true }, { status: 200 });
+      return NextResponse.json({ ok: false, definitive: true, id: existing.id, status: existing.status, idempotent: true }, { status: 200 });
     }
     // PENDING/GENERATING → resume ผ่าน generate() (atomic claim):
     //   PENDING (เช่น process เดิม crash หลัง insert ก่อน claim) → claim ได้ → gen ต่อ (resume) [ตู๋ P1]
@@ -92,10 +92,11 @@ export async function POST(request: Request) {
   if (res.status === "SKIPPED") {
     // claim ไม่ได้ = อีก request กำลัง gen (GENERATING) — ยังไม่ definitive, client เก็บ key ไว้
     const cur = db.select().from(contentPosts).where(eq(contentPosts.id, genId)).get();
-    return NextResponse.json({ ok: false, inProgress: true, id: genId, status: cur?.status ?? "GENERATING", idempotent: true }, { status: 202 });
+    return NextResponse.json({ ok: false, definitive: false, inProgress: true, id: genId, status: cur?.status ?? "GENERATING", idempotent: true }, { status: 202 });
   }
+  // GENERATED / FAILED = definitive (ผ่าน gen แล้ว) → client clear key
   return NextResponse.json(
-    { ok: res.ok, id: genId, status: res.status, caption: res.caption, error: res.error },
+    { ok: res.ok, definitive: true, id: genId, status: res.status, caption: res.caption, error: res.error },
     { status: res.ok ? 200 : 502 }, // 502 = gen ล้ม (upstream Gemini) ; row จะเป็น FAILED
   );
 }

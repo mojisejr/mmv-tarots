@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PreviewGuard } from "@/content-creator/lib/preview-guard";
 import { readPending, writePending, clearPending, resolveRequestKey } from "@/content-creator/lib/request-draft";
+import { classifyCreateResponse, shouldClearPending } from "@/content-creator/lib/create-outcome";
 
 type TemplateOpt = { id: string; name: string };
 
@@ -86,28 +87,22 @@ export default function NewContentPage() {
         body: JSON.stringify({ requestKey: pending.requestKey, templateId, inputData }),
       });
       const d = await res.json().catch(() => ({}));
+      // server บอก definitive ตรง ๆ → client ไม่ต้องเดาจาก HTTP-code combo [ตู๋ P1]
+      const outcome = classifyCreateResponse(res.status, d);
+      if (shouldClearPending(outcome)) clearPending(); // terminal definitive (สำเร็จ/ล้มจริง) → submit หน้าถัดไป = attempt ใหม่
 
-      // 202 = ยังไม่ terminal (request อื่นกำลัง gen) → เก็บ key ไว้ → retry idempotent [ตู๋ P1]
-      if (res.status === 202 || d.inProgress) {
-        setError("คำขอนี้กำลังประมวลผลอยู่ — รอสักครู่แล้วรีเฟรชคิว/กดใหม่ได้ (ระบบจะไม่สร้าง/จ่ายซ้ำ)");
-        setSubmitting(false);
+      if (outcome === "success") {
+        router.push("/content-creator"); // เด้งกลับคิว approve — เห็นโพสต์ใหม่ (GENERATED)
         return;
       }
-      // สำเร็จ definitive → clear + เด้งกลับคิว
-      if (res.status === 200 && d.ok && d.status === "GENERATED") {
-        clearPending();
-        router.push("/content-creator");
-        return;
-      }
-      // ล้ม definitive (gen FAILED) → clear → retry = attempt ใหม่
-      if (res.status === 502 && d.status === "FAILED") {
-        clearPending();
+      if (outcome === "failed") {
         setError("gen ไม่สำเร็จ (Gemini) — ลองสร้างใหม่ได้");
-        setSubmitting(false);
-        return;
+      } else if (outcome === "in-progress") {
+        setError("คำขอนี้กำลังประมวลผลอยู่ — รอสักครู่แล้วรีเฟรชคิว/กดใหม่ได้ (ระบบจะไม่สร้าง/จ่ายซ้ำ)");
+      } else {
+        // unknown (400/409/500/ผลไม่ชัด) → ไม่ clear (เก็บ key ปลอดภัยกว่า, retry idempotent)
+        setError(d.error ?? `ไม่สำเร็จ (${res.status}) — ลองใหม่ได้ ระบบจะไม่จ่ายซ้ำ`);
       }
-      // อื่น ๆ (500/409/network/ผลไม่ชัด) → ไม่ clear (ไม่รู้ผลแน่ → เก็บ key ปลอดภัยกว่า, retry idempotent) [ตู๋ P1]
-      setError(d.error ?? `ไม่สำเร็จ (${res.status}) — ลองใหม่ได้ ระบบจะไม่จ่ายซ้ำ`);
       setSubmitting(false);
     } catch {
       // network/parse error — ไม่รู้ว่า server ทำสำเร็จไหม → เก็บ key ไว้ (ไม่ clear) retry idempotent
