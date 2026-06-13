@@ -8,6 +8,15 @@ feature นี้ **รันบนเครื่อง local เท่าน�
 - DB เป็น **file SQLite** (better-sqlite3) — Vercel serverless fs เป็น ephemeral/แยก instance → data หาย
 - `createContentDb()` จะ **throw บน Vercel** (`process.env.VERCEL`) โดยตั้งใจ — กัน data loss
 - route `/content-creator` ปิดบน production ด้วย env guard `CONTENT_CREATOR_ENABLED` (middleware → 404)
+- gate = **fail-closed** (`content-creator/lib/enabled.ts`): ปิดเป็น default, เปิดเฉพาะ `CONTENT_CREATOR_ENABLED=true` บน local, **ปิดเสมอบน Vercel** แม้เผลอ set env. middleware + ทุก route handler เช็คซ้ำ (defense-in-depth)
+
+## 🖥️ Approve UI (S3)
+
+- หน้า `/content-creator` (client) → list โพสต์, โพสต์ `GENERATED` มีปุ่ม **Approve/Cancel**
+- API (อยู่ใต้ `/content-creator/api/*` → middleware guard ครอบ):
+  - `GET  /content-creator/api/posts` — list 50 ล่าสุด (imagePath → media URL, ไม่ leak fs path)
+  - `POST /content-creator/api/approve` — `{id, action: approve|cancel}` → `tryTransition` GENERATED→APPROVED/CANCELED (atomic, double-approve → 409)
+  - `GET  /content-creator/api/media/[name]` — serve ภาพจาก `CONTENT_MEDIA_DIR` ; **path-safe** (`basename` + assert ใต้ media root + บังคับ `.png` — กัน traversal เหมือน S2 P2)
 
 ## ▶️ วิธีรัน (runnable target)
 

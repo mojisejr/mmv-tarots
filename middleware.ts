@@ -1,9 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSessionCookie } from 'better-auth/cookies';
+import { isContentCreatorEnabled } from '@/content-creator/lib/enabled';
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // 0. content-creator gate — admin tool รัน local เท่านั้น. ปิด = 404 จริง (ดูเหมือนไม่มี route)
+  //    ครอบทั้ง page /content-creator และ api /content-creator/api/* (อยู่ใต้ prefix เดียว)
+  if (pathname === '/content-creator' || pathname.startsWith('/content-creator/')) {
+    if (!isContentCreatorEnabled()) {
+      return new NextResponse(null, { status: 404 });
+    }
+  }
 
   const response = NextResponse.next();
 
