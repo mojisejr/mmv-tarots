@@ -59,10 +59,20 @@ export async function POST(request: Request) {
     .run();
 
   if (ins.changes === 0) {
-    // requestKey นี้สร้างไปแล้ว (retry/concurrent) — คืน row เดิม ไม่ gen ซ้ำ (ไม่จ่าย Gemini ซ้ำ)
+    // requestKey นี้สร้างไปแล้ว (retry/reload/concurrent) — คืน row เดิม ไม่ gen ซ้ำ (ไม่จ่าย Gemini ซ้ำ)
     const existing = db.select().from(contentPosts).where(eq(contentPosts.requestKey, body.requestKey)).get();
     if (!existing) {
       return NextResponse.json({ ok: false, error: "conflict แต่หา row เดิมไม่เจอ" }, { status: 409 });
+    }
+    // same key ต้อง same payload — ถ้าต่าง = key ชน/reuse ผิด → 409 (ไม่คืน row ที่ payload ไม่ตรง) [ตู๋ P1]
+    const samePayload =
+      existing.templateId === body.templateId &&
+      JSON.stringify(existing.inputData) === JSON.stringify(parsed.data);
+    if (!samePayload) {
+      return NextResponse.json(
+        { ok: false, error: "requestKey ซ้ำแต่ payload ต่าง (key reuse ผิด)" },
+        { status: 409 },
+      );
     }
     return NextResponse.json({ ok: existing.status !== "FAILED", id: existing.id, status: existing.status, caption: existing.caption ?? undefined, idempotent: true });
   }

@@ -149,4 +149,15 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
     expect(mockGenCaption).toHaveBeenCalledTimes(1);
     expect(getContentDb().select().from(contentPosts).where(eq(contentPosts.requestKey, key)).all()).toHaveLength(1);
   });
+
+  // [P1] same key ต่าง payload → 409 (กัน key reuse/collision คืน row ผิด)
+  it("requestKey เดิม + payload ต่าง → 409 (ไม่คืน row ที่ payload ไม่ตรง)", async () => {
+    const key = "idem-diff";
+    const first = await createPOST(req({ requestKey: key, ...GOOD }));
+    expect(first.status).toBe(200);
+    const res = await createPOST(
+      req({ requestKey: key, templateId: "finance-daily", inputData: { card: "DIFFERENT", meaning: "X" } }),
+    );
+    expect(res.status).toBe(409);
+  });
 });

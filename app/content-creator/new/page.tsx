@@ -9,6 +9,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PreviewGuard } from "@/content-creator/lib/preview-guard";
+import { readPending, writePending, clearPending, resolveRequestKey } from "@/content-creator/lib/request-draft";
 
 type TemplateOpt = { id: string; name: string };
 
@@ -21,11 +23,10 @@ export default function NewContentPage() {
   const [preview, setPreview] = useState<{ caption: string; image: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // idempotency key ต่อ "การกรอกฟอร์ม 1 ครั้ง" — retry/double-click ส่ง key เดิม → server ไม่ gen ซ้ำ [ตู๋ P1]
-  const [requestKey] = useState(() => crypto.randomUUID());
-  // fingerprint ของ preview request ล่าสุด — กัน response เก่ากลับมาทีหลังทับของใหม่ [ตู๋ P2b]
-  const latestPreviewFp = useRef("");
+  // guard preview stale/out-of-order [ตู๋ P2] — sequence, invalidate ตอน input เปลี่ยน
+  const previewGuard = useRef(new PreviewGuard());
 
+  // โหลด template list + restore pending draft (เผื่อ reload ระหว่าง in-flight → คงค่า+ใช้ key เดิม) [ตู๋ P1]
   useEffect(() => {
     fetch("/content-creator/api/templates", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { templates: [] }))
@@ -34,20 +35,26 @@ export default function NewContentPage() {
         if (d.templates?.[0]) setTemplateId(d.templates[0].id);
       })
       .catch(() => {});
+    const pending = readPending();
+    if (pending) {
+      setTemplateId(pending.payload.templateId);
+      setCard(pending.payload.card);
+      setMeaning(pending.payload.meaning);
+    }
   }, []);
 
   const inputData = { card, meaning };
   const ready = card.trim() && meaning.trim();
 
-  // preview ที่ค้างจะ stale ทันทีที่ input เปลี่ยน → เคลียร์ (กันแสดง prompt ไม่ตรงกับที่จะ gen) [ตู๋ P2b]
+  // input เปลี่ยน → preview เดิม stale: เคลียร์ + invalidate guard (สำคัญ: ไม่งั้น A กลับมาก่อนกด preview ใหม่จะผ่าน) [ตู๋ P2]
   useEffect(() => {
     setPreview(null);
+    previewGuard.current.invalidate();
   }, [templateId, card, meaning]);
 
   const doPreview = useCallback(async () => {
     setError(null);
-    const fp = JSON.stringify({ templateId, card, meaning });
-    latestPreviewFp.current = fp;
+    const token = previewGuard.current.begin();
     try {
       const res = await fetch("/content-creator/api/preview", {
         method: "POST",
@@ -55,12 +62,11 @@ export default function NewContentPage() {
         body: JSON.stringify({ templateId, inputData }),
       });
       const d = await res.json();
-      // response เก่ากลับมาทีหลัง / input เปลี่ยนไปแล้ว → ทิ้ง (กัน out-of-order แสดง prompt ผิด) [ตู๋ P2b]
-      if (latestPreviewFp.current !== fp) return;
+      if (!previewGuard.current.accepts(token)) return; // มีอะไรใหม่กว่า (input เปลี่ยน/preview ใหม่) → ทิ้ง
       if (!res.ok) throw new Error(d.error ?? "preview ไม่สำเร็จ");
       setPreview({ caption: `${d.captionPrompt.system}\n---\n${d.captionPrompt.prompt}`, image: d.imagePrompt });
     } catch (e) {
-      if (latestPreviewFp.current !== fp) return;
+      if (!previewGuard.current.accepts(token)) return;
       setError(e instanceof Error ? e.message : "preview ล้ม");
     }
   }, [templateId, card, meaning]);
@@ -68,16 +74,22 @@ export default function NewContentPage() {
   const submit = useCallback(async () => {
     setSubmitting(true);
     setError(null);
+    // idempotency key ที่ persist ข้าม reload: payload เดิม→key เดิม (retry idempotent), เปลี่ยน→key ใหม่ [ตู๋ P1]
+    const payload = { templateId, card, meaning };
+    const pending = resolveRequestKey(readPending(), payload, crypto.randomUUID());
+    writePending(pending);
     try {
       const res = await fetch("/content-creator/api/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestKey, templateId, inputData }),
+        body: JSON.stringify({ requestKey: pending.requestKey, templateId, inputData }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok || !d.ok) throw new Error(d.error ?? `สร้างไม่สำเร็จ (${res.status})`);
+      clearPending(); // สำเร็จแล้ว → submit ครั้งหน้า = attempt ใหม่
       router.push("/content-creator"); // เด้งกลับคิว approve — เห็นโพสต์ใหม่ (GENERATED)
     } catch (e) {
+      // ไม่ clear pending → reload/retry ใช้ key เดิม ไม่จ่าย Gemini ซ้ำ
       setError(e instanceof Error ? e.message : "สร้างล้ม");
       setSubmitting(false);
     }
