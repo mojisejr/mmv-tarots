@@ -7,7 +7,7 @@
  * NOTE: ตอนนี้มี template เดียว (finance-daily) → form fields hardcode card+meaning.
  *       เมื่อมี template หลายแบบ ค่อยทำ field-render แบบ data-driven จาก schema
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type TemplateOpt = { id: string; name: string };
@@ -21,6 +21,10 @@ export default function NewContentPage() {
   const [preview, setPreview] = useState<{ caption: string; image: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // idempotency key ต่อ "การกรอกฟอร์ม 1 ครั้ง" — retry/double-click ส่ง key เดิม → server ไม่ gen ซ้ำ [ตู๋ P1]
+  const [requestKey] = useState(() => crypto.randomUUID());
+  // fingerprint ของ preview request ล่าสุด — กัน response เก่ากลับมาทีหลังทับของใหม่ [ตู๋ P2b]
+  const latestPreviewFp = useRef("");
 
   useEffect(() => {
     fetch("/content-creator/api/templates", { cache: "no-store" })
@@ -35,8 +39,15 @@ export default function NewContentPage() {
   const inputData = { card, meaning };
   const ready = card.trim() && meaning.trim();
 
+  // preview ที่ค้างจะ stale ทันทีที่ input เปลี่ยน → เคลียร์ (กันแสดง prompt ไม่ตรงกับที่จะ gen) [ตู๋ P2b]
+  useEffect(() => {
+    setPreview(null);
+  }, [templateId, card, meaning]);
+
   const doPreview = useCallback(async () => {
     setError(null);
+    const fp = JSON.stringify({ templateId, card, meaning });
+    latestPreviewFp.current = fp;
     try {
       const res = await fetch("/content-creator/api/preview", {
         method: "POST",
@@ -44,9 +55,12 @@ export default function NewContentPage() {
         body: JSON.stringify({ templateId, inputData }),
       });
       const d = await res.json();
+      // response เก่ากลับมาทีหลัง / input เปลี่ยนไปแล้ว → ทิ้ง (กัน out-of-order แสดง prompt ผิด) [ตู๋ P2b]
+      if (latestPreviewFp.current !== fp) return;
       if (!res.ok) throw new Error(d.error ?? "preview ไม่สำเร็จ");
       setPreview({ caption: `${d.captionPrompt.system}\n---\n${d.captionPrompt.prompt}`, image: d.imagePrompt });
     } catch (e) {
+      if (latestPreviewFp.current !== fp) return;
       setError(e instanceof Error ? e.message : "preview ล้ม");
     }
   }, [templateId, card, meaning]);
@@ -58,7 +72,7 @@ export default function NewContentPage() {
       const res = await fetch("/content-creator/api/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId, inputData }),
+        body: JSON.stringify({ requestKey, templateId, inputData }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok || !d.ok) throw new Error(d.error ?? `สร้างไม่สำเร็จ (${res.status})`);

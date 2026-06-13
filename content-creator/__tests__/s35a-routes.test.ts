@@ -28,6 +28,9 @@ const disable = () => delete process.env.CONTENT_CREATOR_ENABLED;
 const req = (body: unknown) =>
   new Request("http://t", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const GOOD = { templateId: "finance-daily", inputData: { card: "The Sun", meaning: "การเงินสดใส" } };
+// create ต้องมี requestKey (idempotency) — fresh ต่อ call เว้นแต่ทดสอบ idempotent
+let keySeq = 0;
+const createBody = (over: Record<string, unknown> = {}) => ({ requestKey: `k-${++keySeq}`, ...GOOD, ...over });
 
 beforeEach(() => {
   enable();
@@ -72,7 +75,7 @@ describe("[S3.5a] preview route — build prompt ไม่ gen (ไม่แต�
 
 describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
   it("valid → 200 ok + DB row GENERATED", async () => {
-    const res = await createPOST(req(GOOD));
+    const res = await createPOST(req(createBody()));
     expect(res.status).toBe(200);
     const d = await res.json();
     expect(d.ok).toBe(true);
@@ -85,7 +88,7 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
 
   it("Gemini ล้ม → 502 + row FAILED (ไม่ค้าง PENDING/GENERATING)", async () => {
     mockGenImage.mockRejectedValueOnce(new Error("gemini down"));
-    const res = await createPOST(req(GOOD));
+    const res = await createPOST(req(createBody()));
     expect(res.status).toBe(502);
     const d = await res.json();
     expect(d.ok).toBe(false);
@@ -94,17 +97,56 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
 
   it("input ผิด schema → 400 (ไม่ insert row ขยะ)", async () => {
     const before = getContentDb().select().from(contentPosts).all().length;
-    expect((await createPOST(req({ templateId: "finance-daily", inputData: { card: "x" } }))).status).toBe(400);
+    expect((await createPOST(req(createBody({ inputData: { card: "x" } }))).then((r) => r.status))).toBe(400);
     expect(getContentDb().select().from(contentPosts).all().length).toBe(before); // ไม่มี row เพิ่ม
   });
 
   it("unknown template → 400", async () => {
-    expect((await createPOST(req({ templateId: "nope", inputData: {} }))).status).toBe(400);
+    expect((await createPOST(req(createBody({ templateId: "nope", inputData: {} })))).status).toBe(400);
+  });
+
+  it("ขาด requestKey → 400 (idempotency key บังคับ)", async () => {
+    expect((await createPOST(req(GOOD))).status).toBe(400); // GOOD ไม่มี requestKey
   });
 
   it("disabled → 404 (ไม่แตะ DB/Gemini)", async () => {
     disable();
-    expect((await createPOST(req(GOOD))).status).toBe(404);
+    expect((await createPOST(req(createBody()))).status).toBe(404);
     expect(mockGenCaption).not.toHaveBeenCalled();
+  });
+
+  // [P2a] ใช้ parsed.data (canonical) ไม่ใช่ raw → field แปลกปลอมถูก strip ไม่เข้า DB
+  it("strip field แปลกปลอม (canonical parsed.data ไม่ใช่ raw body)", async () => {
+    const res = await createPOST(req(createBody({ inputData: { card: "X", meaning: "Y", junk: "hax", evil: 1 } })));
+    expect(res.status).toBe(200);
+    const d = await res.json();
+    const row = getContentDb().select().from(contentPosts).where(eq(contentPosts.id, d.id)).get();
+    expect(row!.inputData).toEqual({ card: "X", meaning: "Y" }); // junk/evil ถูก strip
+  });
+
+  // [P1] idempotency — concurrent/retry ด้วย requestKey เดียว → 1 row + ยิง Gemini ครั้งเดียว (ไม่จ่ายซ้ำ)
+  it("requestKey เดียว ยิงพร้อมกัน 2 ครั้ง → 1 row, gen ครั้งเดียว", async () => {
+    mockGenCaption.mockClear();
+    const key = "idem-concurrent";
+    const [r1, r2] = await Promise.all([
+      createPOST(req({ requestKey: key, ...GOOD })),
+      createPOST(req({ requestKey: key, ...GOOD })),
+    ]);
+    const j1 = await r1.json();
+    const j2 = await r2.json();
+    expect(j1.id).toBe(j2.id); // row เดียวกัน
+    const rows = getContentDb().select().from(contentPosts).where(eq(contentPosts.requestKey, key)).all();
+    expect(rows).toHaveLength(1); // 1 row เท่านั้น
+    expect(mockGenCaption).toHaveBeenCalledTimes(1); // Gemini ยิงครั้งเดียว — ไม่จ่ายซ้ำ
+    expect([j1.idempotent, j2.idempotent]).toContain(true); // อันที่สองรู้ว่าเป็น idempotent hit
+  });
+
+  it("retry ด้วย requestKey เดิม (sequential) → ไม่ gen ซ้ำ", async () => {
+    mockGenCaption.mockClear();
+    const key = "idem-retry";
+    await createPOST(req({ requestKey: key, ...GOOD }));
+    await createPOST(req({ requestKey: key, ...GOOD })); // retry
+    expect(mockGenCaption).toHaveBeenCalledTimes(1);
+    expect(getContentDb().select().from(contentPosts).where(eq(contentPosts.requestKey, key)).all()).toHaveLength(1);
   });
 });

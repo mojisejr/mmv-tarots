@@ -37,9 +37,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "input ไม่ตรง schema ของ template" }, { status: 400 });
   }
 
+  // ใช้ parsed.data (canonical — strip/defaults/transforms) ให้ preview ตรงกับที่ create จะ gen [ตู๋ P2]
   return NextResponse.json({
     ok: true,
-    captionPrompt: template.buildCaptionPrompt(body.inputData),
-    imagePrompt: template.buildImagePrompt(body.inputData),
+    captionPrompt: template.buildCaptionPrompt(parsed.data),
+    imagePrompt: template.buildImagePrompt(parsed.data),
   });
 }
