@@ -39,6 +39,7 @@ PENDING ─claim→ GENERATING ─gen สำเร็จ→ GENERATED ─approve
 
 **GENERATING = claim lease (S2)**: worker ต้อง `claimForGenerate()` (PENDING→GENERATING atomic) ก่อนเรียก Gemini — กัน concurrent gen ซ้ำ/เปลือง cost
 - claim คืน **ownership token** (`generationToken`) — `markGenerated()`/`releaseGenerate()` ต้องส่ง token คืน, conditional update ทำงานเฉพาะ token ตรง → stale worker (ที่โดน reclaim) ทับ attempt ใหม่ไม่ได้ (คืน `SUPERSEDED`)
+- ไฟล์ภาพเขียนลง path **ผูกกับ token** (`<id>-<token>.png`, 1 attempt = 1 ไฟล์ immutable) → stale worker overwrite ไฟล์ของ attempt ที่ชนะไม่ได้ ; เก็บ `imagePath` ใน DB เฉพาะตอน `markGenerated` สำเร็จ, ถ้า `SUPERSEDED`/ล้ม → ลบ artifact ของตัวเองทิ้ง
 - `generatingAt` บันทึกเวลา claim ไว้สำหรับ **expiry-based reclaim** ในอนาคต
 - **ข้อจำกัดปัจจุบัน**: ยัง**ไม่มี** auto-reclaim ของ GENERATING ที่ค้าง — ถอด transition `GENERATING→PENDING` ออกแล้ว (reclaim ที่ปลอดภัยต้องเช็ค expiry + ออก token ใหม่ก่อน ซึ่งยังไม่ทำ). gen ล้มไปทาง `FAILED` แล้ว retry ผ่าน `FAILED→PENDING`. row ที่ค้าง GENERATING (เช่น process ตายกลางคัน) ต้อง reconcile มือ — ดู [ตู๋ P1] / S4 reconciliation
 

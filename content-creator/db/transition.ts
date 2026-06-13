@@ -71,7 +71,7 @@ export function claimForGenerate(db: ContentDb, id: string): string | null {
 export function markGenerated(db: ContentDb, id: string, token: string, caption: string, imagePath: string): boolean {
   const res = db
     .update(contentPosts)
-    .set({ status: "GENERATED", caption, imagePath, generationToken: null, updatedAt: new Date() })
+    .set({ status: "GENERATED", caption, imagePath, generationToken: null, generatingAt: null, updatedAt: new Date() })
     .where(and(eq(contentPosts.id, id), eq(contentPosts.status, "GENERATING"), eq(contentPosts.generationToken, token)))
     .run();
   return res.changes === 1;
@@ -84,7 +84,7 @@ export function markGenerated(db: ContentDb, id: string, token: string, caption:
 export function releaseGenerate(db: ContentDb, id: string, token: string): boolean {
   const res = db
     .update(contentPosts)
-    .set({ status: "FAILED", generationToken: null, updatedAt: new Date() })
+    .set({ status: "FAILED", generationToken: null, generatingAt: null, updatedAt: new Date() })
     .where(and(eq(contentPosts.id, id), eq(contentPosts.status, "GENERATING"), eq(contentPosts.generationToken, token)))
     .run();
   return res.changes === 1;

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve, sep } from "node:path";
+import { join, resolve, sep, basename } from "node:path";
 import { eq } from "drizzle-orm";
 
 // mock gemini lib (ไม่ยิง API จริง — live พิสูจน์แล้ว POC #1)
@@ -80,28 +80,48 @@ describe("generate engine [S2]", () => {
     expect(db.select().from(contentPosts).where(eq(contentPosts.id, "d")).get()!.status).toBe("FAILED");
   });
 
-  // [P1] ownership token — stale worker ที่โดน reclaim ระหว่าง gen ห้ามทับ attempt ใหม่
-  it("race: A claim+ค้าง → reclaim ให้ B → A เสร็จต้องไม่ทับ B (SUPERSEDED)", async () => {
-    const { db } = setup();
+  // [P1] ownership token + filesystem fence — stale worker ห้ามทับไฟล์ของ attempt ที่ชนะ
+  // ลำดับที่ ตู๋ ขอ: A ค้าง → reclaim → B complete (bytes รู้ค่า) → A complete ทีหลัง → B ต้องไม่เปลี่ยน, A ถูกลบ
+  it("race: B complete ก่อน, A complete ทีหลัง → B's file/path คงเดิม + A's stale artifact ถูกลบ", async () => {
+    const { db, dir } = setup();
+    const mediaDir = join(dir, "media");
     insertPending(db, "race", { card: "The Star", meaning: "ความหวัง" });
-    // genImage ของ A ค้างไว้ (deterministic deferred) — A claim ได้ token แล้วแต่ยัง gen ไม่เสร็จ
+
+    // A claim ก่อน แล้วค้างที่ genImage (deterministic deferred)
     let releaseA!: (b: Uint8Array) => void;
-    let signalGenImageCalled!: () => void;
-    const genImageCalled = new Promise<void>((r) => { signalGenImageCalled = r; });
+    let signalAAtGenImage!: () => void;
+    const aAtGenImage = new Promise<void>((r) => { signalAAtGenImage = r; });
     mockGenImage.mockImplementationOnce(() => {
-      signalGenImageCalled(); // บอก test ว่า A ผ่าน claim+caption มาถึง genImage แล้ว
+      signalAAtGenImage(); // A ผ่าน claim(tokenA)+caption มาถึง genImage แล้ว
       return new Promise<Uint8Array>((r) => { releaseA = r; });
     });
-    const aPromise = generate(db, "race"); // A: PENDING→GENERATING (tokenA), await genImage
-    await genImageCalled; // แน่ใจว่า A claim เสร็จและค้างที่ genImage (deterministic)
-    // จำลอง reclaim: B เข้ามาแทน (token ใหม่ ยังเป็น GENERATING) — เช่น reconciliation/worker ใหม่
-    db.update(contentPosts).set({ generationToken: "tokenB" }).where(eq(contentPosts.id, "race")).run();
-    releaseA(new Uint8Array([9, 9, 9])); // A gen เสร็จ → markGenerated(tokenA) ต้อง false
+    const aPromise = generate(db, "race"); // A: PENDING→GENERATING(tokenA), ค้างที่ genImage
+    await aAtGenImage;
+
+    // จำลอง reclaim หลัง expiry: reset เป็น PENDING ให้ B claim token ใหม่ได้
+    db.update(contentPosts).set({ status: "PENDING", generationToken: null, generatingAt: null }).where(eq(contentPosts.id, "race")).run();
+
+    // B run เต็ม → GENERATED ด้วย bytes ที่รู้ค่า
+    const bBytes = new Uint8Array([66, 66, 66]);
+    mockGenImage.mockResolvedValueOnce(bBytes);
+    const bRes = await generate(db, "race");
+    expect(bRes.status).toBe("GENERATED");
+    const bPath = bRes.imagePath!;
+    const bRow = db.select().from(contentPosts).where(eq(contentPosts.id, "race")).get()!;
+    expect(bRow.status).toBe("GENERATED");
+    expect(bRow.imagePath).toBe(bPath);
+    expect(Array.from(readFileSync(bPath))).toEqual([66, 66, 66]);
+
+    // A กลับมาทีหลัง พยายาม complete ด้วย stale bytes
+    releaseA(new Uint8Array([1, 1, 1]));
     const aRes = await aPromise;
-    expect(aRes.status).toBe("SUPERSEDED"); // A รู้ตัวว่าโดน supersede
-    const row = db.select().from(contentPosts).where(eq(contentPosts.id, "race")).get()!;
-    expect(row.status).toBe("GENERATING"); // ยังเป็น attempt ของ B (A ทับไม่ได้)
-    expect(row.generationToken).toBe("tokenB"); // token ของ B ยังอยู่ครบ
+    expect(aRes.status).toBe("SUPERSEDED"); // A รู้ตัวว่าแพ้
+
+    // B ไม่ถูกแตะ: path/contents เดิม (A เขียนคนละไฟล์เพราะ token-scoped)
+    expect(db.select().from(contentPosts).where(eq(contentPosts.id, "race")).get()!.imagePath).toBe(bPath);
+    expect(Array.from(readFileSync(bPath))).toEqual([66, 66, 66]); // bytes ของ B ไม่เปลี่ยน
+    // A's stale artifact ถูก cleanup → เหลือแค่ไฟล์ของ B ใน media dir
+    expect(readdirSync(mediaDir)).toEqual([basename(bPath)]);
   });
 
   // [P2] path traversal — id ที่มี ../ ต้องไม่หลุดออกนอก media root
