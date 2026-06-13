@@ -15,7 +15,7 @@ import type { ContentStatus } from "./schema";
 /** transitions ที่อนุญาต: from → [to, ...] */
 const ALLOWED: Record<ContentStatus, readonly ContentStatus[]> = {
   PENDING: ["GENERATING", "CANCELED", "FAILED"], // GENERATING = claim ก่อนเรียก Gemini
-  GENERATING: ["GENERATED", "FAILED", "PENDING"], // GENERATED=สำเร็จ ; FAILED/PENDING=recovery (ปล่อย claim)
+  GENERATING: ["GENERATED", "FAILED"], // GENERATED=สำเร็จ ; FAILED=ล้ม. (ถอด →PENDING: reclaim ต้อง expiry+token ก่อน [ตู๋ P1] — ตอนนี้ retry ผ่าน FAILED→PENDING)
   GENERATED: ["APPROVED", "CANCELED", "FAILED"], // APPROVED = human gate
   APPROVED: ["PUBLISHING", "CANCELED", "FAILED"], // PUBLISHING = claim ก่อนยิง FB
   PUBLISHING: ["POSTED", "FAILED", "APPROVED"], // POSTED=สำเร็จ ; FAILED/APPROVED=recovery (ปล่อย claim)

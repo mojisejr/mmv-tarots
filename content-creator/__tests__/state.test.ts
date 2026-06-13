@@ -14,9 +14,9 @@ describe("content state machine", () => {
     expect(canTransition("PENDING", "GENERATED")).toBe(false);
   });
 
-  it("GENERATING recovery: → FAILED / → PENDING (คืน claim)", () => {
+  it("GENERATING recovery: → FAILED เท่านั้น (ถอด →PENDING: reclaim ต้อง expiry+token ก่อน [ตู๋ P1])", () => {
     expect(canTransition("GENERATING", "FAILED")).toBe(true);
-    expect(canTransition("GENERATING", "PENDING")).toBe(true);
+    expect(canTransition("GENERATING", "PENDING")).toBe(false); // กัน stale worker คืนคิวโดยไม่เช็ค token
   });
 
   it("APPROVED→POSTED ตรง ๆ ไม่ได้ (ต้องผ่าน PUBLISHING claim — กัน FB โพสต์ซ้ำ)", () => {

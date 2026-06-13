@@ -32,7 +32,14 @@ npm run content-creator:dev      # = CONTENT_CREATOR_ENABLED=true next dev
 ## 🔄 State machine
 
 ```
-PENDING ─gen→ GENERATED ─approve(คน)→ APPROVED ─claim→ PUBLISHING ─post สำเร็จ→ POSTED
-  PUBLISHING ─recovery→ FAILED / APPROVED       (active) ─→ CANCELED ; ─error→ FAILED ─retry→ PENDING
+PENDING ─claim→ GENERATING ─gen สำเร็จ→ GENERATED ─approve(คน)→ APPROVED ─claim→ PUBLISHING ─post สำเร็จ→ POSTED
+  GENERATING ─gen ล้ม→ FAILED                    PUBLISHING ─recovery→ FAILED / APPROVED
+  (active) ─→ CANCELED ; ─error→ FAILED ─retry→ PENDING
 ```
-**PUBLISHING = claim lease**: worker ต้อง `claimForPublish()` (APPROVED→PUBLISHING atomic) ก่อนยิง Facebook — กัน scheduler concurrent โพสต์ซ้ำ
+
+**GENERATING = claim lease (S2)**: worker ต้อง `claimForGenerate()` (PENDING→GENERATING atomic) ก่อนเรียก Gemini — กัน concurrent gen ซ้ำ/เปลือง cost
+- claim คืน **ownership token** (`generationToken`) — `markGenerated()`/`releaseGenerate()` ต้องส่ง token คืน, conditional update ทำงานเฉพาะ token ตรง → stale worker (ที่โดน reclaim) ทับ attempt ใหม่ไม่ได้ (คืน `SUPERSEDED`)
+- `generatingAt` บันทึกเวลา claim ไว้สำหรับ **expiry-based reclaim** ในอนาคต
+- **ข้อจำกัดปัจจุบัน**: ยัง**ไม่มี** auto-reclaim ของ GENERATING ที่ค้าง — ถอด transition `GENERATING→PENDING` ออกแล้ว (reclaim ที่ปลอดภัยต้องเช็ค expiry + ออก token ใหม่ก่อน ซึ่งยังไม่ทำ). gen ล้มไปทาง `FAILED` แล้ว retry ผ่าน `FAILED→PENDING`. row ที่ค้าง GENERATING (เช่น process ตายกลางคัน) ต้อง reconcile มือ — ดู [ตู๋ P1] / S4 reconciliation
+
+**PUBLISHING = claim lease (S4)**: worker ต้อง `claimForPublish()` (APPROVED→PUBLISHING atomic) ก่อนยิง Facebook — กัน scheduler concurrent โพสต์ซ้ำ

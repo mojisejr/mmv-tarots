@@ -50,22 +50,44 @@ export function transition(
 }
 
 /**
- * claim โพสต์เพื่อเรียก Gemini gen (PENDING → GENERATING แบบ atomic). [S2]
- * คืน true = worker นี้ claim ได้ (เรียก Gemini ต่อได้คนเดียว — กัน gen ซ้ำ/เปลือง cost); false = skip.
- * หลัง gen เสร็จ → markGenerated; ล้ม → releaseGenerate.
+ * claim เพื่อเรียก Gemini gen (PENDING → GENERATING แบบ atomic + ออก ownership token). [S2 P1]
+ * คืน **token** ถ้า claim ได้ (worker เดียว) ; null ถ้า skip (ไม่ใช่ PENDING/claim ไปแล้ว).
+ * token ต้องส่งคืนใน markGenerated/releaseGenerate → กัน stale worker (ที่ถูก reclaim) ทับ attempt ใหม่.
  */
-export function claimForGenerate(db: ContentDb, id: string): boolean {
-  return tryTransition(db, id, "PENDING", "GENERATING");
+export function claimForGenerate(db: ContentDb, id: string): string | null {
+  const token = crypto.randomUUID();
+  const res = db
+    .update(contentPosts)
+    .set({ status: "GENERATING", generationToken: token, generatingAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(contentPosts.id, id), eq(contentPosts.status, "PENDING")))
+    .run();
+  return res.changes === 1 ? token : null;
 }
 
-/** gen สำเร็จ: GENERATING → GENERATED (เก็บ caption + imagePath) */
-export function markGenerated(db: ContentDb, id: string, caption: string, imagePath: string): void {
-  transition(db, id, "GENERATING", "GENERATED", { caption, imagePath });
+/**
+ * gen สำเร็จ: GENERATING → GENERATED (เก็บ caption + imagePath), **เฉพาะถ้า token ตรง**.
+ * คืน false = superseded (worker เก่าโดน reclaim — ไม่ทับ attempt ใหม่)
+ */
+export function markGenerated(db: ContentDb, id: string, token: string, caption: string, imagePath: string): boolean {
+  const res = db
+    .update(contentPosts)
+    .set({ status: "GENERATED", caption, imagePath, generationToken: null, updatedAt: new Date() })
+    .where(and(eq(contentPosts.id, id), eq(contentPosts.status, "GENERATING"), eq(contentPosts.generationToken, token)))
+    .run();
+  return res.changes === 1;
 }
 
-/** gen ล้ม/ปล่อย claim: GENERATING → FAILED (default) หรือ PENDING (คืนคิว retry) */
-export function releaseGenerate(db: ContentDb, id: string, to: "FAILED" | "PENDING" = "FAILED"): void {
-  transition(db, id, "GENERATING", to);
+/**
+ * gen ล้ม/ปล่อย claim: GENERATING → FAILED **เฉพาะถ้า token ตรง** (กัน worker เก่าทำ attempt ใหม่ FAILED).
+ * คืน false = superseded (ไม่ทับ)
+ */
+export function releaseGenerate(db: ContentDb, id: string, token: string): boolean {
+  const res = db
+    .update(contentPosts)
+    .set({ status: "FAILED", generationToken: null, updatedAt: new Date() })
+    .where(and(eq(contentPosts.id, id), eq(contentPosts.status, "GENERATING"), eq(contentPosts.generationToken, token)))
+    .run();
+  return res.changes === 1;
 }
 
 /**
