@@ -8,6 +8,13 @@
       "when": 1781307825833,
       "tag": "0000_bent_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781340137727,
+      "tag": "0001_brown_scalphunter",
+      "breakpoints": true
     }
   ]
 }

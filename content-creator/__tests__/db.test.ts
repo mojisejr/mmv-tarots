@@ -29,12 +29,12 @@ describe("[P1.1] public client บน fresh DB — migration apply ให้ tab
 });
 
 describe("[P1.2] atomic conditional transition", () => {
-  it("transition PENDING→GENERATED สำเร็จ + set patch", () => {
+  it("transition PENDING→GENERATING สำเร็จ + set patch", () => {
     const db = createContentDb(":memory:");
     db.insert(contentPosts).values({ id: "x", templateId: "t", inputData: {} }).run();
-    transition(db, "x", "PENDING", "GENERATED", { caption: "ปังมากแม่" });
+    transition(db, "x", "PENDING", "GENERATING", { caption: "ปังมากแม่" });
     const row = db.select().from(contentPosts).where(eq(contentPosts.id, "x")).get();
-    expect(row!.status).toBe("GENERATED");
+    expect(row!.status).toBe("GENERATING");
     expect(row!.caption).toBe("ปังมากแม่");
   });
 
@@ -47,9 +47,9 @@ describe("[P1.2] atomic conditional transition", () => {
   it("reject stale/concurrent + ghost id", () => {
     const db = createContentDb(":memory:");
     db.insert(contentPosts).values({ id: "z", templateId: "t", inputData: {} }).run();
-    transition(db, "z", "PENDING", "GENERATED");
-    expect(() => transition(db, "z", "PENDING", "GENERATED")).toThrow(/stale\/concurrent/);
-    expect(() => transition(db, "ghost", "PENDING", "GENERATED")).toThrow(/stale\/concurrent/);
+    transition(db, "z", "PENDING", "GENERATING");
+    expect(() => transition(db, "z", "PENDING", "GENERATING")).toThrow(/stale\/concurrent/);
+    expect(() => transition(db, "ghost", "PENDING", "GENERATING")).toThrow(/stale\/concurrent/);
   });
 });
 

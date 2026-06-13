@@ -46,3 +46,4 @@ next-env.d.ts
 
 # Oracle Framework
 content-creator/*.db*
+content-creator/media/

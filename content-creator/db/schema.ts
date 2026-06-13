@@ -9,6 +9,7 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const CONTENT_STATUSES = [
   "PENDING", // เพิ่งกรอก รอ gen
+  "GENERATING", // worker claim แล้ว กำลังเรียก Gemini (lease — 1 worker, กัน gen ซ้ำ/เปลือง cost)
   "GENERATED", // gen caption+ภาพ แล้ว รอ approve
   "APPROVED", // ฟีม approve แล้ว รอ scheduler claim
   "PUBLISHING", // worker claim แล้ว กำลังยิง Facebook (lease — 1 worker เท่านั้น)
@@ -28,6 +29,10 @@ export const contentPosts = sqliteTable("content_posts", {
   /** fields ตาม template.inputSchema (card, meaning, …) */
   inputData: text("input_data", { mode: "json" }).notNull().$type<Record<string, unknown>>(),
   status: text("status").$type<ContentStatus>().notNull().default("PENDING"),
+  /** claim ownership token ของ GENERATING lease — completion/release ต้อง token ตรง (กัน stale worker ทับ) [S2 P1] */
+  generationToken: text("generation_token"),
+  /** เวลาเริ่ม claim GENERATING — สำหรับ expiry-based reclaim (future reconciliation) */
+  generatingAt: integer("generating_at", { mode: "timestamp" }),
   /** ผลลัพธ์ gen (S2) */
   caption: text("caption"),
   imagePath: text("image_path"),
