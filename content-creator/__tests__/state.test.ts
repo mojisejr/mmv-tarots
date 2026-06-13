@@ -2,11 +2,21 @@ import { describe, expect, it } from "vitest";
 import { canTransition, assertTransition, isTerminal } from "../db/state";
 
 describe("content state machine", () => {
-  it("เส้นทางหลัก: PENDING→GENERATED→APPROVED→PUBLISHING→POSTED", () => {
-    expect(canTransition("PENDING", "GENERATED")).toBe(true);
+  it("เส้นทางหลัก: PENDING→GENERATING→GENERATED→APPROVED→PUBLISHING→POSTED", () => {
+    expect(canTransition("PENDING", "GENERATING")).toBe(true); // claim ก่อนเรียก Gemini
+    expect(canTransition("GENERATING", "GENERATED")).toBe(true);
     expect(canTransition("GENERATED", "APPROVED")).toBe(true); // human approve gate
     expect(canTransition("APPROVED", "PUBLISHING")).toBe(true); // claim ก่อนยิง FB
     expect(canTransition("PUBLISHING", "POSTED")).toBe(true);
+  });
+
+  it("PENDING→GENERATED ตรง ๆ ไม่ได้ (ต้องผ่าน GENERATING claim — กัน gen ซ้ำ)", () => {
+    expect(canTransition("PENDING", "GENERATED")).toBe(false);
+  });
+
+  it("GENERATING recovery: → FAILED / → PENDING (คืน claim)", () => {
+    expect(canTransition("GENERATING", "FAILED")).toBe(true);
+    expect(canTransition("GENERATING", "PENDING")).toBe(true);
   });
 
   it("APPROVED→POSTED ตรง ๆ ไม่ได้ (ต้องผ่าน PUBLISHING claim — กัน FB โพสต์ซ้ำ)", () => {

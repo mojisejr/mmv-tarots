@@ -9,6 +9,7 @@ import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const CONTENT_STATUSES = [
   "PENDING", // เพิ่งกรอก รอ gen
+  "GENERATING", // worker claim แล้ว กำลังเรียก Gemini (lease — 1 worker, กัน gen ซ้ำ/เปลือง cost)
   "GENERATED", // gen caption+ภาพ แล้ว รอ approve
   "APPROVED", // ฟีม approve แล้ว รอ scheduler claim
   "PUBLISHING", // worker claim แล้ว กำลังยิง Facebook (lease — 1 worker เท่านั้น)

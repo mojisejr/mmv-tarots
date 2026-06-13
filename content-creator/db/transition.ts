@@ -50,6 +50,25 @@ export function transition(
 }
 
 /**
+ * claim โพสต์เพื่อเรียก Gemini gen (PENDING → GENERATING แบบ atomic). [S2]
+ * คืน true = worker นี้ claim ได้ (เรียก Gemini ต่อได้คนเดียว — กัน gen ซ้ำ/เปลือง cost); false = skip.
+ * หลัง gen เสร็จ → markGenerated; ล้ม → releaseGenerate.
+ */
+export function claimForGenerate(db: ContentDb, id: string): boolean {
+  return tryTransition(db, id, "PENDING", "GENERATING");
+}
+
+/** gen สำเร็จ: GENERATING → GENERATED (เก็บ caption + imagePath) */
+export function markGenerated(db: ContentDb, id: string, caption: string, imagePath: string): void {
+  transition(db, id, "GENERATING", "GENERATED", { caption, imagePath });
+}
+
+/** gen ล้ม/ปล่อย claim: GENERATING → FAILED (default) หรือ PENDING (คืนคิว retry) */
+export function releaseGenerate(db: ContentDb, id: string, to: "FAILED" | "PENDING" = "FAILED"): void {
+  transition(db, id, "GENERATING", to);
+}
+
+/**
  * claim โพสต์เพื่อยิง Facebook (APPROVED → PUBLISHING แบบ atomic).
  * คืน true = worker นี้ claim ได้ (ยิง FB ต่อได้คนเดียว); false = worker อื่น claim ไปแล้ว → skip.
  * กัน scheduler concurrent ยิง Facebook ซ้ำ. หลังยิงเสร็จ caller → markPosted/releaseClaim.
