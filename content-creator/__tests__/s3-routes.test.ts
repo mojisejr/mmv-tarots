@@ -1,8 +1,9 @@
-import { describe, it, expect, afterAll, beforeEach } from "vitest";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, it, expect, afterAll, afterEach, beforeEach } from "vitest";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
+import { NextRequest } from "next/server";
 
 // ตั้ง env ก่อนเรียก route (getContentDb/mediaDir อ่านตอน request ไม่ใช่ตอน import)
 const TMP = mkdtempSync(join(tmpdir(), "cc-s3-"));
@@ -16,6 +17,7 @@ import { contentPosts } from "../db/schema";
 import { GET as postsGET } from "@/app/content-creator/api/posts/route";
 import { POST as approvePOST } from "@/app/content-creator/api/approve/route";
 import { GET as mediaGET } from "@/app/content-creator/api/media/[name]/route";
+import { middleware } from "@/middleware";
 
 const enable = () => (process.env.CONTENT_CREATOR_ENABLED = "true");
 const disable = () => delete process.env.CONTENT_CREATOR_ENABLED;
@@ -28,8 +30,39 @@ function approveReq(body: unknown) {
   });
 }
 const mediaCtx = (name: string) => ({ params: Promise.resolve({ name }) });
+const mwReq = (path: string) => new NextRequest(new URL(`http://localhost${path}`));
 
 afterAll(() => rmSync(TMP, { recursive: true, force: true }));
+
+describe("[S3] middleware guard — 404 จริงเมื่อปิด (page + nested API)", () => {
+  it("disabled → /content-creator + /content-creator/api/* = 404", () => {
+    disable();
+    expect(middleware(mwReq("/content-creator")).status).toBe(404);
+    expect(middleware(mwReq("/content-creator/api/posts")).status).toBe(404);
+    expect(middleware(mwReq("/content-creator/api/media/x.png")).status).toBe(404);
+  });
+  it("enabled → ผ่าน (ไม่ 404)", () => {
+    enable();
+    expect(middleware(mwReq("/content-creator")).status).not.toBe(404);
+  });
+});
+
+describe("[S3] production hard-off — NODE_ENV=production → ปิดทุกทางแม้ enabled=true [ตู๋ P1]", () => {
+  const saved = process.env.NODE_ENV;
+  beforeEach(() => {
+    enable();
+    (process.env as Record<string, string>).NODE_ENV = "production";
+  });
+  afterEach(() => {
+    (process.env as Record<string, string>).NODE_ENV = saved ?? "test";
+  });
+  it("middleware + posts + approve + media → 404 ใน production", async () => {
+    expect(middleware(mwReq("/content-creator")).status).toBe(404);
+    expect((await postsGET()).status).toBe(404);
+    expect((await approvePOST(approveReq({ id: "x", action: "approve" }))).status).toBe(404);
+    expect((await mediaGET(new Request("http://t"), mediaCtx("a.png"))).status).toBe(404);
+  });
+});
 
 describe("[S3] route disabled-gate — ปิดแล้วต้อง 404 จริงทุก route (กัน expose)", () => {
   beforeEach(disable);
@@ -94,6 +127,13 @@ describe("[S3] media route — path traversal กันหลุด media root (
     writeFileSync(join(TMP, "evil.png"), Buffer.from([1, 2, 3])); // วางไว้ "นอก" media dir
     const res = await mediaGET(new Request("http://t"), mediaCtx("../evil.png"));
     expect(res.status).toBe(404); // basename → "evil.png" → หาใน media dir → ไม่เจอ → 404 (ไม่หลุดไปอ่าน ../evil.png)
+  });
+
+  it("symlink ใน media dir ชี้ออกนอก → 404 (ไม่ follow, lexical resolve ไม่พอ) [ตู๋ P2]", async () => {
+    writeFileSync(join(TMP, "outside-secret.png"), Buffer.from("OUTSIDE_SECRET"));
+    symlinkSync(join(TMP, "outside-secret.png"), join(MEDIA, "linked.png")); // media/linked.png -> ../outside-secret.png
+    const res = await mediaGET(new Request("http://t"), mediaCtx("linked.png"));
+    expect(res.status).toBe(404); // reject symlink — ไม่ leak ไฟล์นอก root
   });
 
   it("ไม่ใช่ .png → 404", async () => {
