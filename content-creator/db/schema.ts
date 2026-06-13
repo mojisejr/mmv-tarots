@@ -24,6 +24,10 @@ export const contentPosts = sqliteTable("content_posts", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
+  /** idempotency key ต่อ "การ submit สร้าง 1 ครั้ง" (client ส่งมา) — unique กัน create ซ้ำ
+   *  จาก reload/timeout/double-click/retry → ไม่ยิง Gemini จ่ายซ้ำ [S3.5a ตู๋ P1].
+   *  nullable: row เก่า (S1-S3/seed) ไม่มี — sqlite unique อนุญาตหลาย NULL */
+  requestKey: text("request_key").unique(),
   /** → Template Registry (S2) — บอกว่า gen รูปแบบไหน */
   templateId: text("template_id").notNull(),
   /** fields ตาม template.inputSchema (card, meaning, …) */

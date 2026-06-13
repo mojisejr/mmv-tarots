@@ -6,6 +6,7 @@
  * route ถูก guard ด้วย middleware (404 ถ้า CONTENT_CREATOR_ENABLED ไม่เปิด/บน production)
  */
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 
 type Post = {
   id: string;
@@ -85,13 +86,21 @@ export default function ContentCreatorPage() {
           <h1 className="text-2xl font-bold">Content Creator</h1>
           <p className="text-sm text-gray-500">รอ approve {pending.length} โพสต์</p>
         </div>
-        <button
-          onClick={load}
-          className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
-          disabled={loading}
-        >
-          รีเฟรช
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/content-creator/new"
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            + สร้างใหม่
+          </Link>
+          <button
+            onClick={load}
+            className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
+            disabled={loading}
+          >
+            รีเฟรช
+          </button>
+        </div>
       </header>
 
       {error && (
