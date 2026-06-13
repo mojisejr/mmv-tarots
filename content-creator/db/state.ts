@@ -1,9 +1,12 @@
 /**
  * content-creator state machine — transitions ที่อนุญาตของ ContentPost.status
  *
- * PENDING ──gen──▶ GENERATED ──approve(คน)──▶ APPROVED ──post──▶ POSTED (terminal)
- *    └─────────────────┴────────────────────────┴──────▶ CANCELED (terminal)
- *    (ทุก active state) ──error──▶ FAILED ──retry──▶ PENDING
+ * PENDING ─gen→ GENERATED ─approve(คน)→ APPROVED ─claim→ PUBLISHING ─post สำเร็จ→ POSTED (terminal)
+ *   PUBLISHING ─recovery→ FAILED / APPROVED   (ยิง FB ล้ม/ปล่อย claim)
+ *   (active state) ─→ CANCELED (terminal) ; ─error→ FAILED ─retry→ PENDING
+ *
+ * PUBLISHING = lease: worker ต้อง claim (APPROVED→PUBLISHING แบบ atomic) ก่อนยิง Facebook
+ * → กัน scheduler concurrent โพสต์ซ้ำ (side effect ภายนอก) [ตู๋ P1 altitude]
  */
 import type { ContentStatus } from "./schema";
 
@@ -11,7 +14,8 @@ import type { ContentStatus } from "./schema";
 const ALLOWED: Record<ContentStatus, readonly ContentStatus[]> = {
   PENDING: ["GENERATED", "CANCELED", "FAILED"],
   GENERATED: ["APPROVED", "CANCELED", "FAILED"], // APPROVED = human gate
-  APPROVED: ["POSTED", "CANCELED", "FAILED"],
+  APPROVED: ["PUBLISHING", "CANCELED", "FAILED"], // PUBLISHING = claim ก่อนยิง FB
+  PUBLISHING: ["POSTED", "FAILED", "APPROVED"], // POSTED=สำเร็จ ; FAILED/APPROVED=recovery (ปล่อย claim)
   POSTED: [], // terminal
   CANCELED: [], // terminal
   FAILED: ["PENDING"], // retry

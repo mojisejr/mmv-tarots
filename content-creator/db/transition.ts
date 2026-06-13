@@ -1,9 +1,9 @@
 /**
- * content-creator — single atomic transition API ของ ContentPost.status [P1.2]
+ * content-creator — atomic transition API ของ ContentPost.status [ตู๋ P1.2 + altitude]
  *
- * ทำไมต้องมี: read→assert→update ไม่ atomic — concurrent approve/cancel/scheduler อ่าน state เดียวกัน
- * แล้ว overwrite กัน/post ซ้ำได้ และ caller bypass state machine ด้วย raw update ได้.
- * แก้: conditional update `WHERE id=? AND status=expectedFrom`, ตรวจ changes===1 (ไม่งั้น stale/concurrent).
+ * conditional update `WHERE id=? AND status=expectedFrom` + ตรวจ changes===1:
+ *  - กัน bypass state machine + concurrent overwrite
+ *  - PUBLISHING claim: worker ที่ claim ได้ (changes 1) คนเดียว ยิง Facebook → กันโพสต์ซ้ำ
  */
 import { and, eq } from "drizzle-orm";
 import type { ContentDb } from "./client";
@@ -16,10 +16,27 @@ export type TransitionPatch = Partial<
 >;
 
 /**
- * เปลี่ยน status แบบ atomic + conditional. throw ถ้า:
- *  - transition ไม่ allowed (state machine)
- *  - row ไม่ตรง (id ไม่มี หรือ status ปัจจุบัน ≠ from = stale/concurrent)
+ * พยายาม transition แบบ atomic conditional. คืน true ถ้าสำเร็จ (claim ได้), false ถ้า row ไม่ตรง
+ * (stale/concurrent/ไม่มี id). ไม่ throw — เหมาะกับ worker ที่ "ลอง claim แล้ว skip ถ้าไม่ได้".
+ * @throws เฉพาะกรณี transition ไม่ allowed ตาม state machine (programmer error)
  */
+export function tryTransition(
+  db: ContentDb,
+  id: string,
+  from: ContentStatus,
+  to: ContentStatus,
+  patch: TransitionPatch = {},
+): boolean {
+  assertTransition(from, to); // validate transition ที่อนุญาต (fail เร็วก่อนแตะ DB)
+  const res = db
+    .update(contentPosts)
+    .set({ status: to, updatedAt: new Date(), ...patch })
+    .where(and(eq(contentPosts.id, id), eq(contentPosts.status, from)))
+    .run();
+  return res.changes === 1;
+}
+
+/** transition แบบ strict — throw ถ้า row ไม่ตรง (stale/concurrent) */
 export function transition(
   db: ContentDb,
   id: string,
@@ -27,17 +44,26 @@ export function transition(
   to: ContentStatus,
   patch: TransitionPatch = {},
 ): void {
-  assertTransition(from, to); // validate transition ที่อนุญาต (เร็ว, fail ก่อนแตะ DB)
-
-  const res = db
-    .update(contentPosts)
-    .set({ status: to, updatedAt: new Date(), ...patch })
-    .where(and(eq(contentPosts.id, id), eq(contentPosts.status, from)))
-    .run();
-
-  if (res.changes !== 1) {
-    throw new Error(
-      `stale/concurrent transition: id=${id} ${from}→${to} — row ไม่ตรง (status ปัจจุบัน ≠ ${from}, changes=${res.changes})`,
-    );
+  if (!tryTransition(db, id, from, to, patch)) {
+    throw new Error(`stale/concurrent transition: id=${id} ${from}→${to} — row ไม่ตรง (status ปัจจุบัน ≠ ${from})`);
   }
+}
+
+/**
+ * claim โพสต์เพื่อยิง Facebook (APPROVED → PUBLISHING แบบ atomic).
+ * คืน true = worker นี้ claim ได้ (ยิง FB ต่อได้คนเดียว); false = worker อื่น claim ไปแล้ว → skip.
+ * กัน scheduler concurrent ยิง Facebook ซ้ำ. หลังยิงเสร็จ caller → markPosted/releaseClaim.
+ */
+export function claimForPublish(db: ContentDb, id: string): boolean {
+  return tryTransition(db, id, "APPROVED", "PUBLISHING");
+}
+
+/** ยิง FB สำเร็จแล้ว: PUBLISHING → POSTED (เก็บ fbPostId + postedAt) */
+export function markPosted(db: ContentDb, id: string, fbPostId: string): void {
+  transition(db, id, "PUBLISHING", "POSTED", { fbPostId, postedAt: new Date() });
+}
+
+/** ยิง FB ล้ม/ต้องปล่อย claim: PUBLISHING → FAILED (default) หรือ APPROVED (คืนคิว) */
+export function releaseClaim(db: ContentDb, id: string, to: "FAILED" | "APPROVED" = "FAILED"): void {
+  transition(db, id, "PUBLISHING", to);
 }

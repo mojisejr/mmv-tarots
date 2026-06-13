@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { createContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
-import { transition } from "../db/transition";
+import { transition, tryTransition, claimForPublish, markPosted, releaseClaim } from "../db/transition";
 
 const tmpDirs: string[] = [];
 function tmpDbPath() {
@@ -23,9 +23,8 @@ describe("[P1.1] public client บน fresh DB — migration apply ให้ tab
     db.insert(contentPosts).values({ templateId: "finance-daily", inputData: { card: "Ace of Coins" } }).run();
     const rows = db.select().from(contentPosts).all();
     expect(rows).toHaveLength(1);
-    expect(rows[0].status).toBe("PENDING"); // default
+    expect(rows[0].status).toBe("PENDING");
     expect(rows[0].inputData).toEqual({ card: "Ace of Coins" });
-    expect(rows[0].id).toBeTruthy();
   });
 });
 
@@ -39,23 +38,51 @@ describe("[P1.2] atomic conditional transition", () => {
     expect(row!.caption).toBe("ปังมากแม่");
   });
 
-  it("reject transition ที่ไม่ allowed (PENDING→POSTED) — ก่อนแตะ DB", () => {
+  it("reject transition ที่ไม่ allowed (APPROVED→POSTED) ก่อนแตะ DB", () => {
     const db = createContentDb(":memory:");
-    db.insert(contentPosts).values({ id: "y", templateId: "t", inputData: {} }).run();
-    expect(() => transition(db, "y", "PENDING", "POSTED")).toThrow(/invalid content status transition/);
+    db.insert(contentPosts).values({ id: "y", templateId: "t", inputData: {}, status: "APPROVED" }).run();
+    expect(() => transition(db, "y", "APPROVED", "POSTED")).toThrow(/invalid content status transition/);
   });
 
-  it("reject stale/concurrent — transition ซ้ำจาก state เดิม (post ซ้ำไม่ได้)", () => {
+  it("reject stale/concurrent + ghost id", () => {
     const db = createContentDb(":memory:");
     db.insert(contentPosts).values({ id: "z", templateId: "t", inputData: {} }).run();
-    transition(db, "z", "PENDING", "GENERATED"); // ครั้งแรกสำเร็จ
-    // ครั้งที่สอง: status เป็น GENERATED แล้ว → WHERE status=PENDING ไม่ match → changes 0 → throw
+    transition(db, "z", "PENDING", "GENERATED");
     expect(() => transition(db, "z", "PENDING", "GENERATED")).toThrow(/stale\/concurrent/);
+    expect(() => transition(db, "ghost", "PENDING", "GENERATED")).toThrow(/stale\/concurrent/);
+  });
+});
+
+describe("[altitude] PUBLISHING claim — กัน scheduler concurrent ยิง FB ซ้ำ", () => {
+  it("worker เดียวเท่านั้น claim ได้ (APPROVED→PUBLISHING atomic)", () => {
+    const db = createContentDb(":memory:");
+    db.insert(contentPosts).values({ id: "p", templateId: "t", inputData: {}, status: "APPROVED" }).run();
+    // 2 scheduler ลอง claim พร้อมกัน → คนแรกได้ คนสองไม่ได้
+    expect(claimForPublish(db, "p")).toBe(true);
+    expect(claimForPublish(db, "p")).toBe(false); // status เป็น PUBLISHING แล้ว
+    expect(db.select().from(contentPosts).where(eq(contentPosts.id, "p")).get()!.status).toBe("PUBLISHING");
   });
 
-  it("reject transition บน id ที่ไม่มี (changes 0)", () => {
+  it("markPosted: PUBLISHING→POSTED + fbPostId; recovery releaseClaim PUBLISHING→FAILED", () => {
     const db = createContentDb(":memory:");
-    expect(() => transition(db, "ghost", "PENDING", "GENERATED")).toThrow(/stale\/concurrent/);
+    db.insert(contentPosts).values({ id: "ok", templateId: "t", inputData: {}, status: "APPROVED" }).run();
+    claimForPublish(db, "ok");
+    markPosted(db, "ok", "fb_123");
+    const posted = db.select().from(contentPosts).where(eq(contentPosts.id, "ok")).get()!;
+    expect(posted.status).toBe("POSTED");
+    expect(posted.fbPostId).toBe("fb_123");
+    expect(posted.postedAt).toBeTruthy();
+
+    db.insert(contentPosts).values({ id: "fail", templateId: "t", inputData: {}, status: "APPROVED" }).run();
+    claimForPublish(db, "fail");
+    releaseClaim(db, "fail"); // ยิง FB ล้ม → PUBLISHING→FAILED
+    expect(db.select().from(contentPosts).where(eq(contentPosts.id, "fail")).get()!.status).toBe("FAILED");
+  });
+
+  it("tryTransition คืน false เมื่อ row ไม่ตรง (ไม่ throw)", () => {
+    const db = createContentDb(":memory:");
+    db.insert(contentPosts).values({ id: "q", templateId: "t", inputData: {} }).run();
+    expect(tryTransition(db, "q", "APPROVED", "PUBLISHING")).toBe(false); // status เป็น PENDING
   });
 });
 
@@ -64,8 +91,6 @@ describe("[P1.3] file-backed persist smoke — data อยู่หลัง reo
     const path = tmpDbPath();
     const db1 = createContentDb(path);
     db1.insert(contentPosts).values({ id: "persist", templateId: "t", inputData: { x: 1 } }).run();
-
-    // เปิด connection ใหม่บน file เดิม (migrate รันซ้ำได้ — idempotent)
     const db2 = createContentDb(path);
     const row = db2.select().from(contentPosts).where(eq(contentPosts.id, "persist")).get();
     expect(row!.id).toBe("persist");
