@@ -82,7 +82,15 @@ function persistImage(id: string, token: string, bytes: Uint8Array): string {
   return path;
 }
 
-/** ลบ artifact ของ attempt ที่แพ้ (token ไม่ owns แล้ว) — best-effort, ไม่ให้ล้มงานหลัก */
+/**
+ * ลบ artifact ของ attempt ที่แพ้ (token ไม่ owns แล้ว) — best-effort จริง: swallow error
+ * ห้ามให้ rmSync (permission/EBUSY) throw แล้วข้าม releaseGenerate → ค้าง GENERATING [ตู๋ nit].
+ * stale file ที่ลบไม่ได้ค้างไว้ไม่อันตราย (ไม่ถูก reference ใน DB) — แค่ log ไว้ให้รู้
+ */
 function cleanupArtifact(path: string): void {
-  rmSync(path, { force: true });
+  try {
+    rmSync(path, { force: true });
+  } catch (err) {
+    console.warn(`content-creator: cleanup stale artifact failed (${path}):`, err instanceof Error ? err.message : err);
+  }
 }
