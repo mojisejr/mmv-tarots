@@ -4,31 +4,37 @@ import { tmpdir } from "node:os";
 import { join, resolve, sep, basename } from "node:path";
 import { eq } from "drizzle-orm";
 
-// mock gemini lib (ไม่ยิง API จริง — live พิสูจน์แล้ว POC #1)
-const { mockGenCaption, mockGenImage } = vi.hoisted(() => ({
+// mock gemini lib (ไม่ยิง API จริง — live พิสูจน์แล้ว POC #1 + spike)
+const { mockGenCaption, mockGenImage, mockGenImageWithRef } = vi.hoisted(() => ({
   mockGenCaption: vi.fn(),
   mockGenImage: vi.fn(),
+  mockGenImageWithRef: vi.fn(),
 }));
 vi.mock("../lib/gemini", () => ({
   genCaption: mockGenCaption,
   genImage: mockGenImage,
+  genImageWithRef: mockGenImageWithRef,
 }));
 
 import { createContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
+import { updateBrandProfile } from "../db/brand";
 import { generate } from "../engine";
 
 const tmpDirs: string[] = [];
-function setup() {
+/** setup db + media ; default brand เป็น no-ref (genImage path) ให้ test S2 เดิมไม่เปลี่ยนพฤติกรรม */
+function setup(opts: { ref?: string | null } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "cc-engine-"));
   tmpDirs.push(dir);
   process.env.CONTENT_MEDIA_DIR = join(dir, "media");
   const db = createContentDb(":memory:");
+  updateBrandProfile(db, { refImagePath: opts.ref ?? null }); // S2 tests → no ref → genImage
   return { db, dir };
 }
 beforeEach(() => {
   mockGenCaption.mockReset().mockResolvedValue("ปังมากแม่! #ดูดวงการเงิน #หมอมี่");
   mockGenImage.mockReset().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
+  mockGenImageWithRef.mockReset().mockResolvedValue(new Uint8Array([5, 6, 7, 8]));
 });
 afterEach(() => {
   for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
@@ -133,5 +139,40 @@ describe("generate engine [S2]", () => {
     const mediaRoot = resolve(join(dir, "media"));
     expect(resolve(res.imagePath!).startsWith(mediaRoot + sep)).toBe(true); // อยู่ใต้ media root
     expect(existsSync(res.imagePath!)).toBe(true);
+  });
+});
+
+describe("generate engine — Brand Profile steering [S3.5b/c]", () => {
+  const REF = "content-creator/brand/mimi-reference.png"; // committed asset (มีจริงใน repo)
+
+  it("brand มี ref → ใช้ genImageWithRef (nano banana) ไม่ใช่ genImage + ส่ง NO-TEXT + style + persona", async () => {
+    const { db } = setup({ ref: REF });
+    insertPending(db, "ref1", { card: "The Sun", meaning: "การเงินสดใส" });
+    const res = await generate(db, "ref1");
+    expect(res.status).toBe("GENERATED");
+    expect(mockGenImageWithRef).toHaveBeenCalledTimes(1);
+    expect(mockGenImage).not.toHaveBeenCalled(); // ref path ไม่ใช้ text-to-image
+    const refArg = mockGenImageWithRef.mock.calls[0][0];
+    expect(refArg.prompt).toContain("ห้ามมีตัวอักษร"); // NO_TEXT directive (caveat spike)
+    expect(refArg.prompt).toContain("พาสเทล"); // style prompt ผสม
+    expect(refArg.refImage).toBeInstanceOf(Uint8Array);
+    // persona เข้า caption system
+    expect(mockGenCaption.mock.calls[0][0].system).toContain("หมอมี่");
+  });
+
+  it("brand ไม่มี ref → ใช้ genImage (text-to-image) + style ผสม", async () => {
+    const { db } = setup({ ref: null });
+    insertPending(db, "noref", { card: "8 of Wands", meaning: "ลื่นไหล" });
+    await generate(db, "noref");
+    expect(mockGenImage).toHaveBeenCalledTimes(1);
+    expect(mockGenImageWithRef).not.toHaveBeenCalled();
+  });
+
+  it("ref path ชี้ไฟล์ไม่มีจริง → FAILED (ไม่ silently ใช้ off-brand)", async () => {
+    const { db } = setup({ ref: "content-creator/brand/nonexistent.png" });
+    insertPending(db, "badref", { card: "X", meaning: "Y" });
+    const res = await generate(db, "badref");
+    expect(res.status).toBe("FAILED");
+    expect(db.select().from(contentPosts).where(eq(contentPosts.id, "badref")).get()!.status).toBe("FAILED");
   });
 });

@@ -10,7 +10,7 @@
  */
 import { google } from "@ai-sdk/google";
 import { generateText, experimental_generateImage as generateImage } from "ai";
-import { TEXT_MODEL, IMAGE_MODEL, DEFAULT_CAPTION_TEMPERATURE } from "./config";
+import { TEXT_MODEL, IMAGE_MODEL, REF_IMAGE_MODEL, DEFAULT_CAPTION_TEMPERATURE } from "./config";
 
 export interface CaptionInput {
   /** system prompt — กำหนด persona/รูปแบบ (เช่น tone หมอมี่) */
@@ -46,4 +46,39 @@ export async function genImage(input: ImageInput): Promise<Uint8Array> {
     aspectRatio: input.aspectRatio ?? "1:1",
   });
   return image.uint8Array;
+}
+
+export interface ImageWithRefInput {
+  prompt: string;
+  /** ภาพ reference (ตัวละคร/style ที่ fix) — model ยึดตามนี้ */
+  refImage: Uint8Array;
+  /** model override (default REF_IMAGE_MODEL = nano banana) */
+  model?: string;
+}
+
+/**
+ * gen ภาพโดยยึด reference image (character/style consistency) [S3.5c] — verified by spike.
+ * ใช้ gemini-2.5-flash-image (nano banana): เป็น multimodal LM → generateText (ไม่ใช่ generateImage),
+ * ส่ง ref ใน messages + responseModalities IMAGE, image output ที่ result.files[].uint8Array.
+ * @throws ถ้า model ไม่คืน image
+ */
+export async function genImageWithRef(input: ImageWithRefInput): Promise<Uint8Array> {
+  const result = await generateText({
+    model: google(input.model ?? REF_IMAGE_MODEL),
+    providerOptions: { google: { responseModalities: ["TEXT", "IMAGE"] } },
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: input.prompt },
+          { type: "image", image: input.refImage },
+        ],
+      },
+    ],
+  });
+  const img = (result.files ?? []).find((f) => f.mediaType?.startsWith("image/"));
+  if (!img) {
+    throw new Error(`ref-image model ไม่คืนภาพ (text=${result.text?.slice(0, 100) ?? ""})`);
+  }
+  return img.uint8Array;
 }

@@ -12,8 +12,11 @@ export const graphUrl = (path: string): string =>
 /** model สำหรับ caption — env แยก ไม่ reuse MODEL_NAME ของ mystic (Gate A) */
 export const TEXT_MODEL = process.env.CONTENT_TEXT_MODEL || "gemini-2.5-flash";
 
-/** model สำหรับภาพ — env แยก */
+/** model สำหรับภาพ (text-to-image, ไม่มี ref) — env แยก */
 export const IMAGE_MODEL = process.env.CONTENT_IMAGE_MODEL || "imagen-4.0-generate-001";
+
+/** model สำหรับ gen ภาพแบบยึด reference image (nano banana) [S3.5c] — verified by spike */
+export const REF_IMAGE_MODEL = process.env.CONTENT_REF_IMAGE_MODEL || "gemini-2.5-flash-image";
 
 /** caption temperature เริ่มต้น (คุม tone — override ได้ต่อ call) */
 export const DEFAULT_CAPTION_TEMPERATURE = 0.8;

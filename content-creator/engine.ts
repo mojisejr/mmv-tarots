@@ -6,16 +6,32 @@
  *  - gen ล้ม → releaseGenerate(FAILED) (recovery)
  *  - ภาพเก็บเป็น file (CONTENT_MEDIA_DIR) + imagePath ใน DB (รูปไม่ยัดใน sqlite)
  */
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { eq } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
 import { contentPosts } from "./db/schema";
+import { getBrandProfile } from "./db/brand";
 import { claimForGenerate, markGenerated, releaseGenerate } from "./db/transition";
-import { genCaption, genImage } from "./lib/gemini";
+import { genCaption, genImage, genImageWithRef } from "./lib/gemini";
 import { getTemplate } from "./templates";
 
 const mediaDir = () => process.env.CONTENT_MEDIA_DIR || "content-creator/media";
+
+/** สั่ง model ไม่ใส่ text บนภาพ (caveat spike: nano banana สะกดมั่ว — caption ใส่ตอนโพสต์ FB แยก) */
+const NO_TEXT_DIRECTIVE =
+  "สำคัญ: ห้ามมีตัวอักษร ข้อความ ชื่อ หรือลายน้ำใด ๆ บนภาพ (no text, letters, captions, or watermark in the image).";
+
+/** อ่าน brand reference image แบบ path-safe (admin-set ใน DB — validate กัน traversal) */
+function loadBrandRef(refImagePath: string): Uint8Array {
+  if (!refImagePath.endsWith(".png")) throw new Error(`brand ref ต้องเป็น .png: ${refImagePath}`);
+  const full = resolve(refImagePath);
+  if (full !== resolve(process.cwd(), refImagePath) || !full.startsWith(resolve(process.cwd()) + sep)) {
+    throw new Error(`brand ref path ไม่ปลอดภัย (ต้องอยู่ใต้ repo): ${refImagePath}`);
+  }
+  if (!existsSync(full)) throw new Error(`brand ref ไม่พบ: ${refImagePath}`);
+  return new Uint8Array(readFileSync(full));
+}
 
 export interface GenerateResult {
   ok: boolean;
@@ -44,9 +60,23 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     const template = getTemplate(row.templateId);
     template.inputSchema.parse(row.inputData); // validate (throw → FAILED)
 
+    // brand profile (หมอมี่) steer ทุก gen ให้ theme เดียวกัน [S3.5b/c]
+    const brand = getBrandProfile(db);
+
     const { system, prompt } = template.buildCaptionPrompt(row.inputData);
-    const caption = await genCaption({ system, prompt });
-    const bytes = await genImage({ prompt: template.buildImagePrompt(row.inputData) });
+    const captionSystem = brand.captionPersona ? `${system}\n\n[persona] ${brand.captionPersona}` : system;
+    const caption = await genCaption({ system: captionSystem, prompt });
+
+    const basePrompt = template.buildImagePrompt(row.inputData);
+    const styledPrompt = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
+    // มี ref → nano banana (fix ตัวละคร/style) + ห้าม text บนภาพ ; ไม่มี ref → text-to-image เดิม
+    const bytes = brand.refImagePath
+      ? await genImageWithRef({
+          prompt: `${styledPrompt}\n\n${NO_TEXT_DIRECTIVE}`,
+          refImage: loadBrandRef(brand.refImagePath),
+          model: brand.imageModel ?? undefined,
+        })
+      : await genImage({ prompt: styledPrompt });
     attemptPath = persistImage(id, token, bytes);
 
     // commit DB เฉพาะถ้า token ยังตรง. ไม่ตรง = โดน reclaim → ลบ artifact ของ attempt เรา (ไม่แตะ winner)

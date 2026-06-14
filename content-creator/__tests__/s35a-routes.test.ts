@@ -4,12 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
 
-// mock Gemini (ไม่ยิง API จริงในเทสต์ — live พิสูจน์แล้ว browser truth)
-const { mockGenCaption, mockGenImage } = vi.hoisted(() => ({
+// mock Gemini (ไม่ยิง API จริงในเทสต์ — live พิสูจน์แล้ว browser truth + spike)
+const { mockGenCaption, mockGenImage, mockGenImageWithRef } = vi.hoisted(() => ({
   mockGenCaption: vi.fn(),
   mockGenImage: vi.fn(),
+  mockGenImageWithRef: vi.fn(),
 }));
-vi.mock("../lib/gemini", () => ({ genCaption: mockGenCaption, genImage: mockGenImage }));
+vi.mock("../lib/gemini", () => ({ genCaption: mockGenCaption, genImage: mockGenImage, genImageWithRef: mockGenImageWithRef }));
 
 // env ก่อนเรียก route (getContentDb/mediaDir อ่านตอน request)
 const TMP = mkdtempSync(join(tmpdir(), "cc-s35a-"));
@@ -19,9 +20,13 @@ mkdirSync(process.env.CONTENT_MEDIA_DIR, { recursive: true });
 
 import { getContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
+import { updateBrandProfile } from "../db/brand";
 import { GET as templatesGET } from "@/app/content-creator/api/templates/route";
 import { POST as previewPOST } from "@/app/content-creator/api/preview/route";
 import { POST as createPOST } from "@/app/content-creator/api/create/route";
+
+// brand no-ref → create ใช้ genImage (text-to-image) path เดิม — เทสต์ S3.5a โฟกัส lifecycle ไม่ใช่ brand
+updateBrandProfile(getContentDb(), { refImagePath: null });
 
 const enable = () => (process.env.CONTENT_CREATOR_ENABLED = "true");
 const disable = () => delete process.env.CONTENT_CREATOR_ENABLED;
@@ -36,6 +41,7 @@ beforeEach(() => {
   enable();
   mockGenCaption.mockReset().mockResolvedValue("ปังมากแม่! #หมอมี่");
   mockGenImage.mockReset().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
+  mockGenImageWithRef.mockReset().mockResolvedValue(new Uint8Array([5, 6, 7, 8]));
 });
 afterAll(() => rmSync(TMP, { recursive: true, force: true }));
 
