@@ -27,6 +27,18 @@ feature นี้ **รันบนเครื่อง local เท่าน�
   - `POST /content-creator/api/preview` — build prompt ที่จะส่ง Gemini **โดยไม่ gen** (ฟรี — ดูก่อนกด)
   - `POST /content-creator/api/create` — `{templateId, inputData}` → validate → insert PENDING → `generate()` **sync** → GENERATED (gen ล้ม → 502 + row FAILED)
 
+## 🎨 Brand Profile (S3.5b/c) — theme/character เดียวกัน
+
+แบรนด์ "หมอมี่" (แมวหมอดู) steer ทุก gen ให้ไม่หลุดกรอบ — spec verify ด้วย spike จริง (ดู memory `mmv-brand-spec`)
+- **DB** `brand_profile` (singleton `default`): `stylePrompt`, `captionPersona`, `refImagePath`, `imageModel` — `getBrandProfile` merge บน DEFAULT (หมอมี่) → ใช้ได้ทันทีแม้ยังไม่ตั้งค่า
+- **Settings UI** `/content-creator/settings` — ฟีมแก้ style prompt + caption tone ; `GET/PUT /content-creator/api/brand`
+- **engine**: gen ดึง brand → caption system += persona ; image prompt += style
+  - **มี `refImagePath` → `genImageWithRef` (nano banana `gemini-2.5-flash-image`)** ยึดตัวละคร/style จาก ref เป๊ะ (verified spike) + บังคับ **ห้าม text บนภาพ** (caveat: nano banana สะกดมั่ว — caption ใส่ตอนโพสต์ FB แยก)
+  - ไม่มี ref → `genImage` (imagen text-to-image) เดิม
+  - ref read แบบ path-safe (validate .png + อยู่ใต้ repo) ; ref ไม่พบ → FAILED (ไม่ silently off-brand)
+- brand asset: `content-creator/brand/mimi-reference.png` (committed) · ~$0.039/ภาพ (nano banana)
+- **NOTE**: PR นี้ ref = หมอมี่ fixed ; upload ref เอง = follow-up
+
 ## ▶️ วิธีรัน (runnable target)
 
 ```bash

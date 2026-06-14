@@ -6,16 +6,48 @@
  *  - gen ล้ม → releaseGenerate(FAILED) (recovery)
  *  - ภาพเก็บเป็น file (CONTENT_MEDIA_DIR) + imagePath ใน DB (รูปไม่ยัดใน sqlite)
  */
-import { mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { eq } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
 import { contentPosts } from "./db/schema";
+import { getBrandProfile } from "./db/brand";
 import { claimForGenerate, markGenerated, releaseGenerate } from "./db/transition";
-import { genCaption, genImage } from "./lib/gemini";
+import { genCaption, genImage, genImageWithRef } from "./lib/gemini";
 import { getTemplate } from "./templates";
 
 const mediaDir = () => process.env.CONTENT_MEDIA_DIR || "content-creator/media";
+
+/** สั่ง model ไม่ใส่ text บนภาพ (caveat spike: nano banana สะกดมั่ว — caption ใส่ตอนโพสต์ FB แยก) */
+const NO_TEXT_DIRECTIVE =
+  "สำคัญ: ห้ามมีตัวอักษร ข้อความ ชื่อ หรือลายน้ำใด ๆ บนภาพ (no text, letters, captions, or watermark in the image).";
+
+/**
+ * directive นำหน้า ref-based gen — บังคับให้ "ยึดตัวละคร+สไตล์จาก ref" (ไม่ใช่ใช้ ref เป็นแค่ style cue).
+ * ขาดบรรทัดนี้ = model สร้างตัวละครใหม่ตาม theme prompt (เคยได้ฟีนิกซ์แทนแมว). theme เป็น "ฉาก/props" รอง.
+ */
+const refDirective = (theme: string) =>
+  "ใช้ตัวละครหลักและสไตล์ศิลป์จาก 'ภาพอ้างอิงที่แนบมา' ให้เหมือนเป๊ะ — " +
+  "หน้าตา ชนิดสัตว์ สีสัน เครื่องแต่งกาย และรายละเอียดของตัวละครต้องตรงกับภาพอ้างอิงทุกประการ (เป็นตัวละครเดียวกัน). " +
+  `สร้างภาพใหม่โดยเปลี่ยนเฉพาะ ฉาก/props/ท่าทาง/องค์ประกอบ ให้สื่อถึงธีมต่อไปนี้: ${theme}`;
+
+/**
+ * อ่าน brand reference image แบบ path-safe (admin-set ใน DB — เชื่อไม่ได้) [ตู๋ P1].
+ * lexical resolve อย่างเดียวไม่พอ — symlink ใน path ชี้ออกนอก repo ได้ → local bytes หลุดไป Gemini.
+ * ใช้ realpath + reject symlink (แนวเดียวกับ media route S3).
+ */
+function loadBrandRef(refImagePath: string): Uint8Array {
+  if (!refImagePath.endsWith(".png")) throw new Error(`brand ref ต้องเป็น .png: ${refImagePath}`);
+  const root = realpathSync(resolve(process.cwd())); // realpath root (กัน symlink ใน path เช่น /tmp→/private/tmp)
+  const candidate = resolve(root, refImagePath);
+  if (!existsSync(candidate)) throw new Error(`brand ref ไม่พบ: ${refImagePath}`);
+  if (lstatSync(candidate).isSymbolicLink()) throw new Error(`brand ref เป็น symlink (ไม่อนุญาต): ${refImagePath}`);
+  const real = realpathSync(candidate);
+  if (real !== candidate || !real.startsWith(root + sep)) {
+    throw new Error(`brand ref path ไม่ปลอดภัย (หลุดนอก repo): ${refImagePath}`);
+  }
+  return new Uint8Array(readFileSync(real));
+}
 
 export interface GenerateResult {
   ok: boolean;
@@ -44,9 +76,28 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     const template = getTemplate(row.templateId);
     template.inputSchema.parse(row.inputData); // validate (throw → FAILED)
 
+    // brand profile (หมอมี่) steer ทุก gen ให้ theme เดียวกัน [S3.5b/c]
+    const brand = getBrandProfile(db);
+
+    // preflight: ถ้าใช้ ref → อ่าน+validate ref "ก่อน" Gemini call ใด ๆ
+    // (ref ไม่พบ/ไม่ปลอดภัย → FAILED ทันที ไม่จ่าย genCaption ฟรี) [ตู๋ P1]
+    const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
+
     const { system, prompt } = template.buildCaptionPrompt(row.inputData);
-    const caption = await genCaption({ system, prompt });
-    const bytes = await genImage({ prompt: template.buildImagePrompt(row.inputData) });
+    const captionSystem = brand.captionPersona ? `${system}\n\n[persona] ${brand.captionPersona}` : system;
+    const caption = await genCaption({ system: captionSystem, prompt });
+
+    const basePrompt = template.buildImagePrompt(row.inputData);
+    const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
+    // มี ref → nano banana: refDirective นำ (ยึดตัวละคร) + theme เป็นฉาก/props รอง + ห้าม text
+    // ไม่มี ref → imagen text-to-image (theme เป็น prompt หลักเลย)
+    const bytes = refImage
+      ? await genImageWithRef({
+          prompt: `${refDirective(themeWithStyle)}\n\n${NO_TEXT_DIRECTIVE}`,
+          refImage,
+          model: brand.imageModel ?? undefined,
+        })
+      : await genImage({ prompt: themeWithStyle });
     attemptPath = persistImage(id, token, bytes);
 
     // commit DB เฉพาะถ้า token ยังตรง. ไม่ตรง = โดน reclaim → ลบ artifact ของ attempt เรา (ไม่แตะ winner)

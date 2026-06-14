@@ -53,3 +53,23 @@ export const contentPosts = sqliteTable("content_posts", {
 
 export type ContentPost = typeof contentPosts.$inferSelect;
 export type NewContentPost = typeof contentPosts.$inferInsert;
+
+/**
+ * Brand Profile [S3.5b/c] — แบรนด์ "หมอมี่" ที่ใช้ steer ทุก gen ให้ theme เดียวกัน.
+ * singleton: 1 row id="default" (admin tool — แบรนด์เดียว).
+ *  - stylePrompt: ต่อท้าย image prompt ทุกครั้ง (palette/props/mood)
+ *  - captionPersona: ต่อเข้า caption system (tone หมอมี่)
+ *  - refImagePath: ภาพ reference (fix ตัวละคร) → ถ้ามี ใช้ nano banana (gemini-2.5-flash-image)
+ *  - imageModel: override CONTENT_IMAGE_MODEL ต่อ brand (null = ใช้ env/default)
+ */
+export const brandProfile = sqliteTable("brand_profile", {
+  id: text("id").primaryKey().$defaultFn(() => "default"),
+  stylePrompt: text("style_prompt").notNull().default(""),
+  captionPersona: text("caption_persona").notNull().default(""),
+  refImagePath: text("ref_image_path"),
+  imageModel: text("image_model"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type BrandProfile = typeof brandProfile.$inferSelect;
+export type NewBrandProfile = typeof brandProfile.$inferInsert;
