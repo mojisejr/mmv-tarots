@@ -18,15 +18,19 @@ export interface CaptionContext {
 /** ประกอบ caption request — persona + length + CTA + anti-repeat รวมเข้า system */
 export function buildCaptionRequest(ctx: CaptionContext): CaptionPrompt {
   const { base, brand, recentCaptions } = ctx;
-  const rules: string[] = [`เขียนสั้น กระชับ ฟันธงชัด ไม่เกิน ${brand.captionMaxChars} ตัวอักษร (นับรวมอิโมจิ/ลิงก์ทุกอย่าง)`];
+  const rules: string[] = [
+    // length = upper bound ; ความยาว/ความน่าอ่าน คุมด้วย persona (ไม่บังคับ "สั้น")
+    `ความยาวไม่เกิน ${brand.captionMaxChars} ตัวอักษร (นับรวมอิโมจิ/ลิงก์) — เขียนให้พอเหมาะ มีเนื้อหาให้อ่านได้สาระ อ่านจบในทีเดียว ไม่ห้วนและไม่ยืดเยื้อ`,
+  ];
 
   if (brand.captionPersona) rules.push(`โทน/เปอร์โซน่า: ${brand.captionPersona}`);
 
-  // CTA บังคับ — ชวนเข้าใช้ระบบ (เรียบเรียงใหม่ทุกครั้ง ; url พิมพ์เป๊ะ)
+  // CTA บังคับ — ชวนเข้าใช้ระบบ ; เรียบเรียงให้เข้ากับบริบทคำทำนายโพสต์นี้ (ไม่ผูกหัวข้อตายตัว → reuse ข้าม template) ; url เป๊ะ
   if (brand.ctaText || brand.ctaUrl) {
-    let cta = `**ต้องจบด้วยประโยคชวนเข้าใช้ระบบเสมอ** (เรียบเรียงคำใหม่ทุกครั้ง ไม่ก็อปเป๊ะ ไม่ซ้ำของเดิม)`;
-    if (brand.ctaText) cta += ` สื่อความว่า: "${brand.ctaText}"`;
-    if (brand.ctaUrl) cta += ` แล้วตามด้วยลิงก์ ${brand.ctaUrl} (พิมพ์ลิงก์นี้เป๊ะ ห้ามแก้)`;
+    let cta =
+      "**ต้องจบด้วยประโยคชวนเข้าใช้ระบบเสมอ** — เรียบเรียงใหม่ทุกครั้งให้ **สอดคล้องกับไพ่/ดวง/หัวข้อที่โพสต์นี้พูดถึง** (อิงบริบทด้านบน ไม่ใช้คำ generic แข็ง ไม่ซ้ำของเดิม)";
+    if (brand.ctaText) cta += ` สื่อความทำนองว่า: "${brand.ctaText}"`;
+    if (brand.ctaUrl) cta += ` แล้วตามด้วยลิงก์ ${brand.ctaUrl} (พิมพ์ลิงก์นี้เป๊ะ ห้ามแก้/ต่อ path)`;
     rules.push(cta);
   }
 

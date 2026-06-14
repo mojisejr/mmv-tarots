@@ -92,7 +92,7 @@ describe("generate engine [S2]", () => {
   // [S5] caption ยาวเกิน maxChars → regen 1 ครั้ง → ยังเกิน → FAILED (ไม่ปล่อยแคปชั่นผิดกติกา)
   it("caption ยาวเกิน maxChars → regen แล้วยังเกิน → FAILED", async () => {
     const { db } = setup(); // brand default maxChars 300
-    mockGenCaption.mockReset().mockResolvedValue("ก".repeat(400)); // ยาวเกินทั้ง gen + regen
+    mockGenCaption.mockReset().mockResolvedValue("ก".repeat(500)); // ยาวเกิน maxChars (450) ทั้ง gen + regen
     insertPending(db, "long", { card: "The Sun", meaning: "การเงินดี" });
     const res = await generate(db, "long");
     expect(res.status).toBe("FAILED");
