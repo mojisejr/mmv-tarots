@@ -7,6 +7,12 @@ import { eq } from "drizzle-orm";
 // mock FB lib (ไม่ยิงเพจจริงในเทสต์ — live พิสูจน์ POC#2)
 const { mockUpload, mockPublish } = vi.hoisted(() => ({ mockUpload: vi.fn(), mockPublish: vi.fn() }));
 vi.mock("../lib/facebook", () => ({ uploadUnpublishedPhoto: mockUpload, publishToFeed: mockPublish }));
+// partial-mock transition — default = ของจริง, override markPosted ได้ใน test P1 (จำลอง DB persist ล้ม)
+vi.mock("../db/transition", async (orig) => {
+  const actual = await orig<typeof import("../db/transition")>();
+  return { ...actual, markPosted: vi.fn(actual.markPosted) };
+});
+import * as transition from "../db/transition";
 
 const TMP = mkdtempSync(join(tmpdir(), "cc-pub-"));
 process.env.CONTENT_DB_PATH = join(TMP, "test.db");
@@ -61,6 +67,22 @@ describe("[S4a] publish route", () => {
     expect(statusOf(id)).toBe("POSTED");
     expect(mockUpload).toHaveBeenCalledTimes(1);
     expect(mockPublish).toHaveBeenCalledTimes(1);
+    // [P2] mediaFbid persist สำเร็จ (conditional update changes===1 ยืนยัน ownership)
+    expect(getContentDb().select().from(contentPosts).where(eq(contentPosts.id, id)).get()!.mediaFbid).toBe("media_fb_1");
+  });
+
+  // [ตู๋ P1] publishToFeed สำเร็จ (โพสต์ขึ้นแล้ว) แต่ markPosted (DB) ล้ม → ห้าม release (ไม่งั้น retry โพสต์ซ้ำ)
+  it("publish สำเร็จ แต่ persist DB ล้ม → 502 ambiguous + คง PUBLISHING (ไม่ release→APPROVED)", async () => {
+    const id = seedApproved();
+    (transition.markPosted as unknown as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+      throw new Error("DB persist fail หลัง publish");
+    });
+    const res = await publishPOST(req({ id }));
+    expect(res.status).toBe(502);
+    const d = await res.json();
+    expect(d.ambiguous).toBe(true);
+    expect(d.fbPostId).toBe("post_fb_1"); // โพสต์ขึ้นเพจแล้ว
+    expect(statusOf(id)).toBe("PUBLISHING"); // คง PUBLISHING — ไม่ release (กัน retry โพสต์ซ้ำ)
   });
 
   it("ไม่ใช่ APPROVED (เช่น GENERATED) → 409 (ไม่ยิง FB)", async () => {
