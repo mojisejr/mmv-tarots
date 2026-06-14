@@ -39,6 +39,13 @@ feature นี้ **รันบนเครื่อง local เท่าน�
 - brand asset: `content-creator/brand/mimi-reference.png` (committed) · ~$0.039/ภาพ (nano banana)
 - **NOTE**: PR นี้ ref = หมอมี่ fixed ; upload ref เอง = follow-up
 
+## ✍️ Caption finetune (S5)
+
+caption ที่ gen ต้อง: **ฟันธงสั้น (≤ `captionMaxChars`, default 300) + CTA ชวนใช้ระบบ (บังคับ) + ไม่ซ้ำจำเจ**
+- `lib/caption.ts`: `buildCaptionRequest` (persona + length + CTA[text เรียบเรียงใหม่ + url เป๊ะ] + **anti-repeat** feed caption เก่า N อัน) · `validateCaption` (length ≤ max + ถ้าตั้ง `ctaUrl` ต้องมี url)
+- engine: gen caption → validate → **ไม่ผ่าน regen 1 ครั้ง → ยังไม่ผ่าน = FAILED** (ไม่ปล่อยแคปชั่นผิดกติกา)
+- brand profile fields: `captionMaxChars`, `ctaText`, `ctaUrl` (ฟีมแก้ใน Settings) — migration `0004`
+
 ## 🚀 Publish to Facebook (S4a — manual)
 
 ปุ่ม **เผยแพร่ (Publish)** ในหน้า approve สำหรับโพสต์ `APPROVED` → ยิงขึ้นเพจจริง

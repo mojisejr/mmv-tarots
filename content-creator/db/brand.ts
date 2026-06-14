@@ -21,9 +21,13 @@ export const DEFAULT_BRAND: Omit<BrandProfile, "updatedAt"> = {
     "การ์ตูนน่ารักสไตล์ digital illustration soft painterly, โทนพาสเทล ชมพู-ม่วงลาเวนเดอร์-ทอง-ฟ้าอ่อน, " +
     "ธีมหมอดู/มงคล (ลูกแก้วคริสตัล ไพ่ทาโรต์ เทียน คริสตัล), ดวงดาวระยิบ พระจันทร์/ดวงอาทิตย์ทอง, highlight เรืองแสง, อบอุ่นสดใส",
   captionPersona:
-    "เขียนแบบ 'หมอมี่' — แมวหมอดูน่ารัก สดใส เป็นกันเอง พูดให้กำลังใจเรื่องการเงิน ใช้ภาษาไทยติดดิน อิโมจิพอประมาณ",
+    "เขียนแบบ 'หมอมี่' — แมวหมอดูน่ารัก สดใส เป็นกันเอง ฟันธงชัด พูดให้กำลังใจเรื่องการเงิน ใช้ภาษาไทยติดดิน อิโมจิพอประมาณ",
   refImagePath: DEFAULT_REF_PATH,
   imageModel: null,
+  captionMaxChars: 300,
+  // CTA default — ฟีมแก้ใน settings ให้ตรงระบบจริง (link/handle)
+  ctaText: "อยากรู้ดวงการเงินแบบเจาะลึกของตัวเอง? ทักหาพี่หมี่ดูดวงเต็ม ๆ ได้เลย",
+  ctaUrl: "",
 };
 
 /** อ่าน brand profile (merge row override DEFAULT) — มี fallback เสมอ ให้ engine ใช้ได้ทันที */
@@ -33,7 +37,9 @@ export function getBrandProfile(db: ContentDb): BrandProfile {
   return row;
 }
 
-export type BrandProfilePatch = Partial<Pick<BrandProfile, "stylePrompt" | "captionPersona" | "refImagePath" | "imageModel">>;
+export type BrandProfilePatch = Partial<
+  Pick<BrandProfile, "stylePrompt" | "captionPersona" | "refImagePath" | "imageModel" | "captionMaxChars" | "ctaText" | "ctaUrl">
+>;
 
 /** upsert singleton (ฟีมแก้จาก settings UI) */
 export function updateBrandProfile(db: ContentDb, patch: BrandProfilePatch): BrandProfile {

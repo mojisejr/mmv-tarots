@@ -13,17 +13,29 @@ import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function pub(b: ReturnType<typeof getBrandProfile>) {
+  return {
+    stylePrompt: b.stylePrompt,
+    captionPersona: b.captionPersona,
+    refImagePath: b.refImagePath,
+    imageModel: b.imageModel,
+    captionMaxChars: b.captionMaxChars,
+    ctaText: b.ctaText,
+    ctaUrl: b.ctaUrl,
+  };
+}
+
 export async function GET() {
   if (!isContentCreatorEnabled()) return new NextResponse(null, { status: 404 });
-  const b = getBrandProfile(getContentDb());
-  return NextResponse.json({
-    brand: { stylePrompt: b.stylePrompt, captionPersona: b.captionPersona, refImagePath: b.refImagePath, imageModel: b.imageModel },
-  });
+  return NextResponse.json({ brand: pub(getBrandProfile(getContentDb())) });
 }
 
 const PatchSchema = z.object({
   stylePrompt: z.string().max(4000).optional(),
   captionPersona: z.string().max(4000).optional(),
+  captionMaxChars: z.number().int().min(50).max(2000).optional(),
+  ctaText: z.string().max(1000).optional(),
+  ctaUrl: z.string().max(500).optional(),
 });
 
 export async function PUT(request: Request) {
@@ -34,6 +46,5 @@ export async function PUT(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "invalid body" }, { status: 400 });
   }
-  const b = updateBrandProfile(getContentDb(), patch);
-  return NextResponse.json({ ok: true, brand: { stylePrompt: b.stylePrompt, captionPersona: b.captionPersona } });
+  return NextResponse.json({ ok: true, brand: pub(updateBrandProfile(getContentDb(), patch)) });
 }

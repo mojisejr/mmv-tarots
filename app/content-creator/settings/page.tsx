@@ -12,6 +12,9 @@ export default function BrandSettingsPage() {
   const router = useRouter();
   const [stylePrompt, setStylePrompt] = useState("");
   const [captionPersona, setCaptionPersona] = useState("");
+  const [captionMaxChars, setCaptionMaxChars] = useState(300);
+  const [ctaText, setCtaText] = useState("");
+  const [ctaUrl, setCtaUrl] = useState("");
   const [refImagePath, setRefImagePath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,6 +29,9 @@ export default function BrandSettingsPage() {
         if (d?.brand) {
           setStylePrompt(d.brand.stylePrompt ?? "");
           setCaptionPersona(d.brand.captionPersona ?? "");
+          setCaptionMaxChars(d.brand.captionMaxChars ?? 300);
+          setCtaText(d.brand.ctaText ?? "");
+          setCtaUrl(d.brand.ctaUrl ?? "");
           setRefImagePath(d.brand.refImagePath ?? null);
           setLoaded(true); // โหลดสำเร็จ → save ได้ (ไม่งั้น save จะ wipe config ด้วยค่าว่าง)
         }
@@ -41,7 +47,7 @@ export default function BrandSettingsPage() {
       const res = await fetch("/content-creator/api/brand", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stylePrompt, captionPersona }),
+        body: JSON.stringify({ stylePrompt, captionPersona, captionMaxChars, ctaText, ctaUrl }),
       });
       if (!res.ok) throw new Error(`บันทึกไม่สำเร็จ (${res.status})`);
       setMsg("✓ บันทึกแล้ว — gen ครั้งต่อไปจะใช้ค่านี้");
@@ -50,7 +56,7 @@ export default function BrandSettingsPage() {
     } finally {
       setSaving(false);
     }
-  }, [stylePrompt, captionPersona]);
+  }, [stylePrompt, captionPersona, captionMaxChars, ctaText, ctaUrl]);
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
@@ -84,7 +90,7 @@ export default function BrandSettingsPage() {
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Caption persona (โทนแคปชั่นหมอมี่)</span>
+            <span className="text-sm font-medium text-gray-700">Caption persona (โทนแคปชั่นหมอมี่ — ฟันธงสั้น)</span>
             <textarea
               value={captionPersona}
               onChange={(e) => setCaptionPersona(e.target.value)}
@@ -92,6 +98,41 @@ export default function BrandSettingsPage() {
               className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
             />
           </label>
+
+          <label className="block">
+            <span className="text-sm font-medium text-gray-700">ความยาว caption สูงสุด (ตัวอักษร)</span>
+            <input
+              type="number"
+              value={captionMaxChars}
+              onChange={(e) => setCaptionMaxChars(Number(e.target.value) || 300)}
+              min={50}
+              max={2000}
+              className="mt-1 w-32 rounded-lg border px-3 py-2 text-sm"
+            />
+          </label>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+            <p className="mb-2 text-sm font-semibold text-blue-800">CTA ชวนเข้าใช้ระบบ (บังคับแนบทุกโพสต์)</p>
+            <label className="block">
+              <span className="text-xs text-gray-600">ข้อความชวน (model เรียบเรียงใหม่ทุกครั้ง ไม่ซ้ำ)</span>
+              <textarea
+                value={ctaText}
+                onChange={(e) => setCtaText(e.target.value)}
+                rows={2}
+                placeholder="เช่น อยากรู้ดวงการเงินเจาะลึก ทักหาพี่หมี่ได้เลย"
+                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="mt-2 block">
+              <span className="text-xs text-gray-600">ลิงก์ระบบ (แนบท้ายเป๊ะทุกโพสต์ — ว่าง = ไม่บังคับลิงก์)</span>
+              <input
+                value={ctaUrl}
+                onChange={(e) => setCtaUrl(e.target.value)}
+                placeholder="https://..."
+                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
 
           <div className="flex justify-end">
             <button

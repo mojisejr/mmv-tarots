@@ -86,6 +86,17 @@ describe("generate engine [S2]", () => {
     expect(db.select().from(contentPosts).where(eq(contentPosts.id, "d")).get()!.status).toBe("FAILED");
   });
 
+  // [S5] caption ยาวเกิน maxChars → regen 1 ครั้ง → ยังเกิน → FAILED (ไม่ปล่อยแคปชั่นผิดกติกา)
+  it("caption ยาวเกิน maxChars → regen แล้วยังเกิน → FAILED", async () => {
+    const { db } = setup(); // brand default maxChars 300
+    mockGenCaption.mockReset().mockResolvedValue("ก".repeat(400)); // ยาวเกินทั้ง gen + regen
+    insertPending(db, "long", { card: "The Sun", meaning: "การเงินดี" });
+    const res = await generate(db, "long");
+    expect(res.status).toBe("FAILED");
+    expect(mockGenCaption).toHaveBeenCalledTimes(2); // gen + regen 1 ครั้ง
+    expect(mockGenImage).not.toHaveBeenCalled(); // caption ล้มก่อน → ไม่ gen ภาพ
+  });
+
   // [P1] ownership token + filesystem fence — stale worker ห้ามทับไฟล์ของ attempt ที่ชนะ
   // ลำดับที่ ตู๋ ขอ: A ค้าง → reclaim → B complete (bytes รู้ค่า) → A complete ทีหลัง → B ต้องไม่เปลี่ยน, A ถูกลบ
   it("race: B complete ก่อน, A complete ทีหลัง → B's file/path คงเดิม + A's stale artifact ถูกลบ", async () => {
