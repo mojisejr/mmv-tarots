@@ -6,7 +6,7 @@
  *  - gen ล้ม → releaseGenerate(FAILED) (recovery)
  *  - ภาพเก็บเป็น file (CONTENT_MEDIA_DIR) + imagePath ใน DB (รูปไม่ยัดใน sqlite)
  */
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { eq } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
@@ -14,6 +14,7 @@ import { contentPosts } from "./db/schema";
 import { getBrandProfile } from "./db/brand";
 import { claimForGenerate, markGenerated, releaseGenerate } from "./db/transition";
 import { genCaption, genImage, genImageWithRef } from "./lib/gemini";
+import { safeResolveUnderRoot } from "./lib/safe-path";
 import { getTemplate } from "./templates";
 
 const mediaDir = () => process.env.CONTENT_MEDIA_DIR || "content-creator/media";
@@ -33,19 +34,12 @@ const refDirective = (theme: string) =>
 
 /**
  * อ่าน brand reference image แบบ path-safe (admin-set ใน DB — เชื่อไม่ได้) [ตู๋ P1].
- * lexical resolve อย่างเดียวไม่พอ — symlink ใน path ชี้ออกนอก repo ได้ → local bytes หลุดไป Gemini.
- * ใช้ realpath + reject symlink (แนวเดียวกับ media route S3).
+ * ใช้ safeResolveUnderRoot (util เดียวกับ media route + publish) — กัน traversal + symlink escape.
  */
 function loadBrandRef(refImagePath: string): Uint8Array {
   if (!refImagePath.endsWith(".png")) throw new Error(`brand ref ต้องเป็น .png: ${refImagePath}`);
-  const root = realpathSync(resolve(process.cwd())); // realpath root (กัน symlink ใน path เช่น /tmp→/private/tmp)
-  const candidate = resolve(root, refImagePath);
-  if (!existsSync(candidate)) throw new Error(`brand ref ไม่พบ: ${refImagePath}`);
-  if (lstatSync(candidate).isSymbolicLink()) throw new Error(`brand ref เป็น symlink (ไม่อนุญาต): ${refImagePath}`);
-  const real = realpathSync(candidate);
-  if (real !== candidate || !real.startsWith(root + sep)) {
-    throw new Error(`brand ref path ไม่ปลอดภัย (หลุดนอก repo): ${refImagePath}`);
-  }
+  const real = safeResolveUnderRoot(process.cwd(), refImagePath);
+  if (!real) throw new Error(`brand ref ไม่พบ/ไม่ปลอดภัย: ${refImagePath}`);
   return new Uint8Array(readFileSync(real));
 }
 

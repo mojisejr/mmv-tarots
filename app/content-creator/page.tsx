@@ -76,8 +76,34 @@ export default function ContentCreatorPage() {
     [load],
   );
 
+  const publishPost = useCallback(
+    async (id: string) => {
+      if (!confirm("เผยแพร่ขึ้นเพจ Facebook จริง? (โพสต์จะขึ้นหน้าเพจ)")) return;
+      setBusyId(id);
+      setError(null);
+      try {
+        const res = await fetch("/content-creator/api/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.ok) {
+          throw new Error(d.error ?? `publish ไม่สำเร็จ (${res.status})`);
+        }
+        await load();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "publish ล้ม");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [load],
+  );
+
   const pending = posts.filter((p) => p.status === "GENERATED");
-  const others = posts.filter((p) => p.status !== "GENERATED");
+  const approved = posts.filter((p) => p.status === "APPROVED");
+  const others = posts.filter((p) => p.status !== "GENERATED" && p.status !== "APPROVED");
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
@@ -155,6 +181,38 @@ export default function ContentCreatorPage() {
           </article>
         ))}
       </section>
+
+      {approved.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-2 text-sm font-semibold text-gray-500">รอเผยแพร่ (APPROVED {approved.length})</h2>
+          <div className="space-y-4">
+            {approved.map((p) => (
+              <article key={p.id} className="overflow-hidden rounded-xl border shadow-sm">
+                {p.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin tool, local fs media
+                  <img src={p.imageUrl} alt="approved" className="aspect-square w-full bg-gray-100 object-cover" />
+                )}
+                <div className="space-y-3 p-4">
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[p.status] ?? ""}`}>
+                      {p.status}
+                    </span>
+                    <span className="text-xs text-gray-400">{p.templateId}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm">{p.caption}</p>
+                  <button
+                    onClick={() => publishPost(p.id)}
+                    disabled={busyId === p.id}
+                    className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {busyId === p.id ? "กำลังเผยแพร่…" : "🚀 เผยแพร่ขึ้นเพจ (Publish)"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {others.length > 0 && (
         <section className="mt-8">
