@@ -39,6 +39,19 @@ feature นี้ **รันบนเครื่อง local เท่าน�
 - brand asset: `content-creator/brand/mimi-reference.png` (committed) · ~$0.039/ภาพ (nano banana)
 - **NOTE**: PR นี้ ref = หมอมี่ fixed ; upload ref เอง = follow-up
 
+## 🚀 Publish to Facebook (S4a — manual)
+
+ปุ่ม **เผยแพร่ (Publish)** ในหน้า approve สำหรับโพสต์ `APPROVED` → ยิงขึ้นเพจจริง
+- `POST /content-creator/api/publish {id}` → `claimForPublish` (APPROVED→PUBLISHING atomic) →
+  `uploadUnpublishedPhoto` (published=false) → `publishToFeed` → `markPosted` (POSTED + fbPostId)
+- **path-safe image read** ผ่าน `lib/safe-path.ts` (`safeResolveUnderRoot`) — util เดียวที่ media route + brand ref + publish ใช้ร่วม (DRY, กัน symlink/traversal)
+- **Carry-forward gates (ตู๋)**:
+  - `publishToFeed` ล้ม = **ambiguous** (อาจโพสต์แล้ว) → คง `PUBLISHING` **ไม่ release** (กันโพสต์ซ้ำ) → reconcile มือ
+  - ล้มก่อน publish (อ่าน image/upload) → release→`APPROVED` (retry ได้, ยังไม่โพสต์)
+  - `mediaFbid` reuse → retry ไม่ upload ซ้ำ
+- env: `CONTENT_FB_PAGE_ID`, `CONTENT_FB_PAGE_ACCESS_TOKEN`
+- **NOTE**: manual trigger ใน S4a ; scheduler (pm2 + cron + schedule config จ/อ/พ) = **S4b** (ทีหลัง) ; stuck-PUBLISHING auto-reconcile = S4b
+
 ## ▶️ วิธีรัน (runnable target)
 
 ```bash

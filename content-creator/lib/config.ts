@@ -20,3 +20,7 @@ export const REF_IMAGE_MODEL = process.env.CONTENT_REF_IMAGE_MODEL || "gemini-2.
 
 /** caption temperature เริ่มต้น (คุม tone — override ได้ต่อ call) */
 export const DEFAULT_CAPTION_TEMPERATURE = 0.8;
+
+/** Facebook page id + token (อ่านตอน request — publish route ใช้) [S4a]. คืน "" ถ้าไม่ตั้ง → caller เช็ค */
+export const fbPageId = () => process.env.CONTENT_FB_PAGE_ID || "";
+export const fbPageToken = () => process.env.CONTENT_FB_PAGE_ACCESS_TOKEN || "";
