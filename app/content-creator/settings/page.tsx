@@ -15,19 +15,22 @@ export default function BrandSettingsPage() {
   const [refImagePath, setRefImagePath] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false); // โหลด profile สำเร็จไหม — กัน save ทับด้วยค่าว่าง [ตู๋ P2]
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/content-creator/api/brand", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`โหลดไม่สำเร็จ (${r.status})`);
+        const d = await r.json();
         if (d?.brand) {
           setStylePrompt(d.brand.stylePrompt ?? "");
           setCaptionPersona(d.brand.captionPersona ?? "");
           setRefImagePath(d.brand.refImagePath ?? null);
+          setLoaded(true); // โหลดสำเร็จ → save ได้ (ไม่งั้น save จะ wipe config ด้วยค่าว่าง)
         }
       })
-      .catch(() => setMsg("โหลด brand profile ไม่สำเร็จ"))
+      .catch(() => setMsg("⚠️ โหลด brand profile ไม่สำเร็จ — รีเฟรชก่อนแก้ (กันบันทึกทับค่าเดิมด้วยฟอร์มว่าง)"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -93,7 +96,8 @@ export default function BrandSettingsPage() {
           <div className="flex justify-end">
             <button
               onClick={save}
-              disabled={saving}
+              disabled={saving || !loaded}
+              title={!loaded ? "โหลด profile ไม่สำเร็จ — รีเฟรชก่อน" : undefined}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               {saving ? "กำลังบันทึก…" : "บันทึก"}

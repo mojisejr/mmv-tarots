@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync, writeFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve, sep, basename } from "node:path";
 import { eq } from "drizzle-orm";
@@ -168,11 +168,30 @@ describe("generate engine — Brand Profile steering [S3.5b/c]", () => {
     expect(mockGenImageWithRef).not.toHaveBeenCalled();
   });
 
-  it("ref path ชี้ไฟล์ไม่มีจริง → FAILED (ไม่ silently ใช้ off-brand)", async () => {
+  it("ref ไม่พบ → FAILED ก่อน Gemini (preflight, ไม่จ่าย genCaption ฟรี) [ตู๋ P1]", async () => {
     const { db } = setup({ ref: "content-creator/brand/nonexistent.png" });
     insertPending(db, "badref", { card: "X", meaning: "Y" });
     const res = await generate(db, "badref");
     expect(res.status).toBe("FAILED");
+    expect(mockGenCaption).not.toHaveBeenCalled(); // preflight ล้มก่อน paid call
+    expect(mockGenImageWithRef).not.toHaveBeenCalled();
     expect(db.select().from(contentPosts).where(eq(contentPosts.id, "badref")).get()!.status).toBe("FAILED");
+  });
+
+  it("ref เป็น symlink ชี้ออกนอก repo → FAILED ก่อน Gemini (ไม่ leak local file) [ตู๋ P1]", async () => {
+    const outside = join(mkdtempSync(join(tmpdir(), "cc-outside-")), "secret.png");
+    writeFileSync(outside, Buffer.from("OUTSIDE_SECRET"));
+    const linkRel = "content-creator/brand/evil-link.png";
+    const linkAbs = resolve(process.cwd(), linkRel);
+    symlinkSync(outside, linkAbs); // symlink ใน repo ชี้ออกนอก
+    try {
+      const { db } = setup({ ref: linkRel });
+      insertPending(db, "symref", { card: "X", meaning: "Y" });
+      const res = await generate(db, "symref");
+      expect(res.status).toBe("FAILED"); // reject symlink — ไม่อ่าน OUTSIDE_SECRET
+      expect(mockGenCaption).not.toHaveBeenCalled();
+    } finally {
+      rmSync(linkAbs, { force: true }); // ลบ symlink ออกจาก working tree (กัน git เห็น)
+    }
   });
 });

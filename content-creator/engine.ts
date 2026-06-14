@@ -6,7 +6,7 @@
  *  - gen ล้ม → releaseGenerate(FAILED) (recovery)
  *  - ภาพเก็บเป็น file (CONTENT_MEDIA_DIR) + imagePath ใน DB (รูปไม่ยัดใน sqlite)
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { eq } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
@@ -22,15 +22,22 @@ const mediaDir = () => process.env.CONTENT_MEDIA_DIR || "content-creator/media";
 const NO_TEXT_DIRECTIVE =
   "สำคัญ: ห้ามมีตัวอักษร ข้อความ ชื่อ หรือลายน้ำใด ๆ บนภาพ (no text, letters, captions, or watermark in the image).";
 
-/** อ่าน brand reference image แบบ path-safe (admin-set ใน DB — validate กัน traversal) */
+/**
+ * อ่าน brand reference image แบบ path-safe (admin-set ใน DB — เชื่อไม่ได้) [ตู๋ P1].
+ * lexical resolve อย่างเดียวไม่พอ — symlink ใน path ชี้ออกนอก repo ได้ → local bytes หลุดไป Gemini.
+ * ใช้ realpath + reject symlink (แนวเดียวกับ media route S3).
+ */
 function loadBrandRef(refImagePath: string): Uint8Array {
   if (!refImagePath.endsWith(".png")) throw new Error(`brand ref ต้องเป็น .png: ${refImagePath}`);
-  const full = resolve(refImagePath);
-  if (full !== resolve(process.cwd(), refImagePath) || !full.startsWith(resolve(process.cwd()) + sep)) {
-    throw new Error(`brand ref path ไม่ปลอดภัย (ต้องอยู่ใต้ repo): ${refImagePath}`);
+  const root = realpathSync(resolve(process.cwd())); // realpath root (กัน symlink ใน path เช่น /tmp→/private/tmp)
+  const candidate = resolve(root, refImagePath);
+  if (!existsSync(candidate)) throw new Error(`brand ref ไม่พบ: ${refImagePath}`);
+  if (lstatSync(candidate).isSymbolicLink()) throw new Error(`brand ref เป็น symlink (ไม่อนุญาต): ${refImagePath}`);
+  const real = realpathSync(candidate);
+  if (real !== candidate || !real.startsWith(root + sep)) {
+    throw new Error(`brand ref path ไม่ปลอดภัย (หลุดนอก repo): ${refImagePath}`);
   }
-  if (!existsSync(full)) throw new Error(`brand ref ไม่พบ: ${refImagePath}`);
-  return new Uint8Array(readFileSync(full));
+  return new Uint8Array(readFileSync(real));
 }
 
 export interface GenerateResult {
@@ -63,6 +70,10 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     // brand profile (หมอมี่) steer ทุก gen ให้ theme เดียวกัน [S3.5b/c]
     const brand = getBrandProfile(db);
 
+    // preflight: ถ้าใช้ ref → อ่าน+validate ref "ก่อน" Gemini call ใด ๆ
+    // (ref ไม่พบ/ไม่ปลอดภัย → FAILED ทันที ไม่จ่าย genCaption ฟรี) [ตู๋ P1]
+    const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
+
     const { system, prompt } = template.buildCaptionPrompt(row.inputData);
     const captionSystem = brand.captionPersona ? `${system}\n\n[persona] ${brand.captionPersona}` : system;
     const caption = await genCaption({ system: captionSystem, prompt });
@@ -70,10 +81,10 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     const basePrompt = template.buildImagePrompt(row.inputData);
     const styledPrompt = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
     // มี ref → nano banana (fix ตัวละคร/style) + ห้าม text บนภาพ ; ไม่มี ref → text-to-image เดิม
-    const bytes = brand.refImagePath
+    const bytes = refImage
       ? await genImageWithRef({
           prompt: `${styledPrompt}\n\n${NO_TEXT_DIRECTIVE}`,
-          refImage: loadBrandRef(brand.refImagePath),
+          refImage,
           model: brand.imageModel ?? undefined,
         })
       : await genImage({ prompt: styledPrompt });
