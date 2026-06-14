@@ -35,9 +35,9 @@ describe("validateCaption [S5]", () => {
   it("[ตู๋ P1] url spoof (mmv.app.evil) → fail (substring ไม่นับ)", () => {
     expect(validateCaption("ดูที่ https://mmv.app.evil/foo", b()).ok).toBe(false);
   });
-  it("url + path/space/จบ → ok (ขอบ url ถูก)", () => {
-    expect(validateCaption("ดู https://mmv.app/luck วันนี้", b()).ok).toBe(true);
+  it("url ตรง configured แบบ standalone → ok ; ยาวกว่า configured (/luck) → fail (เป๊ะ)", () => {
     expect(validateCaption("ทักเลย https://mmv.app", b()).ok).toBe(true);
+    expect(validateCaption("ดู https://mmv.app/luck วันนี้", b()).ok).toBe(false); // /luck = ไม่ใช่ configured เป๊ะ
   });
   it("ctaUrl ว่าง → ไม่บังคับ url", () => {
     expect(validateCaption("ปังมากแม่", b({ ctaUrl: "" })).ok).toBe(true);
@@ -50,7 +50,7 @@ describe("validateCaption [S5]", () => {
 describe("hasUrlToken [ตู๋ P1] — exact token ไม่ใช่ substring", () => {
   const u = "https://mmv.app";
   it("reject host-continuation (.evil)", () => expect(hasUrlToken("x https://mmv.app.evil/y", u)).toBe(false));
-  it("accept path /", () => expect(hasUrlToken("x https://mmv.app/path", u)).toBe(true));
+  it("reject path beyond configured (เป๊ะ)", () => expect(hasUrlToken("x https://mmv.app/path", u)).toBe(false));
   it("accept end-of-string", () => expect(hasUrlToken("ดู https://mmv.app", u)).toBe(true));
   it("accept space after", () => expect(hasUrlToken("https://mmv.app นะ", u)).toBe(true));
   it("ไม่มี url → false", () => expect(hasUrlToken("ไม่มีลิงก์", u)).toBe(false));

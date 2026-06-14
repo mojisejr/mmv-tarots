@@ -46,19 +46,24 @@ export interface CaptionValidation {
   reason?: string;
 }
 
+// ตัวอักษรที่ "ต่อ" เป็นส่วนหนึ่งของ URL ได้ — ขอบ url (หน้า-หลัง) ต้องไม่ใช่ตัวพวกนี้
+const URL_CONT = /[\w.\-~:/?#[\]@!$&'()*+,;=%]/;
+
 /**
- * caption มี ctaUrl เป็น "token จริง" ไหม — กัน substring spoof (`https://mmv.app.evil/x`
- * ไม่นับว่ามี `https://mmv.app`). ตัวถัดจาก url ต้องไม่ใช่ host-continuation char [A-Za-z0-9.-]
- * (`.evil` = host ต่อ → reject ; `/path` ` ` หรือจบ = ok)
+ * caption มี ctaUrl เป็น "token เป๊ะ" (standalone) ไหม — กันทั้ง:
+ *   - substring spoof: `https://mmv.app.evil/x` ไม่นับว่ามี `https://mmv.app`
+ *   - URL ยาวกว่า configured: `https://mmv.app/luck` ไม่นับว่ามี `https://mmv.app` เป๊ะ [ตู๋]
+ * → ขอบหน้า-หลังของ url ต้องไม่ใช่ URL-continuation char (เป็น whitespace/วรรค/จบ เท่านั้น)
  */
 export function hasUrlToken(text: string, url: string): boolean {
   if (!url) return false;
   for (let from = 0; ; ) {
     const i = text.indexOf(url, from);
     if (i < 0) return false;
+    const before = i > 0 ? text[i - 1] : "";
     const after = text[i + url.length] ?? "";
-    if (!/[A-Za-z0-9.\-]/.test(after)) return true; // ขอบ url ถูกต้อง
-    from = i + 1; // เจอแต่เป็น prefix ของ host อื่น → หาต่อ
+    if (!URL_CONT.test(before) && !URL_CONT.test(after)) return true; // standalone เป๊ะ
+    from = i + 1; // เป็นส่วนของ url อื่น → หาต่อ
   }
 }
 

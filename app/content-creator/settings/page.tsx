@@ -124,7 +124,7 @@ export default function BrandSettingsPage() {
               />
             </label>
             <label className="mt-2 block">
-              <span className="text-xs text-gray-600">ลิงก์ระบบ (แนบท้ายเป๊ะทุกโพสต์ — ว่าง = ไม่บังคับลิงก์)</span>
+              <span className="text-xs text-gray-600">ลิงก์ระบบ (CTA url) — <b className="text-red-600">จำเป็น</b>: ทุกโพสต์ต้องมี (ถ้าว่าง gen จะ FAILED)</span>
               <input
                 value={ctaUrl}
                 onChange={(e) => setCtaUrl(e.target.value)}

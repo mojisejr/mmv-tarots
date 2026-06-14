@@ -107,6 +107,12 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     // brand profile (หมอมี่) steer ทุก gen ให้ theme เดียวกัน [S3.5b/c]
     const brand = getBrandProfile(db);
 
+    // CTA mandatory [S5/ตู๋]: ทุกโพสต์ต้องมี CTA link → ต้องตั้ง ctaUrl ก่อน gen.
+    // เช็ค "ก่อน paid Gemini call" — ไม่ตั้ง = FAILED ทันที (ไม่จ่ายฟรี)
+    if (!brand.ctaUrl.trim()) {
+      throw new Error("CTA บังคับ: ต้องตั้ง CTA link (ctaUrl) ใน Settings ก่อน gen (ทุกโพสต์ต้องมี CTA)");
+    }
+
     // preflight: ถ้าใช้ ref → อ่าน+validate ref "ก่อน" Gemini call ใด ๆ
     // (ref ไม่พบ/ไม่ปลอดภัย → FAILED ทันที ไม่จ่าย genCaption ฟรี) [ตู๋ P1]
     const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
