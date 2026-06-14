@@ -153,8 +153,10 @@ describe("generate engine — Brand Profile steering [S3.5b/c]", () => {
     expect(mockGenImageWithRef).toHaveBeenCalledTimes(1);
     expect(mockGenImage).not.toHaveBeenCalled(); // ref path ไม่ใช้ text-to-image
     const refArg = mockGenImageWithRef.mock.calls[0][0];
+    expect(refArg.prompt).toContain("ภาพอ้างอิงที่แนบมา"); // character-preservation directive (กันได้ฟีนิกซ์แทนแมว)
+    expect(refArg.prompt).toContain("ตัวละครเดียวกัน");
     expect(refArg.prompt).toContain("ห้ามมีตัวอักษร"); // NO_TEXT directive (caveat spike)
-    expect(refArg.prompt).toContain("พาสเทล"); // style prompt ผสม
+    expect(refArg.prompt).toContain("พาสเทล"); // style prompt ผสม (เป็น theme รอง)
     expect(refArg.refImage).toBeInstanceOf(Uint8Array);
     // persona เข้า caption system
     expect(mockGenCaption.mock.calls[0][0].system).toContain("หมอมี่");

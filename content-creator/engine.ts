@@ -23,6 +23,15 @@ const NO_TEXT_DIRECTIVE =
   "สำคัญ: ห้ามมีตัวอักษร ข้อความ ชื่อ หรือลายน้ำใด ๆ บนภาพ (no text, letters, captions, or watermark in the image).";
 
 /**
+ * directive นำหน้า ref-based gen — บังคับให้ "ยึดตัวละคร+สไตล์จาก ref" (ไม่ใช่ใช้ ref เป็นแค่ style cue).
+ * ขาดบรรทัดนี้ = model สร้างตัวละครใหม่ตาม theme prompt (เคยได้ฟีนิกซ์แทนแมว). theme เป็น "ฉาก/props" รอง.
+ */
+const refDirective = (theme: string) =>
+  "ใช้ตัวละครหลักและสไตล์ศิลป์จาก 'ภาพอ้างอิงที่แนบมา' ให้เหมือนเป๊ะ — " +
+  "หน้าตา ชนิดสัตว์ สีสัน เครื่องแต่งกาย และรายละเอียดของตัวละครต้องตรงกับภาพอ้างอิงทุกประการ (เป็นตัวละครเดียวกัน). " +
+  `สร้างภาพใหม่โดยเปลี่ยนเฉพาะ ฉาก/props/ท่าทาง/องค์ประกอบ ให้สื่อถึงธีมต่อไปนี้: ${theme}`;
+
+/**
  * อ่าน brand reference image แบบ path-safe (admin-set ใน DB — เชื่อไม่ได้) [ตู๋ P1].
  * lexical resolve อย่างเดียวไม่พอ — symlink ใน path ชี้ออกนอก repo ได้ → local bytes หลุดไป Gemini.
  * ใช้ realpath + reject symlink (แนวเดียวกับ media route S3).
@@ -79,15 +88,16 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     const caption = await genCaption({ system: captionSystem, prompt });
 
     const basePrompt = template.buildImagePrompt(row.inputData);
-    const styledPrompt = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
-    // มี ref → nano banana (fix ตัวละคร/style) + ห้าม text บนภาพ ; ไม่มี ref → text-to-image เดิม
+    const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
+    // มี ref → nano banana: refDirective นำ (ยึดตัวละคร) + theme เป็นฉาก/props รอง + ห้าม text
+    // ไม่มี ref → imagen text-to-image (theme เป็น prompt หลักเลย)
     const bytes = refImage
       ? await genImageWithRef({
-          prompt: `${styledPrompt}\n\n${NO_TEXT_DIRECTIVE}`,
+          prompt: `${refDirective(themeWithStyle)}\n\n${NO_TEXT_DIRECTIVE}`,
           refImage,
           model: brand.imageModel ?? undefined,
         })
-      : await genImage({ prompt: styledPrompt });
+      : await genImage({ prompt: themeWithStyle });
     attemptPath = persistImage(id, token, bytes);
 
     // commit DB เฉพาะถ้า token ยังตรง. ไม่ตรง = โดน reclaim → ลบ artifact ของ attempt เรา (ไม่แตะ winner)
