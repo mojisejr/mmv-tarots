@@ -30,11 +30,20 @@ export const DEFAULT_BRAND: Omit<BrandProfile, "updatedAt"> = {
   ctaUrl: "",
 };
 
-/** อ่าน brand profile (merge row override DEFAULT) — มี fallback เสมอ ให้ engine ใช้ได้ทันที */
+/**
+ * อ่าน brand profile — มี fallback DEFAULT เสมอ.
+ * field ที่ row "ว่าง" (เช่น row เก่าก่อนมี cta/maxChars หลัง migration) → fallback DEFAULT
+ * เพื่อให้ CTA/length ไม่ถูกปิดเงียบ [ตู๋ P1]. (ctaUrl ว่าง = ฟีมตั้งใจไม่ใส่ link — เคารพ)
+ */
 export function getBrandProfile(db: ContentDb): BrandProfile {
   const row = db.select().from(brandProfile).where(eq(brandProfile.id, SINGLETON_ID)).get();
   if (!row) return { ...DEFAULT_BRAND, updatedAt: new Date() };
-  return row;
+  return {
+    ...row,
+    captionPersona: row.captionPersona || DEFAULT_BRAND.captionPersona,
+    ctaText: row.ctaText || DEFAULT_BRAND.ctaText, // ว่าง → DEFAULT (CTA text บังคับมีเสมอ)
+    captionMaxChars: row.captionMaxChars || DEFAULT_BRAND.captionMaxChars,
+  };
 }
 
 export type BrandProfilePatch = Partial<

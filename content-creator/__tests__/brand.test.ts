@@ -33,4 +33,14 @@ describe("Brand Profile [S3.5b/c]", () => {
     expect(all).toHaveLength(1);
     expect(all[0].id).toBe("default");
   });
+
+  // [ตู๋ P1] existing row ที่ cta/maxChars ว่าง (row เก่าก่อนมี field) → fallback DEFAULT (CTA ไม่ปิดเงียบ)
+  it("row ที่ ctaText/maxChars ว่าง → getBrandProfile fallback DEFAULT", () => {
+    const db = createContentDb(":memory:");
+    db.insert(brandProfile).values({ id: "default", stylePrompt: "x", ctaText: "", captionMaxChars: 0 }).run();
+    const b = getBrandProfile(db);
+    expect(b.ctaText).toBe(DEFAULT_BRAND.ctaText);
+    expect(b.captionMaxChars).toBe(DEFAULT_BRAND.captionMaxChars);
+    expect(b.stylePrompt).toBe("x"); // ที่ตั้งไว้คงอยู่
+  });
 });

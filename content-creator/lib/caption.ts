@@ -46,15 +46,35 @@ export interface CaptionValidation {
   reason?: string;
 }
 
-/** validate caption ตาม brand — length + มี CTA link (ถ้าตั้ง ctaUrl) */
+/**
+ * caption มี ctaUrl เป็น "token จริง" ไหม — กัน substring spoof (`https://mmv.app.evil/x`
+ * ไม่นับว่ามี `https://mmv.app`). ตัวถัดจาก url ต้องไม่ใช่ host-continuation char [A-Za-z0-9.-]
+ * (`.evil` = host ต่อ → reject ; `/path` ` ` หรือจบ = ok)
+ */
+export function hasUrlToken(text: string, url: string): boolean {
+  if (!url) return false;
+  for (let from = 0; ; ) {
+    const i = text.indexOf(url, from);
+    if (i < 0) return false;
+    const after = text[i + url.length] ?? "";
+    if (!/[A-Za-z0-9.\-]/.test(after)) return true; // ขอบ url ถูกต้อง
+    from = i + 1; // เจอแต่เป็น prefix ของ host อื่น → หาต่อ
+  }
+}
+
+/**
+ * validate caption ตาม brand — length + CTA.
+ * **CTA enforceable = ctaUrl** (token เป๊ะ ตรวจได้) ; ctaText อย่างเดียว model เรียบเรียงใหม่
+ * ตรวจไม่ได้ → ถ้าจะบังคับ CTA ต้องตั้ง ctaUrl (settings เตือน). [ตู๋ P1]
+ */
 export function validateCaption(caption: string, brand: Pick<BrandProfile, "captionMaxChars" | "ctaUrl">): CaptionValidation {
   const text = caption.trim();
   if (text.length === 0) return { ok: false, reason: "caption ว่าง" };
   if (text.length > brand.captionMaxChars) {
     return { ok: false, reason: `ยาวเกิน ${brand.captionMaxChars} ตัวอักษร (ได้ ${text.length})` };
   }
-  if (brand.ctaUrl && !text.includes(brand.ctaUrl)) {
-    return { ok: false, reason: "ขาด CTA link ในแคปชั่น (ต้องมี ctaUrl)" };
+  if (brand.ctaUrl && !hasUrlToken(text, brand.ctaUrl)) {
+    return { ok: false, reason: "ขาด CTA link ที่ถูกต้องในแคปชั่น (ต้องมี ctaUrl เป๊ะ)" };
   }
   return { ok: true };
 }

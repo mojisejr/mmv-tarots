@@ -19,13 +19,17 @@ import { safeResolveUnderRoot } from "./lib/safe-path";
 import { getTemplate } from "./templates";
 import type { CaptionPrompt } from "./templates/types";
 
-/** caption ล่าสุด N อัน (ของ post อื่น) — feed เข้า prompt กันเขียนซ้ำ [S5 anti-repeat] */
-function getRecentCaptions(db: ContentDb, excludeId: string, limit = 5): string[] {
+/**
+ * caption ที่ "เคยโพสต์จริง" (POSTED) N อันล่าสุด — feed เข้า prompt กันเขียนซ้ำของที่ public เห็นแล้ว
+ * [S5 anti-repeat]. ใช้ POSTED + order postedAt (ไม่ใช่ทุก status/updatedAt — กัน draft/canceled/
+ * transition เก่าเบียดของจริง) [ตู๋ P2]. ช่วงแรกไม่มี POSTED → ว่าง (ยังไม่มีอะไรให้ซ้ำ)
+ */
+export function getRecentCaptions(db: ContentDb, excludeId: string, limit = 5): string[] {
   return db
     .select({ caption: contentPosts.caption })
     .from(contentPosts)
-    .where(and(isNotNull(contentPosts.caption), ne(contentPosts.id, excludeId)))
-    .orderBy(desc(contentPosts.updatedAt))
+    .where(and(eq(contentPosts.status, "POSTED"), isNotNull(contentPosts.caption), ne(contentPosts.id, excludeId)))
+    .orderBy(desc(contentPosts.postedAt))
     .limit(limit)
     .all()
     .map((r) => r.caption)

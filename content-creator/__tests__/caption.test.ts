@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCaptionRequest, validateCaption } from "../lib/caption";
+import { buildCaptionRequest, validateCaption, hasUrlToken } from "../lib/caption";
 
 const brand = { captionPersona: "หมอมี่ ฟันธงสั้น", captionMaxChars: 300, ctaText: "ทักพี่หมี่ดูดวงเต็ม", ctaUrl: "https://mmv.app" };
 const base = { system: "คุณคือหมอมี่", prompt: "ไพ่: The Sun" };
@@ -32,10 +32,26 @@ describe("validateCaption [S5]", () => {
   it("ตั้ง ctaUrl แต่ caption ไม่มี url → fail (ลืม CTA link)", () => {
     expect(validateCaption("ปังมากแม่ ไม่มีลิงก์", b()).ok).toBe(false);
   });
+  it("[ตู๋ P1] url spoof (mmv.app.evil) → fail (substring ไม่นับ)", () => {
+    expect(validateCaption("ดูที่ https://mmv.app.evil/foo", b()).ok).toBe(false);
+  });
+  it("url + path/space/จบ → ok (ขอบ url ถูก)", () => {
+    expect(validateCaption("ดู https://mmv.app/luck วันนี้", b()).ok).toBe(true);
+    expect(validateCaption("ทักเลย https://mmv.app", b()).ok).toBe(true);
+  });
   it("ctaUrl ว่าง → ไม่บังคับ url", () => {
     expect(validateCaption("ปังมากแม่", b({ ctaUrl: "" })).ok).toBe(true);
   });
   it("ว่าง → fail", () => {
     expect(validateCaption("   ", b({ ctaUrl: "" })).ok).toBe(false);
   });
+});
+
+describe("hasUrlToken [ตู๋ P1] — exact token ไม่ใช่ substring", () => {
+  const u = "https://mmv.app";
+  it("reject host-continuation (.evil)", () => expect(hasUrlToken("x https://mmv.app.evil/y", u)).toBe(false));
+  it("accept path /", () => expect(hasUrlToken("x https://mmv.app/path", u)).toBe(true));
+  it("accept end-of-string", () => expect(hasUrlToken("ดู https://mmv.app", u)).toBe(true));
+  it("accept space after", () => expect(hasUrlToken("https://mmv.app นะ", u)).toBe(true));
+  it("ไม่มี url → false", () => expect(hasUrlToken("ไม่มีลิงก์", u)).toBe(false));
 });
