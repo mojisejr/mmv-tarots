@@ -8,14 +8,48 @@
  */
 import { mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, ne } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
-import { contentPosts } from "./db/schema";
+import { contentPosts, type BrandProfile } from "./db/schema";
 import { getBrandProfile } from "./db/brand";
 import { claimForGenerate, markGenerated, releaseGenerate } from "./db/transition";
 import { genCaption, genImage, genImageWithRef } from "./lib/gemini";
+import { buildCaptionRequest, validateCaption } from "./lib/caption";
 import { safeResolveUnderRoot } from "./lib/safe-path";
 import { getTemplate } from "./templates";
+import type { CaptionPrompt } from "./templates/types";
+
+/**
+ * caption ที่ "เคยโพสต์จริง" (POSTED) N อันล่าสุด — feed เข้า prompt กันเขียนซ้ำของที่ public เห็นแล้ว
+ * [S5 anti-repeat]. ใช้ POSTED + order postedAt (ไม่ใช่ทุก status/updatedAt — กัน draft/canceled/
+ * transition เก่าเบียดของจริง) [ตู๋ P2]. ช่วงแรกไม่มี POSTED → ว่าง (ยังไม่มีอะไรให้ซ้ำ)
+ */
+export function getRecentCaptions(db: ContentDb, excludeId: string, limit = 5): string[] {
+  return db
+    .select({ caption: contentPosts.caption })
+    .from(contentPosts)
+    .where(and(eq(contentPosts.status, "POSTED"), isNotNull(contentPosts.caption), ne(contentPosts.id, excludeId)))
+    .orderBy(desc(contentPosts.postedAt))
+    .limit(limit)
+    .all()
+    .map((r) => r.caption)
+    .filter((c): c is string => !!c);
+}
+
+/** gen caption + validate (length/CTA) ; ไม่ผ่าน → regen 1 ครั้ง (เข้มขึ้น) ; ยังไม่ผ่าน → throw (FAILED) [S5] */
+async function generateCaption(base: CaptionPrompt, brand: BrandProfile, recentCaptions: string[]): Promise<string> {
+  const reqq = buildCaptionRequest({ base, brand, recentCaptions });
+  let caption = (await genCaption(reqq)).trim();
+  let v = validateCaption(caption, brand);
+  if (!v.ok) {
+    // regen 1 ครั้ง พร้อม feedback ว่าทำไมไม่ผ่าน (caption gen ถูก — ยอม regen ได้)
+    const retry: CaptionPrompt = { system: `${reqq.system}\n\n(รอบก่อนไม่ผ่านกติกา: ${v.reason} — แก้ให้ถูกเป๊ะ)`, prompt: reqq.prompt };
+    caption = (await genCaption(retry)).trim();
+    v = validateCaption(caption, brand);
+    if (!v.ok) throw new Error(`caption ไม่ผ่านกติกาหลัง regen: ${v.reason}`);
+  }
+  return caption;
+}
 
 const mediaDir = () => process.env.CONTENT_MEDIA_DIR || "content-creator/media";
 
@@ -73,13 +107,19 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     // brand profile (หมอมี่) steer ทุก gen ให้ theme เดียวกัน [S3.5b/c]
     const brand = getBrandProfile(db);
 
+    // CTA mandatory [S5/ตู๋]: ทุกโพสต์ต้องมี CTA link → ต้องตั้ง ctaUrl ก่อน gen.
+    // เช็ค "ก่อน paid Gemini call" — ไม่ตั้ง = FAILED ทันที (ไม่จ่ายฟรี)
+    if (!brand.ctaUrl.trim()) {
+      throw new Error("CTA บังคับ: ต้องตั้ง CTA link (ctaUrl) ใน Settings ก่อน gen (ทุกโพสต์ต้องมี CTA)");
+    }
+
     // preflight: ถ้าใช้ ref → อ่าน+validate ref "ก่อน" Gemini call ใด ๆ
     // (ref ไม่พบ/ไม่ปลอดภัย → FAILED ทันที ไม่จ่าย genCaption ฟรี) [ตู๋ P1]
     const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
 
-    const { system, prompt } = template.buildCaptionPrompt(row.inputData);
-    const captionSystem = brand.captionPersona ? `${system}\n\n[persona] ${brand.captionPersona}` : system;
-    const caption = await genCaption({ system: captionSystem, prompt });
+    // caption [S5]: ฟันธงสั้น (≤maxChars) + CTA ชวนใช้ระบบ + ไม่ซ้ำของเก่า
+    const recentCaptions = getRecentCaptions(db, id);
+    const caption = await generateCaption(template.buildCaptionPrompt(row.inputData), brand, recentCaptions);
 
     const basePrompt = template.buildImagePrompt(row.inputData);
     const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;

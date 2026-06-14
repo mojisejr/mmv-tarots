@@ -25,8 +25,9 @@ import { GET as templatesGET } from "@/app/content-creator/api/templates/route";
 import { POST as previewPOST } from "@/app/content-creator/api/preview/route";
 import { POST as createPOST } from "@/app/content-creator/api/create/route";
 
-// brand no-ref → create ใช้ genImage (text-to-image) path เดิม — เทสต์ S3.5a โฟกัส lifecycle ไม่ใช่ brand
-updateBrandProfile(getContentDb(), { refImagePath: null });
+// brand no-ref (genImage path) + ctaUrl บังคับ (S5) — เทสต์ S3.5a โฟกัส lifecycle ไม่ใช่ brand
+const S35A_CTA = "https://mmv.app/luck";
+updateBrandProfile(getContentDb(), { refImagePath: null, ctaUrl: S35A_CTA });
 
 const enable = () => (process.env.CONTENT_CREATOR_ENABLED = "true");
 const disable = () => delete process.env.CONTENT_CREATOR_ENABLED;
@@ -39,7 +40,7 @@ const createBody = (over: Record<string, unknown> = {}) => ({ requestKey: `k-${+
 
 beforeEach(() => {
   enable();
-  mockGenCaption.mockReset().mockResolvedValue("ปังมากแม่! #หมอมี่");
+  mockGenCaption.mockReset().mockResolvedValue(`ปังมากแม่! #หมอมี่ ทักเลย ${S35A_CTA}`); // มี CTA token (S5)
   mockGenImage.mockReset().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
   mockGenImageWithRef.mockReset().mockResolvedValue(new Uint8Array([5, 6, 7, 8]));
 });
@@ -179,7 +180,7 @@ describe("[S3.5a] create route — insert PENDING + gen (sync)", () => {
       () =>
         new Promise<string>((resolve) => {
           aAtGen();
-          releaseA = () => resolve("ปังมากแม่");
+          releaseA = () => resolve(`ปังมากแม่ ${S35A_CTA}`); // มี CTA token → validate ผ่านรอบเดียว (ไม่ regen)
         }),
     );
     const aPromise = createPOST(req({ requestKey: key, ...GOOD })); // A: PENDING→GENERATING, ค้าง

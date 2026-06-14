@@ -68,6 +68,11 @@ export const brandProfile = sqliteTable("brand_profile", {
   captionPersona: text("caption_persona").notNull().default(""),
   refImagePath: text("ref_image_path"),
   imageModel: text("image_model"),
+  /** caption: จำกัดความยาว (ตัวอักษร) — ฟันธงสั้น [S5] */
+  captionMaxChars: integer("caption_max_chars").notNull().default(300),
+  /** CTA ชวนเข้าใช้ระบบ — บังคับแนบทุก caption (ฟีมแก้ใน settings) [S5] */
+  ctaText: text("cta_text").notNull().default(""),
+  ctaUrl: text("cta_url").notNull().default(""),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 

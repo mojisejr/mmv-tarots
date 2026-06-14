@@ -23,16 +23,19 @@ import { generate } from "../engine";
 
 const tmpDirs: string[] = [];
 /** setup db + media ; default brand เป็น no-ref (genImage path) ให้ test S2 เดิมไม่เปลี่ยนพฤติกรรม */
-function setup(opts: { ref?: string | null } = {}) {
+const CTA_URL = "https://mmv.app/luck"; // ctaUrl บังคับ (S5) — caption mock ต้องมี token นี้
+function setup(opts: { ref?: string | null; ctaUrl?: string } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "cc-engine-"));
   tmpDirs.push(dir);
   process.env.CONTENT_MEDIA_DIR = join(dir, "media");
   const db = createContentDb(":memory:");
-  updateBrandProfile(db, { refImagePath: opts.ref ?? null }); // S2 tests → no ref → genImage
+  // CTA mandatory → ตั้ง ctaUrl (เว้นแต่ test เจตนาไม่ตั้ง) ; default no-ref → genImage
+  updateBrandProfile(db, { refImagePath: opts.ref ?? null, ctaUrl: opts.ctaUrl ?? CTA_URL });
   return { db, dir };
 }
 beforeEach(() => {
-  mockGenCaption.mockReset().mockResolvedValue("ปังมากแม่! #ดูดวงการเงิน #หมอมี่");
+  // caption mock: สั้น + มี CTA token (ผ่าน validate)
+  mockGenCaption.mockReset().mockResolvedValue(`ปังมากแม่! #หมอมี่ ทักเลย ${CTA_URL}`);
   mockGenImage.mockReset().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
   mockGenImageWithRef.mockReset().mockResolvedValue(new Uint8Array([5, 6, 7, 8]));
 });
@@ -84,6 +87,27 @@ describe("generate engine [S2]", () => {
     expect(res.status).toBe("FAILED");
     expect(mockGenCaption).not.toHaveBeenCalled();
     expect(db.select().from(contentPosts).where(eq(contentPosts.id, "d")).get()!.status).toBe("FAILED");
+  });
+
+  // [S5] caption ยาวเกิน maxChars → regen 1 ครั้ง → ยังเกิน → FAILED (ไม่ปล่อยแคปชั่นผิดกติกา)
+  it("caption ยาวเกิน maxChars → regen แล้วยังเกิน → FAILED", async () => {
+    const { db } = setup(); // brand default maxChars 300
+    mockGenCaption.mockReset().mockResolvedValue("ก".repeat(500)); // ยาวเกิน maxChars (450) ทั้ง gen + regen
+    insertPending(db, "long", { card: "The Sun", meaning: "การเงินดี" });
+    const res = await generate(db, "long");
+    expect(res.status).toBe("FAILED");
+    expect(mockGenCaption).toHaveBeenCalledTimes(2); // gen + regen 1 ครั้ง
+    expect(mockGenImage).not.toHaveBeenCalled(); // caption ล้มก่อน → ไม่ gen ภาพ
+  });
+
+  // [S5/ตู๋] CTA mandatory — ไม่ตั้ง ctaUrl → FAILED ก่อน Gemini (ไม่จ่ายฟรี)
+  it("ไม่ตั้ง ctaUrl → FAILED ก่อนเรียก Gemini (CTA บังคับ)", async () => {
+    const { db } = setup({ ctaUrl: "" });
+    insertPending(db, "nocta", { card: "X", meaning: "Y" });
+    const res = await generate(db, "nocta");
+    expect(res.status).toBe("FAILED");
+    expect(mockGenCaption).not.toHaveBeenCalled();
+    expect(mockGenImage).not.toHaveBeenCalled();
   });
 
   // [P1] ownership token + filesystem fence — stale worker ห้ามทับไฟล์ของ attempt ที่ชนะ

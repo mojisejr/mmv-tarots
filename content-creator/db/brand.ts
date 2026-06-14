@@ -21,19 +21,34 @@ export const DEFAULT_BRAND: Omit<BrandProfile, "updatedAt"> = {
     "การ์ตูนน่ารักสไตล์ digital illustration soft painterly, โทนพาสเทล ชมพู-ม่วงลาเวนเดอร์-ทอง-ฟ้าอ่อน, " +
     "ธีมหมอดู/มงคล (ลูกแก้วคริสตัล ไพ่ทาโรต์ เทียน คริสตัล), ดวงดาวระยิบ พระจันทร์/ดวงอาทิตย์ทอง, highlight เรืองแสง, อบอุ่นสดใส",
   captionPersona:
-    "เขียนแบบ 'หมอมี่' — แมวหมอดูน่ารัก สดใส เป็นกันเอง พูดให้กำลังใจเรื่องการเงิน ใช้ภาษาไทยติดดิน อิโมจิพอประมาณ",
+    "เขียนแบบ 'หมอมี่' — แมวหมอดูน่ารัก สดใส เป็นกันเอง ฟันธงชัด ให้กำลังใจ มีเนื้อหาน่าอ่านพอเหมาะ (ไม่ห้วนไป) ใช้ภาษาไทยติดดิน อิโมจิพอประมาณ",
   refImagePath: DEFAULT_REF_PATH,
   imageModel: null,
+  captionMaxChars: 450,
+  // CTA default — ฟีมแก้ใน settings ให้ตรงระบบจริง (link/handle)
+  ctaText: "อยากรู้ดวงการเงินแบบเจาะลึกของตัวเอง? ทักหาพี่หมี่ดูดวงเต็ม ๆ ได้เลย",
+  ctaUrl: "",
 };
 
-/** อ่าน brand profile (merge row override DEFAULT) — มี fallback เสมอ ให้ engine ใช้ได้ทันที */
+/**
+ * อ่าน brand profile — มี fallback DEFAULT เสมอ.
+ * field ที่ row "ว่าง" (เช่น row เก่าก่อนมี cta/maxChars หลัง migration) → fallback DEFAULT
+ * เพื่อให้ CTA/length ไม่ถูกปิดเงียบ [ตู๋ P1]. (ctaUrl ว่าง = ฟีมตั้งใจไม่ใส่ link — เคารพ)
+ */
 export function getBrandProfile(db: ContentDb): BrandProfile {
   const row = db.select().from(brandProfile).where(eq(brandProfile.id, SINGLETON_ID)).get();
   if (!row) return { ...DEFAULT_BRAND, updatedAt: new Date() };
-  return row;
+  return {
+    ...row,
+    captionPersona: row.captionPersona || DEFAULT_BRAND.captionPersona,
+    ctaText: row.ctaText || DEFAULT_BRAND.ctaText, // ว่าง → DEFAULT (CTA text บังคับมีเสมอ)
+    captionMaxChars: row.captionMaxChars || DEFAULT_BRAND.captionMaxChars,
+  };
 }
 
-export type BrandProfilePatch = Partial<Pick<BrandProfile, "stylePrompt" | "captionPersona" | "refImagePath" | "imageModel">>;
+export type BrandProfilePatch = Partial<
+  Pick<BrandProfile, "stylePrompt" | "captionPersona" | "refImagePath" | "imageModel" | "captionMaxChars" | "ctaText" | "ctaUrl">
+>;
 
 /** upsert singleton (ฟีมแก้จาก settings UI) */
 export function updateBrandProfile(db: ContentDb, patch: BrandProfilePatch): BrandProfile {
