@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { PreviewGuard } from "@/content-creator/lib/preview-guard";
 import { readPending, writePending, clearPending, resolveRequestKey } from "@/content-creator/lib/request-draft";
 import { classifyCreateResponse, shouldClearPending } from "@/content-creator/lib/create-outcome";
+import Daily7Authoring from "./Daily7Authoring";
 
 type TemplateOpt = { id: string; name: string };
 
@@ -139,6 +140,10 @@ export default function NewContentPage() {
           </select>
         </label>
 
+        {templateId === "daily-7" ? (
+          <Daily7Authoring onFinalized={() => router.push("/content-creator")} />
+        ) : (
+        <>
         <label className="block">
           <span className="text-sm font-medium text-gray-700">ไพ่ (card)</span>
           <input
@@ -193,6 +198,8 @@ export default function NewContentPage() {
             {submitting ? "กำลัง gen… (~10s)" : "สร้าง + Generate"}
           </button>
         </div>
+        </>
+        )}
       </div>
     </main>
   );
