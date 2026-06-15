@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SAMPLE: Daily7Input = {
-  dateLabel: "วันนี้",
+  targetDate: "2026-06-15",
   days: [
     { day: "จันทร์", fortune: "การงานไหลลื่น เจ้านายเอ็นดู มีโอกาสได้งานใหม่" },
     { day: "อังคาร", fortune: "ระวังปากเสียงกับคนใกล้ตัว ใจเย็นไว้" },
@@ -43,7 +43,8 @@ export async function GET(request: Request) {
     }
   }
 
-  const bytes = await daily7.renderImage(input, { brand: DEFAULT_BRAND, seed });
+  // daily7 composition ไม่ใช้ brand แต่ RenderContext.brand type ต้องครบ — เติม updatedAt
+  const bytes = await daily7.renderImage(input, { brand: { ...DEFAULT_BRAND, updatedAt: new Date() }, seed });
   return new NextResponse(new Uint8Array(bytes), {
     headers: { "content-type": "image/png", "cache-control": "no-store" },
   });

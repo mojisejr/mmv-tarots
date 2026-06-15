@@ -78,3 +78,47 @@ export const brandProfile = sqliteTable("brand_profile", {
 
 export type BrandProfile = typeof brandProfile.$inferSelect;
 export type NewBrandProfile = typeof brandProfile.$inferInsert;
+
+/**
+ * ContentDraft [S6c] — "พื้นที่ร่าง/แก้ไข" ก่อนกลายเป็น contentPost จริง (ตู๋ P1.A).
+ * แยก table เด็ดขาดจาก contentPosts: draft = mutable editorial workspace, contentPosts =
+ * publication artifact + state machine. finalize = snapshot draft → สร้าง contentPost (atomic).
+ *
+ * lifecycle: GENERATING → READY → FINALIZED ; READY/FAILED → (regen) GENERATING ; FINALIZED = read-only
+ * concurrency: optimistic ผ่าน `revision` (เขียนต้อง WHERE revision=expected) + generationToken
+ *   (gen/regen เขียนกลับเฉพาะ token+revision ยังตรง — กัน stale regen ทับ user edits)
+ */
+export const DRAFT_STATUSES = ["GENERATING", "READY", "FAILED", "FINALIZED"] as const;
+export type DraftStatus = (typeof DRAFT_STATUSES)[number];
+
+export const contentDrafts = sqliteTable("content_drafts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  /** idempotency key ต่อ "การสร้าง draft 1 ครั้ง" (retry เน็ตหลุด = key เดิม → ได้ draft เดิม) */
+  requestKey: text("request_key").notNull().unique(),
+  templateId: text("template_id").notNull(),
+  /** canonical seed ที่ "นิยาม identity ของ draft" (frozen): เช่น { targetDate } — freeze เวลาสร้าง
+   *  ไม่ derive ใหม่ทุก retry (กัน lost-response ข้ามเที่ยงคืน same-key คนละความหมาย) [ตู๋ P1.C] */
+  seedPayload: text("seed_payload", { mode: "json" }).notNull().$type<Record<string, unknown>>(),
+  /** เนื้อหาที่ gen/แก้ได้ (7 วัน ฯลฯ) — mutable */
+  draftData: text("draft_data", { mode: "json" }).$type<Record<string, unknown>>(),
+  status: text("status").$type<DraftStatus>().notNull().default("GENERATING"),
+  /** optimistic concurrency — bump ทุกครั้งที่เขียนสำเร็จ */
+  revision: integer("revision").notNull().default(0),
+  /** ownership token ของ gen/regen attempt ปัจจุบัน — เขียนผลกลับเฉพาะ token ตรง (กัน stale overwrite) */
+  generationToken: text("generation_token"),
+  generatingAt: integer("generating_at", { mode: "timestamp" }),
+  /** key ของ regen attempt ปัจจุบัน (จงใจ gen ใหม่) — แยกจาก requestKey (retry) [ตู๋ P1.D] */
+  attemptKey: text("attempt_key"),
+  /** key ของการ finalize (replay → คืน contentPostId เดิม) — แยกจาก draft/regen key */
+  finalizeKey: text("finalize_key"),
+  /** หลัง finalize → post จริงที่สร้าง (กัน double-finalize: NULL = ยังไม่ finalize) */
+  contentPostId: text("content_post_id"),
+  error: text("error"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type ContentDraft = typeof contentDrafts.$inferSelect;
+export type NewContentDraft = typeof contentDrafts.$inferInsert;

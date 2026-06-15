@@ -22,18 +22,18 @@ function toBase64(s: string): string {
 }
 
 export default function Daily7Playground() {
-  const [dateLabel, setDateLabel] = useState("วันนี้");
+  const [targetDate, setTargetDate] = useState("2026-06-15");
   const [fortunes, setFortunes] = useState<Record<string, string>>({ ...DEFAULTS });
   const [seed, setSeed] = useState("playground");
 
   const src = useMemo(() => {
     const input = {
-      dateLabel: dateLabel.trim() || undefined,
+      targetDate,
       days: WEEKDAYS.map((day) => ({ day, fortune: fortunes[day]?.trim() || "—" })),
     };
     const d = encodeURIComponent(toBase64(JSON.stringify(input)));
     return `/content-creator/api/daily7-preview?d=${d}&seed=${encodeURIComponent(seed)}`;
-  }, [dateLabel, fortunes, seed]);
+  }, [targetDate, fortunes, seed]);
 
   return (
     <div style={{ display: "flex", gap: 24, padding: 24, fontFamily: "sans-serif", alignItems: "flex-start" }}>
@@ -41,8 +41,8 @@ export default function Daily7Playground() {
         <h2 style={{ margin: 0 }}>daily-7 playground 🔮</h2>
         <p style={{ margin: 0, color: "#666", fontSize: 13 }}>กรอกแล้วภาพอัปเดตสด · ไม่แตะ DB/Gemini · dev only</p>
 
-        <label style={{ fontSize: 13, color: "#444" }}>ป้ายวันที่ (header)</label>
-        <input value={dateLabel} onChange={(e) => setDateLabel(e.target.value)} style={{ padding: 8, borderRadius: 8, border: "1px solid #ccc" }} />
+        <label style={{ fontSize: 13, color: "#444" }}>targetDate (ISO — renderer แปลงเป็นวันที่ไทยเอง)</label>
+        <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} style={{ padding: 8, borderRadius: 8, border: "1px solid #ccc" }} />
 
         {WEEKDAYS.map((day) => (
           <div key={day} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
