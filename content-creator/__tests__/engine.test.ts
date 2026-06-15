@@ -16,6 +16,22 @@ vi.mock("../lib/gemini", () => ({
   genImageWithRef: mockGenImageWithRef,
 }));
 
+// inject composition template "comp-test" เข้า registry (finance ยังเป็นของจริง) [S6a]
+const { mockRenderImage } = vi.hoisted(() => ({ mockRenderImage: vi.fn() }));
+vi.mock("../templates", async (orig) => {
+  const actual = await orig<typeof import("../templates")>();
+  const { z } = await import("zod");
+  const comp = {
+    id: "comp-test",
+    name: "comp",
+    inputSchema: z.object({ x: z.string() }),
+    buildCaptionPrompt: () => ({ system: "s", prompt: "p" }),
+    imageStrategy: "composition" as const,
+    renderImage: mockRenderImage,
+  };
+  return { ...actual, getTemplate: (id: string) => (id === "comp-test" ? comp : actual.getTemplate(id)) };
+});
+
 import { createContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
 import { updateBrandProfile } from "../db/brand";
@@ -38,6 +54,7 @@ beforeEach(() => {
   mockGenCaption.mockReset().mockResolvedValue(`ปังมากแม่! #หมอมี่ ทักเลย ${CTA_URL}`);
   mockGenImage.mockReset().mockResolvedValue(new Uint8Array([1, 2, 3, 4]));
   mockGenImageWithRef.mockReset().mockResolvedValue(new Uint8Array([5, 6, 7, 8]));
+  mockRenderImage.mockReset().mockResolvedValue(new Uint8Array([10, 11, 12]));
 });
 afterEach(() => {
   for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
@@ -163,6 +180,35 @@ describe("generate engine [S2]", () => {
     const mediaRoot = resolve(join(dir, "media"));
     expect(resolve(res.imagePath!).startsWith(mediaRoot + sep)).toBe(true); // อยู่ใต้ media root
     expect(existsSync(res.imagePath!)).toBe(true);
+  });
+});
+
+describe("engine image strategy [S6a] — ai vs composition dispatch", () => {
+  it("composition → renderImage ; ไม่เรียก Gemini image + ไม่อ่าน brand ref (แม้ brand มี ref)", async () => {
+    const { db } = setup({ ref: "content-creator/brand/mimi-reference.png" }); // brand มี ref แต่ composition ต้องไม่แตะ
+    db.insert(contentPosts).values({ id: "c1", templateId: "comp-test", inputData: { x: "hi" }, status: "PENDING" }).run();
+    const res = await generate(db, "c1");
+    expect(res.status).toBe("GENERATED");
+    expect(mockRenderImage).toHaveBeenCalledTimes(1);
+    expect(mockGenImage).not.toHaveBeenCalled();
+    expect(mockGenImageWithRef).not.toHaveBeenCalled(); // composition ไม่แตะ Gemini image แม้ brand มี ref
+  });
+
+  it("composition render ล้ม → FAILED ก่อน paid caption (fail-fast, ไม่จ่าย genCaption)", async () => {
+    const { db } = setup();
+    mockRenderImage.mockRejectedValueOnce(new Error("font/bg หาย"));
+    db.insert(contentPosts).values({ id: "c2", templateId: "comp-test", inputData: { x: "hi" }, status: "PENDING" }).run();
+    const res = await generate(db, "c2");
+    expect(res.status).toBe("FAILED");
+    expect(mockGenCaption).not.toHaveBeenCalled(); // render ก่อน caption → ไม่จ่าย
+  });
+
+  it("finance ยังเดิน ai path (regression) — genImage ไม่ใช่ renderImage", async () => {
+    const { db } = setup({ ref: null });
+    insertPending(db, "f1", { card: "X", meaning: "Y" });
+    await generate(db, "f1");
+    expect(mockGenImage).toHaveBeenCalledTimes(1);
+    expect(mockRenderImage).not.toHaveBeenCalled();
   });
 });
 

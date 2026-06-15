@@ -15,6 +15,7 @@ export const financeDaily: ContentTemplate = {
   id: "finance-daily",
   name: "ดวงการเงินรายวัน (หมอมี่)",
   inputSchema: financeDailySchema,
+  imageStrategy: "ai", // gen ภาพด้วย Gemini (nano banana + brand ref) — path เดิม
   buildCaptionPrompt(data) {
     const d = financeDailySchema.parse(data);
     return {
