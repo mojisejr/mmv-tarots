@@ -8,13 +8,18 @@ import { z } from "zod";
 import { getContentDb } from "@/content-creator/db/client";
 import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
 import { editDaily7Draft, draftErrorStatus } from "@/content-creator/daily7-service";
+import { WEEKDAYS } from "@/content-creator/templates/daily7";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// draft = workspace (ยอมไม่ครบ 7/ว่างชั่วคราว) แต่ bounded: weekday enum + ไม่ซ้ำ + ยาวจำกัด [ตู๋ P2]
 const Body = z.object({
   expectedRevision: z.number().int().min(0),
-  days: z.array(z.object({ day: z.string().min(1), fortune: z.string() })).max(7),
+  days: z
+    .array(z.object({ day: z.enum(WEEKDAYS), fortune: z.string().max(200) }))
+    .max(7)
+    .refine((arr) => new Set(arr.map((d) => d.day)).size === arr.length, "day ห้ามซ้ำ"),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -107,15 +107,30 @@ describe("claimRegen [ตู๋ P1.D]", () => {
   });
   it("stale regen เก่า complete ไม่ทับ attempt ใหม่ (token ใหม่ชนะ)", () => {
     const d = readyDraft();
-    const first = claimRegen(db, d.id, "attempt-1", d.revision); // token T1, GENERATING
+    const first = claimRegen(db, d.id, "attempt-1", d.revision); // token T1, GENERATING, rev bump
     // จำลอง lease หมดอายุ (gen T1 ค้าง) → set generatingAt ย้อนหลัง
     db.update(contentDrafts).set({ generatingAt: new Date(Date.now() - 10 * 60 * 1000) }).where(eq(contentDrafts.id, d.id)).run();
-    const second = claimRegen(db, d.id, "attempt-2", 0); // ยึดผ่าน stale lease → token T2
+    const cur = getDraft(db, d.id)!;
+    const second = claimRegen(db, d.id, "attempt-2", cur.revision); // ยึดผ่าน stale lease (revision ต้องตรง) → T2
     expect(second.token).toBeTruthy();
     // T1 (เก่า) complete ทีหลัง → ต้องไม่ทับ
     expect(completeDraftGen(db, d.id, first.token!, { stale: true })).toBe(false);
     expect(completeDraftGen(db, d.id, second.token!, { fresh: true })).toBe(true);
     expect(getDraft(db, d.id)!.draftData).toEqual({ fresh: true });
+  });
+  it("stale lease แต่ revision ไม่ตรง → throw (กัน reclaim ด้วย revision ค้าง) [ตู๋ P1.2]", () => {
+    const d = readyDraft();
+    claimRegen(db, d.id, "attempt-1", d.revision); // GENERATING, rev bump
+    db.update(contentDrafts).set({ generatingAt: new Date(Date.now() - 10 * 60 * 1000) }).where(eq(contentDrafts.id, d.id)).run();
+    expect(() => claimRegen(db, d.id, "attempt-2", 0)).toThrow(DraftStaleError); // revision เก่า แม้ lease หมดอายุ
+  });
+  it("FINALIZED + attemptKey เดิม → throw (เช็ค FINALIZED ก่อน replay) [ตู๋ P2]", () => {
+    const d = readyDraft();
+    const c = claimRegen(db, d.id, "attempt-X", d.revision);
+    completeDraftGen(db, d.id, c.token!, { ...SEED, days: [{ day: "จันทร์", fortune: "x" }] });
+    const ready = getDraft(db, d.id)!; // READY, attemptKey=attempt-X
+    finalizeDraft(db, d.id, "fk", ready.revision, FINAL, "daily-7"); // → FINALIZED
+    expect(() => claimRegen(db, d.id, "attempt-X", 99)).toThrow(DraftStaleError); // ไม่ replay draft ที่ finalize แล้ว
   });
 });
 

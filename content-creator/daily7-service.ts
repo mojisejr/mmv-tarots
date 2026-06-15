@@ -30,11 +30,6 @@ export function draftErrorStatus(e: unknown): { status: number; error: string } 
   return { status: 500, error: e instanceof Error ? e.message : String(e) };
 }
 
-/** วันนี้ตามเขตเวลากรุงเทพ (YYYY-MM-DD) — freeze ตอนสร้าง draft ครั้งแรก (ไม่ derive ใหม่ทุก retry) */
-export function bangkokTodayISO(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
-
 /** gen ผลกลับเข้า draft (complete/fail ตาม token) — ใช้ร่วม create+regen */
 async function runGen(db: ContentDb, id: string, token: string, targetDate: string): Promise<void> {
   try {

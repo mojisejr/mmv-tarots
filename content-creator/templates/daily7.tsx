@@ -16,8 +16,20 @@ import { loadBackgroundForSeed, loadBackgroundById } from "../lib/bg-pool";
 import { genObject } from "../lib/gemini";
 
 /** ลำดับ canonical (render เรียงนี้เสมอ ไม่ขึ้นกับลำดับ input) */
-const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
+export const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
 type Weekday = (typeof WEEKDAYS)[number];
+
+/**
+ * ISO date ที่เป็น "วันปฏิทินจริง" (ไม่ใช่แค่ \d{4}-\d{2}-\d{2}) — กัน 2026-99-99 / 2026-02-30
+ * หลุดเข้า paid gen + label undefined [ตู๋ P1.3]. UTC round-trip → deterministic ไม่พึ่ง tz.
+ */
+export function isValidIsoDate(s: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
 
 /** สีประจำวันเกิดไทย — คนไทยรู้สีวันเกิดตัวเอง ใช้เป็น cue หา slot ได้เร็ว */
 const DAY_COLOR: Record<Weekday, string> = {
@@ -45,7 +57,7 @@ const dayFortuneSchema = z.object({ day: z.enum(WEEKDAYS), fortune: z.string().m
  */
 export const daily7Schema = z
   .object({
-    targetDate: z.string().regex(ISO_DATE, "targetDate ต้องเป็น YYYY-MM-DD"),
+    targetDate: z.string().regex(ISO_DATE, "targetDate ต้องเป็น YYYY-MM-DD").refine(isValidIsoDate, "targetDate ไม่ใช่วันปฏิทินจริง"),
     backgroundId: z.string().min(1).optional(),
     days: z.array(dayFortuneSchema).length(7),
   })
@@ -62,8 +74,7 @@ export type DayFortune = { day: Weekday; fortune: string };
 /** เดือนไทยย่อ — derive Thai dateLabel จาก ISO date แบบ deterministic (ไม่พึ่ง timezone/locale ระบบ) */
 const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 export function deriveThaiDateLabel(isoDate: string): string {
-  const m = isoDate.match(ISO_DATE);
-  if (!m) throw new Error(`targetDate ไม่ถูกต้อง: ${isoDate}`);
+  if (!isValidIsoDate(isoDate)) throw new Error(`targetDate ไม่ใช่วันปฏิทินจริง: ${isoDate}`);
   const [y, mo, d] = isoDate.split("-").map(Number);
   const be2 = String((y + 543) % 100).padStart(2, "0"); // ปี พ.ศ. 2 หลักท้าย
   return `${d} ${THAI_MONTHS[mo - 1]} ${be2}`;

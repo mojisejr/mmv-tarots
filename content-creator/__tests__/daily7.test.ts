@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { writeFileSync } from "node:fs";
-import { daily7, daily7Schema, deriveThaiDateLabel, canonicalizeDays, type Daily7Input } from "../templates/daily7";
+import { daily7, daily7Schema, deriveThaiDateLabel, canonicalizeDays, isValidIsoDate, type Daily7Input } from "../templates/daily7";
 import { DEFAULT_BRAND } from "../db/brand";
 
 const SAMPLE: Daily7Input = {
@@ -32,6 +32,27 @@ describe("daily7Schema [S6b FinalInput]", () => {
   });
   it("targetDate ผิดรูปแบบ → fail", () => {
     expect(daily7Schema.safeParse({ targetDate: "15/06/2026", days: SAMPLE.days }).success).toBe(false);
+  });
+  it("targetDate รูปแบบถูกแต่ไม่ใช่วันจริง (2026-99-99 / 2026-02-30) → fail [ตู๋ P1.3]", () => {
+    expect(daily7Schema.safeParse({ targetDate: "2026-99-99", days: SAMPLE.days }).success).toBe(false);
+    expect(daily7Schema.safeParse({ targetDate: "2026-02-30", days: SAMPLE.days }).success).toBe(false);
+  });
+});
+
+describe("isValidIsoDate [ตู๋ P1.3]", () => {
+  it("วันจริง → true", () => {
+    expect(isValidIsoDate("2026-06-15")).toBe(true);
+    expect(isValidIsoDate("2024-02-29")).toBe(true); // อธิกสุรทิน
+  });
+  it("ไม่ใช่วันจริง → false", () => {
+    expect(isValidIsoDate("2026-99-99")).toBe(false);
+    expect(isValidIsoDate("2026-02-30")).toBe(false);
+    expect(isValidIsoDate("2026-13-01")).toBe(false);
+    expect(isValidIsoDate("2025-02-29")).toBe(false); // ไม่ใช่อธิกสุรทิน
+    expect(isValidIsoDate("15/06/2026")).toBe(false);
+  });
+  it("deriveThaiDateLabel โยน error ถ้าไม่ใช่วันจริง", () => {
+    expect(() => deriveThaiDateLabel("2026-99-99")).toThrow();
   });
 });
 

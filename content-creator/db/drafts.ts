@@ -133,13 +133,18 @@ export function claimRegen(db: ContentDb, id: string, attemptKey: string, expect
   return db.transaction((tx) => {
     const cur = tx.select().from(contentDrafts).where(eq(contentDrafts.id, id)).get();
     if (!cur) throw new DraftStaleError(`ไม่พบ draft: ${id}`);
-    if (cur.attemptKey === attemptKey) return { draft: cur, token: null, replay: true };
+    // FINALIZED = read-only — เช็คก่อน replay [ตู๋ P2] (กัน attemptKey เดิม replay คืน draft ที่ finalize ไปแล้ว)
     if (cur.status === "FINALIZED") throw new DraftStaleError("draft finalized แล้ว (read-only)");
+    if (cur.attemptKey === attemptKey) return { draft: cur, token: null, replay: true };
 
+    // revision ต้องตรงเสมอ — ทั้ง fresh และ stale-lease [ตู๋ P1.2] (กัน reclaim paid regen ด้วย revision ค้าง)
+    if (cur.revision !== expectedRevision) {
+      throw new DraftStaleError(`regen claim ไม่ได้: revision=${cur.revision} (expected ${expectedRevision})`);
+    }
     const staleLease = cur.status === "GENERATING" && !!cur.generatingAt && Date.now() - cur.generatingAt.getTime() > STALE_LEASE_MS;
-    const freshClaim = (cur.status === "READY" || cur.status === "FAILED") && cur.revision === expectedRevision;
-    if (!freshClaim && !staleLease) {
-      throw new DraftStaleError(`regen claim ไม่ได้: status=${cur.status} revision=${cur.revision} (expected ${expectedRevision})`);
+    const statusAllows = cur.status === "READY" || cur.status === "FAILED" || staleLease;
+    if (!statusAllows) {
+      throw new DraftStaleError(`regen claim ไม่ได้: status=${cur.status} (กำลัง gen อยู่ ยังไม่หมดอายุ)`);
     }
     const token = crypto.randomUUID();
     const res = tx
