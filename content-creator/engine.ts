@@ -117,14 +117,12 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     let bytes: Uint8Array;
 
     if (template.imageStrategy === "composition") {
-      // composition [S6a]: template render ภาพเอง — **ไม่แตะ brand ref / Gemini image**.
+      // composition [S6a]: template render ภาพเอง (narrow → renderImage บังคับมี) — **ไม่แตะ brand ref / Gemini image**.
       // render "ก่อน" paid caption (local + fail-fast: font/bg หาย → ไม่จ่าย caption ฟรี) [ตู๋ ordering]
-      if (!template.renderImage) throw new Error(`template ${template.id} เป็น composition แต่ไม่มี renderImage`);
       bytes = await template.renderImage(parsed, { brand });
       caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
     } else {
-      // ai [finance]: preflight ref ก่อน paid → caption → Gemini image (เดิม)
-      if (!template.buildImagePrompt) throw new Error(`template ${template.id} เป็น ai แต่ไม่มี buildImagePrompt`);
+      // ai [finance]: narrow → buildImagePrompt บังคับมี ; preflight ref ก่อน paid → caption → Gemini image (เดิม)
       const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
       caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
       const basePrompt = template.buildImagePrompt(parsed);

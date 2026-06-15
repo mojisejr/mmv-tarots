@@ -43,6 +43,6 @@ export async function POST(request: Request) {
     ok: true,
     captionPrompt: template.buildCaptionPrompt(parsed.data),
     imageStrategy: template.imageStrategy,
-    imagePrompt: template.imageStrategy === "ai" ? template.buildImagePrompt?.(parsed.data) : undefined,
+    imagePrompt: template.imageStrategy === "ai" ? template.buildImagePrompt(parsed.data) : undefined,
   });
 }
