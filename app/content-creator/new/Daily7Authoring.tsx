@@ -5,7 +5,7 @@
  * recovery lifecycle: lib/daily7-session (pure, test ครบ) ; preview = POST+blob (robust)
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
+import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
 
 const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
 type Day = { day: string; fortune: string };
@@ -137,13 +137,11 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ finalizeKey: session.finalizeKey, expectedRevision: rev, backgroundId }),
       });
-      const d = await res.json();
-      if (d.ok && d.definitive) { persist(null); onFinalized(); return; } // GENERATED+ → เด้งไปคิว
-      if (d.status === "GENERATING" || d.status === "PENDING") {
-        setErr("กำลังประมวลผล… รอสักครู่แล้วเช็คคิว/กด finalize ซ้ำได้ (ระบบไม่จ่าย/สร้างซ้ำ)"); // เก็บ session
-      } else {
-        setErr(d.error ?? `gen ไม่สำเร็จ (${res.status}) — ลอง gen ใหม่ หรือเช็ค CTA ใน Settings`);
-      }
+      // หลัง finalize draft ถูก lock = FINALIZED แล้ว → client ต้องไม่ถือ READY/editor ต่อ [ตู๋ P1]
+      const o = reduceFinalize(await res.json());
+      if (o.kind === "queue") { persist(null); onFinalized(); return; }
+      if (o.kind === "processing") { setStatus("FINALIZED"); } // lock — panel โชว์ ; keep session ให้ retry replay
+      else { persist(null); setStatus(""); setDays([]); setSavedKey(""); setErr(o.message); } // failed → reset เริ่มใหม่
     } catch (e) { setErr(String(e)); }
     finally { setBusy(false); }
   };
@@ -197,6 +195,16 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
               <button onClick={finalize} disabled={busy || !canEdit || !backgroundId} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
                 {busy ? "กำลังทำ…" : "finalize + สร้างโพสต์ → คิว approve"}
               </button>
+            </div>
+          </div>
+        )}
+
+        {session?.draftId && status === "FINALIZED" && (
+          <div className="space-y-2 rounded-lg bg-amber-50 px-3 py-3 text-sm text-amber-800">
+            <p>finalize แล้ว · กำลัง gen ภาพ — โพสต์เข้าคิว approve แล้ว (draft ถูกล็อก แก้ไม่ได้)</p>
+            <div className="flex gap-2">
+              <button onClick={onFinalized} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700">ไปดูคิว approve</button>
+              <button onClick={finalize} disabled={busy} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-white disabled:opacity-50">เช็คอีกครั้ง</button>
             </div>
           </div>
         )}

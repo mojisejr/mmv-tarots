@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, type Session, type DraftView } from "../lib/daily7-session";
+import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "../lib/daily7-session";
 
 const S: Session = { requestKey: "rk", targetDate: "2026-06-15", finalizeKey: "fk" };
 
@@ -64,6 +64,20 @@ describe("createButtonMode same-mount retry [ตู๋ P1]", () => {
     expect(createButtonMode(s)).toBe("resume");
     // resume ใช้ requestKey เดิม
     expect(mountAction(s)).toEqual({ kind: "resume", requestKey: "k0", targetDate: "2026-06-15" });
+  });
+});
+
+describe("reduceFinalize — client state หลัง finalize (draft ถูก lock) [ตู๋ P1]", () => {
+  it("200 ok+definitive → queue (clear + ไปคิว)", () => {
+    expect(reduceFinalize({ ok: true, definitive: true, status: "GENERATED" })).toEqual({ kind: "queue" });
+  });
+  it("202 ไม่ definitive (GENERATING) → processing (lock, ไม่ edit ต่อ)", () => {
+    expect(reduceFinalize({ ok: false, definitive: false, status: "GENERATING" }).kind).toBe("processing");
+  });
+  it("502 definitive failed (FAILED) → failed (reset เริ่มใหม่)", () => {
+    const o = reduceFinalize({ ok: false, definitive: true, status: "FAILED", error: "CTA" });
+    expect(o.kind).toBe("failed");
+    if (o.kind === "failed") expect(o.message).toContain("CTA");
   });
 });
 

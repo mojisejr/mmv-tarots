@@ -93,3 +93,22 @@ export function createButtonMode(session: Session | null): "new" | "resume" | "r
   if (!session.draftId) return "resume";
   return "restart";
 }
+
+/**
+ * map finalize response → client state [ตู๋ P1]: หลัง finalize server lock draft = FINALIZED แล้ว
+ * (ไม่ว่า gen ผลยังไง) → client ห้ามถือ READY/editor ต่อ. ตาม outcome:
+ *  - 200 ok+definitive (GENERATED+) → "queue" (clear session + ไปคิว)
+ *  - 202 ไม่ definitive (GENERATING/PENDING) → "processing" (lock, disable edit, keep session ให้ retry replay)
+ *  - 502 definitive failed (FAILED/CANCELED) → "failed" (draft ปิดแล้ว → reset เริ่มใหม่ได้)
+ */
+export type FinalizeResponse = { ok: boolean; definitive: boolean; status: string; error?: string };
+export type FinalizeOutcome =
+  | { kind: "queue" }
+  | { kind: "processing"; message: string }
+  | { kind: "failed"; message: string };
+
+export function reduceFinalize(r: FinalizeResponse): FinalizeOutcome {
+  if (r.ok && r.definitive) return { kind: "queue" };
+  if (!r.definitive) return { kind: "processing", message: "finalize แล้ว · กำลัง gen ภาพ — ดูในคิว approve หรือกดเช็คอีกครั้ง (ระบบไม่จ่าย/สร้างซ้ำ)" };
+  return { kind: "failed", message: `gen ไม่สำเร็จ: ${r.error ?? "ตรวจ CTA url ใน Settings"} — draft นี้ปิดแล้ว เริ่มใหม่ได้` };
+}
