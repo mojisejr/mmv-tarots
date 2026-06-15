@@ -81,3 +81,15 @@ export function mountAction(session: Session | null): MountAction {
 export function regenAttemptKey(session: Session, gen: () => string): string {
   return session.pendingAttemptKey ?? gen();
 }
+
+/**
+ * mode ของปุ่ม primary ตาม session (รวม same-mount ไม่ reload) [ตู๋ P1]:
+ *  - ไม่มี session → "new" (key ชุดใหม่)
+ *  - session แต่ยังไม่มี draftId (create response หาย แม้ยังไม่ reload) → "resume" (POST key **เดิม** ไม่จ่าย Gemini ซ้ำ)
+ *  - มี draftId แล้ว → "restart" (intentional เริ่มใหม่ — secondary, confirm + key ใหม่)
+ */
+export function createButtonMode(session: Session | null): "new" | "resume" | "restart" {
+  if (!session) return "new";
+  if (!session.draftId) return "resume";
+  return "restart";
+}

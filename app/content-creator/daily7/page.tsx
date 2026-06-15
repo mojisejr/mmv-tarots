@@ -7,7 +7,7 @@
  *  - dirty fence: finalize save-ก่อน ; regen reuse pendingAttemptKey + เตือน edit ค้าง ; reclaim ได้ตอน GENERATING
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
+import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
 
 const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
 type Day = { day: string; fortune: string };
@@ -95,6 +95,14 @@ export default function Daily7Authoring() {
     onDraft((await send("/content-creator/api/daily/draft", { requestKey: s.requestKey, targetDate }))?.draft, s);
   };
 
+  // create response หาย (same-mount, ยังไม่ reload) → retry ด้วย requestKey เดิม [ตู๋ P1] (ไม่ overwrite key)
+  const resumeCreate = async () => {
+    if (!session) return;
+    onDraft((await send("/content-creator/api/daily/draft", { requestKey: session.requestKey, targetDate: session.targetDate }))?.draft, session);
+  };
+
+  const primary = () => (createButtonMode(session) === "resume" ? resumeCreate() : startNew());
+
   const save = async (): Promise<DraftView | null> => {
     if (!session?.draftId) return null;
     const d = await send(`/content-creator/api/daily/draft/${session.draftId}`, { expectedRevision: revision, days }, "PATCH");
@@ -131,8 +139,8 @@ export default function Daily7Authoring() {
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <label style={{ fontSize: 13 }}>วันที่ (กรุงเทพ):</label>
           <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} disabled={!!session?.draftId} style={{ padding: 6, borderRadius: 8, border: "1px solid #ccc" }} />
-          <button onClick={startNew} disabled={busy} style={{ padding: "6px 14px", borderRadius: 8, background: "#7B4FC9", color: "#fff", border: 0, cursor: "pointer" }}>
-            {session?.draftId ? "เริ่มใหม่" : "สร้าง + gen 7 คำทำนาย"}
+          <button onClick={primary} disabled={busy} style={{ padding: "6px 14px", borderRadius: 8, background: "#7B4FC9", color: "#fff", border: 0, cursor: "pointer" }}>
+            {{ new: "สร้าง + gen 7 คำทำนาย", resume: "ส่งคำขอสร้างอีกครั้ง", restart: "เริ่มใหม่" }[createButtonMode(session)]}
           </button>
           {status && <span style={{ fontSize: 12, color: "#888" }}>[{status} · rev {revision}{dirty ? " · ●แก้ค้าง" : ""}]</span>}
         </div>

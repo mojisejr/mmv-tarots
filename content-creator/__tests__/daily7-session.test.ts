@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, type Session, type DraftView } from "../lib/daily7-session";
+import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, type Session, type DraftView } from "../lib/daily7-session";
 
 const S: Session = { requestKey: "rk", targetDate: "2026-06-15", finalizeKey: "fk" };
 
@@ -46,6 +46,24 @@ describe("reduceDraft [ตู๋ P1 finalize-restore]", () => {
   });
   it("GENERATING → keep session (รอ/reclaim)", () => {
     expect(reduceDraft({ ...base, status: "GENERATING" }, S).session?.draftId).toBe("d1");
+  });
+});
+
+describe("createButtonMode same-mount retry [ตู๋ P1]", () => {
+  it("ไม่มี session → new", () => expect(createButtonMode(null)).toBe("new"));
+  it("pending create (response หาย, ยังไม่ reload) → resume (ไม่ใช่ new ที่จะ overwrite key)", () => {
+    expect(createButtonMode(S)).toBe("resume");
+  });
+  it("มี draftId → restart (intentional)", () => {
+    expect(createButtonMode({ ...S, draftId: "d1" })).toBe("restart");
+  });
+  it("sequence: create fail (persist pending) → ปุ่มถัดไป resume key เดิม (ไม่ gen ซ้ำ)", () => {
+    let n = 0;
+    const s = freshSession("2026-06-15", () => `k${n++}`); // requestKey=k0
+    // create POST ล้ม/response หาย → session ยัง persist (ไม่มี draftId)
+    expect(createButtonMode(s)).toBe("resume");
+    // resume ใช้ requestKey เดิม
+    expect(mountAction(s)).toEqual({ kind: "resume", requestKey: "k0", targetDate: "2026-06-15" });
   });
 });
 
