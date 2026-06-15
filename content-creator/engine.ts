@@ -102,37 +102,42 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     if (!row) throw new Error(`content post not found: ${id}`);
 
     const template = getTemplate(row.templateId);
-    template.inputSchema.parse(row.inputData); // validate (throw → FAILED)
+    const parsed = template.inputSchema.parse(row.inputData); // validate + canonical (throw → FAILED)
 
     // brand profile (หมอมี่) steer ทุก gen ให้ theme เดียวกัน [S3.5b/c]
     const brand = getBrandProfile(db);
 
-    // CTA mandatory [S5/ตู๋]: ทุกโพสต์ต้องมี CTA link → ต้องตั้ง ctaUrl ก่อน gen.
-    // เช็ค "ก่อน paid Gemini call" — ไม่ตั้ง = FAILED ทันที (ไม่จ่ายฟรี)
+    // CTA mandatory [S5/ตู๋]: ทุกโพสต์ต้องมี CTA link (ทั้ง ai + composition) → เช็คก่อน paid caption
     if (!brand.ctaUrl.trim()) {
       throw new Error("CTA บังคับ: ต้องตั้ง CTA link (ctaUrl) ใน Settings ก่อน gen (ทุกโพสต์ต้องมี CTA)");
     }
 
-    // preflight: ถ้าใช้ ref → อ่าน+validate ref "ก่อน" Gemini call ใด ๆ
-    // (ref ไม่พบ/ไม่ปลอดภัย → FAILED ทันที ไม่จ่าย genCaption ฟรี) [ตู๋ P1]
-    const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
-
-    // caption [S5]: ฟันธงสั้น (≤maxChars) + CTA ชวนใช้ระบบ + ไม่ซ้ำของเก่า
     const recentCaptions = getRecentCaptions(db, id);
-    const caption = await generateCaption(template.buildCaptionPrompt(row.inputData), brand, recentCaptions);
+    let caption: string;
+    let bytes: Uint8Array;
 
-    const basePrompt = template.buildImagePrompt(row.inputData);
-    const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
-    // มี ref → nano banana: refDirective นำ (ยึดตัวละคร) + theme เป็นฉาก/props รอง + ห้าม text
-    // ไม่มี ref → imagen text-to-image (theme เป็น prompt หลักเลย)
-    const bytes = refImage
-      ? await genImageWithRef({
-          prompt: `${refDirective(themeWithStyle)}\n\n${NO_TEXT_DIRECTIVE}`,
-          refImage,
-          model: brand.imageModel ?? undefined,
-        })
-      : await genImage({ prompt: themeWithStyle });
-    attemptPath = persistImage(id, token, bytes);
+    if (template.imageStrategy === "composition") {
+      // composition [S6a]: template render ภาพเอง — **ไม่แตะ brand ref / Gemini image**.
+      // render "ก่อน" paid caption (local + fail-fast: font/bg หาย → ไม่จ่าย caption ฟรี) [ตู๋ ordering]
+      if (!template.renderImage) throw new Error(`template ${template.id} เป็น composition แต่ไม่มี renderImage`);
+      bytes = await template.renderImage(parsed, { brand });
+      caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
+    } else {
+      // ai [finance]: preflight ref ก่อน paid → caption → Gemini image (เดิม)
+      if (!template.buildImagePrompt) throw new Error(`template ${template.id} เป็น ai แต่ไม่มี buildImagePrompt`);
+      const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
+      caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
+      const basePrompt = template.buildImagePrompt(parsed);
+      const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
+      bytes = refImage
+        ? await genImageWithRef({
+            prompt: `${refDirective(themeWithStyle)}\n\n${NO_TEXT_DIRECTIVE}`,
+            refImage,
+            model: brand.imageModel ?? undefined,
+          })
+        : await genImage({ prompt: themeWithStyle });
+    }
+    attemptPath = persistImage(id, token, bytes); // fence เดิม (token-scoped) ครอบทั้ง 2 path
 
     // commit DB เฉพาะถ้า token ยังตรง. ไม่ตรง = โดน reclaim → ลบ artifact ของ attempt เรา (ไม่แตะ winner)
     if (!markGenerated(db, id, token, caption, attemptPath)) {

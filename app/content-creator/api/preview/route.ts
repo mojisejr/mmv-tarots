@@ -38,9 +38,11 @@ export async function POST(request: Request) {
   }
 
   // ใช้ parsed.data (canonical — strip/defaults/transforms) ให้ preview ตรงกับที่ create จะ gen [ตู๋ P2]
+  // strategy-aware: ai → imagePrompt ; composition → ไม่มี prompt (render เอง) [ตู๋ S6a]
   return NextResponse.json({
     ok: true,
     captionPrompt: template.buildCaptionPrompt(parsed.data),
-    imagePrompt: template.buildImagePrompt(parsed.data),
+    imageStrategy: template.imageStrategy,
+    imagePrompt: template.imageStrategy === "ai" ? template.buildImagePrompt?.(parsed.data) : undefined,
   });
 }
