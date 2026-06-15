@@ -9,7 +9,8 @@
  * พิสูจน์ feasibility แล้วใน POC #1 (gemini-2.5-flash + imagen-4.0-generate-001)
  */
 import { google } from "@ai-sdk/google";
-import { generateText, experimental_generateImage as generateImage } from "ai";
+import { generateText, generateObject, experimental_generateImage as generateImage } from "ai";
+import type { z } from "zod";
 import { TEXT_MODEL, IMAGE_MODEL, REF_IMAGE_MODEL, DEFAULT_CAPTION_TEMPERATURE } from "./config";
 
 export interface CaptionInput {
@@ -30,6 +31,26 @@ export async function genCaption(input: CaptionInput): Promise<string> {
     temperature: input.temperature ?? DEFAULT_CAPTION_TEMPERATURE,
   });
   return text;
+}
+
+/**
+ * gen แบบ structured output (JSON ตรง schema) — ใช้กับ daily-7 gen 7 วันทั้งชุดในครั้งเดียว [S6c].
+ * model คืน object ที่ผ่าน schema (ai SDK retry/repair ให้ระดับนึง) ; caller validate ซ้ำอีกชั้น.
+ */
+export async function genObject<T>(input: {
+  schema: z.ZodType<T>;
+  system: string;
+  prompt: string;
+  temperature?: number;
+}): Promise<T> {
+  const { object } = await generateObject({
+    model: google(TEXT_MODEL),
+    schema: input.schema,
+    system: input.system,
+    prompt: input.prompt,
+    temperature: input.temperature ?? DEFAULT_CAPTION_TEMPERATURE,
+  });
+  return object;
 }
 
 export interface ImageInput {

@@ -94,8 +94,29 @@ export function loadEntryBytes(entry: BgManifestEntry): Uint8Array {
   return bytes;
 }
 
-/** เลือก + โหลด bg สำหรับ seed (post id) ในก้าวเดียว — ใช้โดย renderImage */
+/** เลือก + โหลด bg สำหรับ seed (post id) ในก้าวเดียว — ใช้โดย renderImage (fallback path) */
 export function loadBackgroundForSeed(seed: string): { entry: BgManifestEntry; bytes: Uint8Array } {
   const entry = selectEntry(seed, loadManifest());
+  return { entry, bytes: loadEntryBytes(entry) };
+}
+
+/**
+ * เลือก entry ตาม id ตรง ๆ [S6c] — finalize persist backgroundId แล้ว render by-id (ไม่ fallback hash)
+ * → ผลคงที่ถาวรไม่ขึ้นกับ pool size → **ขยาย pool ได้** หลัง persist. id ไม่อยู่ใน manifest → throw.
+ */
+export function selectById(id: string, manifest: BgManifestEntry[]): BgManifestEntry {
+  const e = manifest.find((x) => x.id === id);
+  if (!e) throw new Error(`bg id ไม่อยู่ใน manifest: ${id}`);
+  return e;
+}
+
+/** validate ว่า id อยู่ใน manifest (ใช้ตอน finalize ก่อน persist) — id ไม่ valid → throw */
+export function assertValidBackgroundId(id: string): void {
+  selectById(id, loadManifest());
+}
+
+/** เลือก + โหลด bg ตาม id (finalized render path) */
+export function loadBackgroundById(id: string): { entry: BgManifestEntry; bytes: Uint8Array } {
+  const entry = selectById(id, loadManifest());
   return { entry, bytes: loadEntryBytes(entry) };
 }
