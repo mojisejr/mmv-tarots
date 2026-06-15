@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   /* config options here */
   // content-creator ใช้ better-sqlite3 (native module) — กัน Next bundle, require ตอน runtime (server-only)
   serverExternalPackages: ["better-sqlite3"],
+  // daily-7 composition อ่าน bg pool + font ผ่าน "dynamic path" (จาก manifest) — Next file-tracing
+  // ตรวจไม่เจอ → ต้อง force-include ไม่งั้น lambda บน Vercel หา asset ไม่เจอ (local อ่านได้แต่ prod พัง) [S6b]
+  outputFileTracingIncludes: {
+    "/content-creator/**": ["./content-creator/assets/**", "./assets/fonts/**"],
+  },
   images: {
     remotePatterns: [
       {
