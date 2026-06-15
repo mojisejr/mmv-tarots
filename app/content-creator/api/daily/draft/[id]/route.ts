@@ -1,4 +1,5 @@
 /**
+ * GET /content-creator/api/daily/draft/:id — อ่าน draft (restore session หลัง reload) [S6c.2]
  * PATCH /content-creator/api/daily/draft/:id — แก้คำทำนาย (optimistic concurrency) [S6c]
  * body: { expectedRevision, days: [{day, fortune}] } — draft=workspace (ยอมว่าง/ไม่ครบชั่วคราว)
  * revision ไม่ตรง/ไม่ใช่ READY → 409 (กัน stale overwrite)
@@ -8,10 +9,19 @@ import { z } from "zod";
 import { getContentDb } from "@/content-creator/db/client";
 import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
 import { editDaily7Draft, draftErrorStatus } from "@/content-creator/daily7-service";
+import { getDraft } from "@/content-creator/db/drafts";
 import { WEEKDAYS } from "@/content-creator/templates/daily7";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!isContentCreatorEnabled()) return new NextResponse(null, { status: 404 });
+  const { id } = await params;
+  const draft = getDraft(getContentDb(), id);
+  if (!draft) return NextResponse.json({ ok: false, error: "ไม่พบ draft" }, { status: 404 });
+  return NextResponse.json({ ok: true, draft }, { status: 200 });
+}
 
 // draft = workspace (ยอมไม่ครบ 7/ว่างชั่วคราว) แต่ bounded: weekday enum + ไม่ซ้ำ + ยาวจำกัด [ตู๋ P2]
 const Body = z.object({

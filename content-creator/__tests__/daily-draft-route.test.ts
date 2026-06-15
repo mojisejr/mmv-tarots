@@ -13,6 +13,10 @@ vi.mock("@/content-creator/db/client", async (orig) => {
 
 import { createContentDb } from "@/content-creator/db/client";
 import { POST as createDraft } from "@/app/content-creator/api/daily/draft/route";
+import { GET as getDraftRoute, PATCH as patchDraftRoute } from "@/app/content-creator/api/daily/draft/[id]/route";
+
+const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
+const patchReq = (body: unknown) => new Request("http://t", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 const req = (body: unknown) =>
   new Request("http://t/content-creator/api/daily/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -53,5 +57,34 @@ describe("POST /api/daily/draft regression [ตู๋ P1.1/P1.3]", () => {
     await createDraft(req({ requestKey: "rk", targetDate: "2026-06-15" }));
     const res = await createDraft(req({ requestKey: "rk", targetDate: "2026-12-31" }));
     expect(res.status).toBe(409);
+  });
+});
+
+describe("GET/PATCH draft route [S6c.2 — restore + optimistic]", () => {
+  async function makeDraft() {
+    const r = await (await createDraft(req({ requestKey: "rk", targetDate: "2026-06-15" }))).json();
+    return r.draft as { id: string; revision: number };
+  }
+
+  it("GET → คืน draft (restore session)", async () => {
+    const d = await makeDraft();
+    const res = await getDraftRoute(new Request("http://t"), ctx(d.id));
+    expect(res.status).toBe(200);
+    expect((await res.json()).draft.id).toBe(d.id);
+  });
+  it("GET id มั่ว → 404", async () => {
+    expect((await getDraftRoute(new Request("http://t"), ctx("nope"))).status).toBe(404);
+  });
+  it("PATCH revision ตรง → 200 + bump ; revision เก่า → 409", async () => {
+    const d = await makeDraft();
+    const ok = await patchDraftRoute(patchReq({ expectedRevision: d.revision, days: [{ day: "จันทร์", fortune: "แก้" }] }), ctx(d.id));
+    expect(ok.status).toBe(200);
+    const stale = await patchDraftRoute(patchReq({ expectedRevision: d.revision, days: [{ day: "อังคาร", fortune: "y" }] }), ctx(d.id));
+    expect(stale.status).toBe(409);
+  });
+  it("PATCH วันซ้ำ → 400 (bounded workspace)", async () => {
+    const d = await makeDraft();
+    const res = await patchDraftRoute(patchReq({ expectedRevision: d.revision, days: [{ day: "จันทร์", fortune: "a" }, { day: "จันทร์", fortune: "b" }] }), ctx(d.id));
+    expect(res.status).toBe(400);
   });
 });
