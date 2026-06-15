@@ -48,7 +48,8 @@ export const daily7Schema = z
 export type Daily7Input = z.infer<typeof daily7Schema>;
 
 const OUT = 1080; // การ์ดสี่เหลี่ยมจัตุรัส (bg pool เป็น 1:1)
-const MAX_FORTUNE = 58; // deterministic truncate → layout นิ่ง (golden stable)
+const ROW_H = 88; // ความสูง slot คงที่ → layout golden นิ่งไม่ว่าคำทำนายยาว/สั้น
+const MAX_FORTUNE = 58; // deterministic truncate (content guard) — visual ถูก clip ด้วย geometry อีกชั้น
 const FONT_PATH = join(process.cwd(), "assets", "fonts", "NotoSansThai-Bold.ttf");
 
 function truncate(s: string, n: number): string {
@@ -97,14 +98,31 @@ export const daily7: CompositionTemplate = {
               {d.dateLabel ? <div style={{ display: "flex", fontSize: 24, color: "#FFD9F0", marginTop: 4 }}>{d.dateLabel}</div> : null}
             </div>
 
-            {/* 7 day rows (ซ้าย) */}
+            {/* 7 day rows (ซ้าย) — fixed geometry กัน worst-case Thai ไม่มี space ล้น panel [ตู๋ P1]:
+                row สูงคงที่ + overflow hidden ; text cell minWidth:0 (ยอมหดต่ำกว่า content — กัน flex
+                overflow) + wordBreak (no-space Thai แตกบรรทัดได้) + line-clamp 2 + overflow hidden */}
             <div style={{ display: "flex", flexDirection: "column", width: "64%" }}>
               {rows.map((r) => (
-                <div key={r.day} style={{ display: "flex", flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 16, padding: "9px 12px", marginBottom: 9 }}>
+                <div key={r.day} style={{ display: "flex", flexDirection: "row", alignItems: "center", height: ROW_H, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 16, padding: "0 12px", marginBottom: 9 }}>
                   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: 132, height: 46, flexShrink: 0, backgroundColor: r.color, borderRadius: 12, marginRight: 12 }}>
                     <span style={{ fontSize: 24, fontWeight: 700, color: "#FFFFFF" }}>{r.day}</span>
                   </div>
-                  <div style={{ display: "flex", flex: 1, fontSize: 23, color: "#3D2B52", lineHeight: 1.2 }}>{r.fortune}</div>
+                  <div style={{ display: "flex", flex: 1, minWidth: 0, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 2,
+                        overflow: "hidden",
+                        fontSize: 22,
+                        color: "#3D2B52",
+                        lineHeight: 1.25,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {r.fortune}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

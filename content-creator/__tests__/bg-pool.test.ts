@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { loadManifest, selectEntry, loadEntryBytes, type BgManifestEntry } from "../lib/bg-pool";
+import { loadManifest, parseManifest, selectEntry, loadEntryBytes, type BgManifestEntry } from "../lib/bg-pool";
 
 const REAL = loadManifest()[0]; // ใช้ entry จริงจาก committed manifest (asset มีจริงในrepo)
 
@@ -28,6 +28,19 @@ describe("bg-pool selectEntry [S6b deterministic]", () => {
   it("seed ต่างกันกระจายได้ (ไม่ fix ใบเดียว)", () => {
     const ids = new Set(["s1", "s2", "s3", "s4", "s5", "s6"].map((s) => selectEntry(s, m).id));
     expect(ids.size).toBeGreaterThan(1);
+  });
+});
+
+describe("bg-pool parseManifest unique [ตู๋ P2]", () => {
+  const base = { sha256: "a".repeat(64), width: 1, height: 1 };
+  it("manifest จริง (committed) โหลดผ่าน (id+file ไม่ซ้ำ)", () => {
+    expect(() => loadManifest()).not.toThrow();
+  });
+  it("id ซ้ำ → throw", () => {
+    expect(() => parseManifest([{ id: "x", file: "a.png", ...base }, { id: "x", file: "b.png", ...base }])).toThrow(/id ซ้ำ/);
+  });
+  it("file ซ้ำ → throw", () => {
+    expect(() => parseManifest([{ id: "x", file: "a.png", ...base }, { id: "y", file: "a.png", ...base }])).toThrow(/file ซ้ำ/);
   });
 });
 

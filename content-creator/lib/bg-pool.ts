@@ -28,19 +28,32 @@ const ManifestEntrySchema = z.object({
 });
 export type BgManifestEntry = z.infer<typeof ManifestEntrySchema>;
 
-const ManifestSchema = z.array(ManifestEntrySchema);
+// unique id + file [ตู๋ P2]: id ซ้ำ → selection กำกวม ; file ซ้ำ → provenance/audit เพี้ยน (enforce ตอน parse)
+const ManifestSchema = z.array(ManifestEntrySchema).superRefine((arr, ctx) => {
+  if (new Set(arr.map((e) => e.id)).size !== arr.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "manifest มี id ซ้ำ" });
+  if (new Set(arr.map((e) => e.file)).size !== arr.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "manifest มี file ซ้ำ" });
+});
 
-/** อ่าน + parse manifest (committed). ไฟล์หาย/รูปแบบผิด → throw (provisioning พัง = ต้องรู้) */
+/** parse + validate manifest จาก raw (pure, testable) — รูปแบบผิด/id|file ซ้ำ → throw */
+export function parseManifest(raw: unknown): BgManifestEntry[] {
+  return ManifestSchema.parse(raw);
+}
+
+/** อ่าน manifest committed (ไฟล์หาย/รูปแบบผิด/ซ้ำ → throw : provisioning พัง = ต้องรู้) */
 export function loadManifest(): BgManifestEntry[] {
   const manifestPath = safeResolveUnderRoot(BG_POOL_DIR, MANIFEST_FILE);
   if (!manifestPath) throw new Error(`daily-7 bg manifest ไม่พบ/ไม่ปลอดภัย: ${MANIFEST_FILE}`);
-  const raw = JSON.parse(readFileSync(manifestPath, "utf8"));
-  return ManifestSchema.parse(raw);
+  return parseManifest(JSON.parse(readFileSync(manifestPath, "utf8")));
 }
 
 /**
  * เลือก entry แบบ deterministic จาก seed (post id) — sort by id ให้ลำดับนิ่งไม่ขึ้นกับลำดับใน manifest
  * แล้ว hash(seed) % len. seed เดิม + pool เดิม → ได้ใบเดิมเสมอ (retry/reclaim/preview ตรงกัน).
+ *
+ * ⚠️ contract scope [ตู๋ P2]: stable เฉพาะ "manifest เดิม". ถ้าขยาย pool (len เปลี่ยน) → modulo เปลี่ยน
+ * → post เดิมที่ยัง PENDING (re-render/retry) อาจได้คนละใบ. ดังนั้น **ห้ามขยาย pool ก่อน S6c
+ * จะ persist backgroundId ตอน finalize** (FinalInput.backgroundId override hash). โพสต์ที่ GENERATED
+ * แล้วไม่กระทบ (imagePath ถูก persist ตอนนั้น ไม่ re-render). ตอนนี้ N=1 → คงที่อยู่แล้ว.
  * @throws ถ้า manifest ว่าง (ไม่มี bg ให้เลือก → FAILED ก่อนจ่าย caption)
  */
 export function selectEntry(seed: string, manifest: BgManifestEntry[]): BgManifestEntry {

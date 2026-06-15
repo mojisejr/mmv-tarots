@@ -48,4 +48,19 @@ describe("daily7.renderImage [S6b composition — verify real output]", () => {
     const b = await daily7.renderImage(SAMPLE, { brand: DEFAULT_BRAND, seed: "fixed-seed" });
     expect(Buffer.from(a).equals(Buffer.from(b))).toBe(true);
   }, 30000);
+
+  it("worst-case Thai ไม่มี space ทุก 7 slot → ยัง 1080x1080 (geometry กันล้น) [ตู๋ P1 regression]", async () => {
+    const worst: Daily7Input = {
+      days: (["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const).map((day) => ({
+        day,
+        fortune: "ก".repeat(200), // no break opportunity — เคยล้น panel ทับตัวละคร
+      })),
+    };
+    const bytes = await daily7.renderImage(worst, { brand: DEFAULT_BRAND, seed: "post-worst" });
+    expect(bytes.slice(0, 4)).toEqual(new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    expect(dv.getUint32(16)).toBe(1080); // ขนาดคงที่ = layout ไม่ขยายตาม content
+    expect(dv.getUint32(20)).toBe(1080);
+    writeFileSync("/tmp/daily7-worstcase.png", bytes); // ดูด้วยตา: ต้องไม่ล้น panel
+  }, 30000);
 });
