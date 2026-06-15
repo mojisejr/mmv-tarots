@@ -1,18 +1,16 @@
 "use client";
 /**
  * daily-7 authoring [S6c.2] — สร้าง draft → gen 7 → แก้/regen → เลือก bg → finalize → contentPost
- *
- * idempotency lifecycle (ตู๋ P1.2): persist session (localStorage) → requestKey/finalizeKey/attemptKey
- *   survive reload/retry → ใช้ backend idempotency จริง (retry เดิมไม่จ่าย Gemini ซ้ำ ; "เริ่มใหม่" = key ใหม่)
- * dirty fence (ตู๋ P1.1): finalize = save-ก่อน (ใช้ revision จาก PATCH) ; regen เตือนถ้ามี edit ค้าง
- *   → contentPost = ข้อความที่เห็นบนจอเสมอ (ไม่ใช่ server draft เก่า)
- * actions narrow ตาม status ; Bangkok tz ชัด ; ไม่กลืน bg error (ตู๋ P2)
+ * recovery lifecycle (ตู๋): pure logic อยู่ lib/daily7-session (test ครบ lost-response/reload/retry).
+ *  - mount: draftId มี → restore(GET) ; requestKey ไม่มี draftId (create response หาย) → resume(POST key เดิม)
+ *  - reduceDraft: FINALIZED → อ่าน contentPostId + clear session (กัน finalize-response หายแล้วค้าง)
+ *  - dirty fence: finalize save-ก่อน ; regen reuse pendingAttemptKey + เตือน edit ค้าง ; reclaim ได้ตอน GENERATING
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
 
 const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
 type Day = { day: string; fortune: string };
-type Session = { requestKey: string; targetDate: string; finalizeKey: string; draftId?: string; pendingAttemptKey?: string };
 
 const SKEY = "daily7-session-v1";
 const uuid = () => crypto.randomUUID();
@@ -26,7 +24,7 @@ export default function Daily7Authoring() {
   const [revision, setRevision] = useState(0);
   const [status, setStatus] = useState("");
   const [days, setDays] = useState<Day[]>([]);
-  const [savedKey, setSavedKey] = useState(""); // snapshot ของ days ที่ persist บน server (เทียบ dirty)
+  const [savedKey, setSavedKey] = useState("");
   const [bgOptions, setBgOptions] = useState<string[]>([]);
   const [backgroundId, setBackgroundId] = useState("");
   const [bgError, setBgError] = useState("");
@@ -40,99 +38,90 @@ export default function Daily7Authoring() {
     else localStorage.removeItem(SKEY);
   }, []);
 
-  const applyDraft = useCallback((draft: { id: string; revision: number; status: string; draftData?: { days?: Day[] } } | undefined) => {
-    if (!draft) return;
-    setRevision(draft.revision);
-    setStatus(draft.status);
-    const dd = draft.draftData?.days ?? [];
-    setDays(dd);
-    setSavedKey(daysKey(dd)); // server snapshot = ไม่ dirty ทันทีหลังโหลด/บันทึก
-  }, []);
-
-  // โหลด bg pool (surface error — ไม่กลืน) [ตู๋ P2]
-  useEffect(() => {
-    fetch("/content-creator/api/daily/backgrounds")
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.ok) { setBgError(d.error ?? "โหลด bg ไม่ได้"); return; }
-        const ids: string[] = d.backgrounds.map((b: { id: string }) => b.id);
-        setBgOptions(ids);
-        if (ids[0]) setBackgroundId(ids[0]);
-      })
-      .catch((e) => setBgError(String(e)));
-  }, []);
-
-  // restore session หลัง reload — GET draft กลับมา (state ไม่หาย, key ไม่ generate ใหม่)
-  useEffect(() => {
-    const raw = localStorage.getItem(SKEY);
-    if (!raw) return;
-    const s = JSON.parse(raw) as Session;
-    setSession(s);
-    setTargetDate(s.targetDate);
-    if (s.draftId) {
-      fetch(`/content-creator/api/daily/draft/${s.draftId}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => d?.draft && applyDraft(d.draft))
-        .catch(() => {});
-    }
-  }, [applyDraft]);
-
-  const dirty = useMemo(() => status === "READY" && daysKey(days) !== savedKey, [status, days, savedKey]);
-
-  const previewSrc = useMemo(() => {
-    const payload = { targetDate, backgroundId: backgroundId || undefined, days: WEEKDAYS.map((d) => ({ day: d, fortune: days.find((x) => x.day === d)?.fortune?.trim() || "—" })) };
-    return `/content-creator/api/daily7-preview?d=${encodeURIComponent(b64(JSON.stringify(payload)))}`;
-  }, [targetDate, backgroundId, days]);
-
   const send = useCallback(async (url: string, body: object, method = "POST") => {
     setBusy(true); setErr("");
     try {
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) { setErr(`${res.status}: ${data.error ?? "error"}${res.status === 409 ? " (ข้อมูลเปลี่ยน — โหลด/เริ่มใหม่)" : ""}`); return null; }
-      return data as { draft?: { id: string; revision: number; status: string; draftData?: { days?: Day[] } }; contentPostId?: string };
+      return data as { draft?: DraftView; contentPostId?: string };
     } catch (e) { setErr(String(e)); return null; }
     finally { setBusy(false); }
   }, []);
 
-  // สร้างใหม่ = key ชุดใหม่ (intentional) ; ถ้ามี draft อยู่แล้วเตือนก่อนทิ้ง
+  // apply draft → view + persist session + postId (FINALIZED → clear + แสดงผล) ผ่าน reduceDraft (pure)
+  const onDraft = useCallback((draft: DraftView | undefined, base: Session) => {
+    if (!draft) return;
+    const r = reduceDraft(draft, base);
+    setRevision(r.revision); setStatus(r.status); setDays(r.days); setSavedKey(daysKey(r.days));
+    persist(r.session);
+    if (r.postId) setPostId(r.postId);
+  }, [persist]);
+
+  // bg pool (surface error)
+  useEffect(() => {
+    fetch("/content-creator/api/daily/backgrounds").then((r) => r.json())
+      .then((d) => { if (!d.ok) { setBgError(d.error ?? "โหลด bg ไม่ได้"); return; } const ids = d.backgrounds.map((b: { id: string }) => b.id); setBgOptions(ids); if (ids[0]) setBackgroundId(ids[0]); })
+      .catch((e) => setBgError(String(e)));
+  }, []);
+
+  // mount: restore (GET) หรือ resume (POST key เดิม — create response หาย) — recovery
+  useEffect(() => {
+    const s = parseSession(localStorage.getItem(SKEY));
+    if (!s) return;
+    setSession(s); setTargetDate(s.targetDate);
+    const act = mountAction(s);
+    (async () => {
+      if (act.kind === "restore") {
+        const res = await fetch(`/content-creator/api/daily/draft/${act.draftId}`);
+        if (res.ok) onDraft((await res.json()).draft, s);
+      } else if (act.kind === "resume") {
+        onDraft((await send("/content-creator/api/daily/draft", { requestKey: act.requestKey, targetDate: act.targetDate }))?.draft, s);
+      }
+    })();
+  }, [onDraft, send]);
+
+  const dirty = useMemo(() => status === "READY" && daysKey(days) !== savedKey, [status, days, savedKey]);
+  const previewSrc = useMemo(() => {
+    const payload = { targetDate, backgroundId: backgroundId || undefined, days: WEEKDAYS.map((d) => ({ day: d, fortune: days.find((x) => x.day === d)?.fortune?.trim() || "—" })) };
+    return `/content-creator/api/daily7-preview?d=${encodeURIComponent(b64(JSON.stringify(payload)))}`;
+  }, [targetDate, backgroundId, days]);
+
   const startNew = async () => {
     if (session?.draftId && !window.confirm("เริ่มใหม่ = ทิ้ง draft เดิม ดำเนินต่อ?")) return;
     setPostId(null);
-    const s: Session = { requestKey: uuid(), targetDate, finalizeKey: uuid() };
+    const s = freshSession(targetDate, uuid);
     persist(s);
-    const d = await send("/content-creator/api/daily/draft", { requestKey: s.requestKey, targetDate });
-    if (d?.draft) { persist({ ...s, draftId: d.draft.id }); applyDraft(d.draft); }
+    onDraft((await send("/content-creator/api/daily/draft", { requestKey: s.requestKey, targetDate }))?.draft, s);
   };
 
-  const save = async () => {
+  const save = async (): Promise<DraftView | null> => {
     if (!session?.draftId) return null;
     const d = await send(`/content-creator/api/daily/draft/${session.draftId}`, { expectedRevision: revision, days }, "PATCH");
-    if (d?.draft) applyDraft(d.draft);
+    if (d?.draft) onDraft(d.draft, session);
     return d?.draft ?? null;
   };
 
   const regen = async () => {
     if (!session?.draftId) return;
     if (dirty && !window.confirm("ยังไม่ได้บันทึก — gen ใหม่จะทิ้งที่แก้?")) return;
-    // reuse pendingAttemptKey (retry ที่ response หาย) ; ไม่มี = regen ใหม่จริง → key ใหม่
-    const attemptKey = session.pendingAttemptKey ?? uuid();
+    const attemptKey = regenAttemptKey(session, uuid);
     persist({ ...session, pendingAttemptKey: attemptKey });
     const d = await send(`/content-creator/api/daily/draft/${session.draftId}/regenerate`, { attemptKey, expectedRevision: revision });
-    if (d?.draft) { applyDraft(d.draft); persist({ ...session, pendingAttemptKey: undefined }); }
+    if (d?.draft) onDraft(d.draft, { ...session, pendingAttemptKey: undefined });
   };
 
   const finalize = async () => {
     if (!session?.draftId || !backgroundId) return;
     let rev = revision;
-    if (dirty) { const saved = await save(); if (!saved) return; rev = saved.revision; } // save-ก่อน → contentPost = ที่เห็นบนจอ
+    if (dirty) { const saved = await save(); if (!saved) return; rev = saved.revision; }
     const d = await send(`/content-creator/api/daily/draft/${session.draftId}/finalize`, { finalizeKey: session.finalizeKey, expectedRevision: rev, backgroundId });
     if (d?.contentPostId) { setPostId(d.contentPostId); setStatus("FINALIZED"); persist(null); }
   };
 
   const canEdit = status === "READY";
-  const canRegen = status === "READY" || status === "FAILED";
-  const generating = status === "GENERATING";
+  const canRegen = status === "READY" || status === "FAILED" || status === "GENERATING"; // GENERATING = เผื่อ reclaim stuck
+  const showEditor = !!session?.draftId && status !== "FINALIZED";
 
   return (
     <div style={{ display: "flex", gap: 24, padding: 24, fontFamily: "sans-serif", alignItems: "flex-start" }}>
@@ -150,10 +139,10 @@ export default function Daily7Authoring() {
 
         {bgError && <div style={{ color: "#c0392b", fontSize: 13 }}>⚠️ bg: {bgError}</div>}
         {err && <div style={{ color: "#c0392b", fontSize: 13, background: "#fdecea", padding: 8, borderRadius: 8 }}>{err}</div>}
-        {generating && <div style={{ fontSize: 13, color: "#888" }}>กำลัง gen… (ถ้าค้างนาน กด “gen ใหม่” เพื่อ reclaim)</div>}
+        {status === "GENERATING" && <div style={{ fontSize: 13, color: "#888" }}>กำลัง gen… (ค้างนาน → กด “gen ใหม่” เพื่อ reclaim)</div>}
         {status === "FAILED" && <div style={{ fontSize: 13, color: "#c0392b" }}>gen ล้ม — กด “gen ใหม่ทั้งชุด”</div>}
 
-        {session?.draftId && status !== "FINALIZED" && (
+        {showEditor && (
           <>
             {WEEKDAYS.map((d) => (
               <div key={d} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
