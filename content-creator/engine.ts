@@ -119,7 +119,8 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
     if (template.imageStrategy === "composition") {
       // composition [S6a]: template render ภาพเอง (narrow → renderImage บังคับมี) — **ไม่แตะ brand ref / Gemini image**.
       // render "ก่อน" paid caption (local + fail-fast: font/bg หาย → ไม่จ่าย caption ฟรี) [ตู๋ ordering]
-      bytes = await template.renderImage(parsed, { brand });
+      // seed = post id (immutable) → bg selection deterministic: retry/reclaim/preview ได้ใบเดิม [S6b]
+      bytes = await template.renderImage(parsed, { brand, seed: id });
       caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
     } else {
       // ai [finance]: narrow → buildImagePrompt บังคับมี ; preflight ref ก่อน paid → caption → Gemini image (เดิม)

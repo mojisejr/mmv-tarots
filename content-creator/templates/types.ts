@@ -13,6 +13,11 @@ export interface CaptionPrompt {
 /** context (minimal explicit) ที่ engine ส่งให้ renderImage — ขยายเมื่อ template ต้องใช้จริง [S6a] */
 export interface RenderContext {
   brand: BrandProfile;
+  /**
+   * persisted stable seed (= post id) สำหรับเลือก asset แบบ deterministic [S6b].
+   * id เดิม → ผลเดิมทุกครั้ง (retry/reclaim/preview ตรงกัน) — ห้ามใช้ Math.random ใน render
+   */
+  seed: string;
 }
 
 /**
