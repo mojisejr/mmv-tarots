@@ -4,7 +4,7 @@
  * draft → gen 7 → แก้/regen → เลือก bg → finalize(+generate) → onFinalized(เด้งไปคิว approve)
  * recovery lifecycle: lib/daily7-session (pure, test ครบ) ; preview = POST+blob (robust)
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
 
 const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
@@ -27,6 +27,8 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
+  const previewUrlRef = useRef("");
+  useEffect(() => () => { if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current); }, []); // P2: กัน leak ตอน unmount
 
   const persist = useCallback((s: Session | null) => {
     setSession(s);
@@ -92,6 +94,7 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
         if (cancelled) return;
         const obj = URL.createObjectURL(blob);
         setPreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return obj; });
+        previewUrlRef.current = obj;
       } catch { /* preview เป็น best-effort */ }
     }, 350);
     return () => { cancelled = true; clearTimeout(t); };
@@ -127,8 +130,22 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
     if (!session?.draftId || !backgroundId) return;
     let rev = revision;
     if (dirty) { const saved = await save(); if (!saved) return; rev = saved.revision; }
-    const d = await send(`/content-creator/api/daily/draft/${session.draftId}/finalize`, { finalizeKey: session.finalizeKey, expectedRevision: rev, backgroundId });
-    if (d?.contentPostId && d.status !== "FAILED") { persist(null); onFinalized(); } // gen สำเร็จ → เด้งไปคิว
+    // ไม่ใช้ send() (ที่ทิ้ง body เมื่อ non-2xx) — finalize ต้องอ่าน body ที่ 202/502 ด้วย [ตู๋ P1]
+    setBusy(true); setErr("");
+    try {
+      const res = await fetch(`/content-creator/api/daily/draft/${session.draftId}/finalize`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalizeKey: session.finalizeKey, expectedRevision: rev, backgroundId }),
+      });
+      const d = await res.json();
+      if (d.ok && d.definitive) { persist(null); onFinalized(); return; } // GENERATED+ → เด้งไปคิว
+      if (d.status === "GENERATING" || d.status === "PENDING") {
+        setErr("กำลังประมวลผล… รอสักครู่แล้วเช็คคิว/กด finalize ซ้ำได้ (ระบบไม่จ่าย/สร้างซ้ำ)"); // เก็บ session
+      } else {
+        setErr(d.error ?? `gen ไม่สำเร็จ (${res.status}) — ลอง gen ใหม่ หรือเช็ค CTA ใน Settings`);
+      }
+    } catch (e) { setErr(String(e)); }
+    finally { setBusy(false); }
   };
 
   const canEdit = status === "READY";

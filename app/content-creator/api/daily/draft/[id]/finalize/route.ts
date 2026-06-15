@@ -9,8 +9,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getContentDb } from "@/content-creator/db/client";
 import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
-import { finalizeDaily7Draft, draftErrorStatus } from "@/content-creator/daily7-service";
+import { eq } from "drizzle-orm";
+import { finalizeDaily7Draft, draftErrorStatus, classifyFinalizeStatus } from "@/content-creator/daily7-service";
 import { generate } from "@/content-creator/engine";
+import { contentPosts } from "@/content-creator/db/schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,11 +42,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ ok: false, error }, { status });
   }
 
-  // gen ต่อ (sync) → ปิด loop ถึงคิว approve. SKIPPED = gen ไปแล้ว (replay) → ถือว่าสำเร็จ
+  // gen ต่อ (sync) → ปิด loop ถึงคิว approve. ผลสะท้อนใน post row → classify ตาม status จริง [ตู๋ P1]
+  // (ห้ามเหมา SKIPPED=success — replay หลัง response หายอาจเป็น GENERATING/FAILED)
   const gen = await generate(db, contentPostId);
-  const generated = gen.ok || gen.status === "SKIPPED";
+  const post = db.select().from(contentPosts).where(eq(contentPosts.id, contentPostId)).get();
+  const status = post?.status ?? "PENDING";
+  const c = classifyFinalizeStatus(status);
   return NextResponse.json(
-    { ok: generated, contentPostId, status: gen.status, caption: gen.caption, error: gen.error },
-    { status: generated ? 200 : 502 }, // 502 = gen ล้ม (เช่น ยังไม่ตั้ง CTA / Gemini) — post เป็น FAILED
+    { ok: c.ok, definitive: c.definitive, contentPostId, status, caption: post?.caption ?? gen.caption, error: gen.error },
+    { status: c.http },
   );
 }
