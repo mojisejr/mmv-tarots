@@ -175,12 +175,14 @@ export function markPostedManual(db: ContentDb, id: string): ManualPostResult {
     throw e;
   }
   // changes 0: row ไม่ใช่ GENERATED — เช็ค same-row idempotent replay (P1.3)
+  // ok เฉพาะ POSTED แบบ manual (fbPostId=null) เท่านั้น — auto-posted row (fbPostId มีค่า) = stale
+  // กันไม่ให้ manual-mark กลืน auto-posted row [ตู๋ P2]
   const row = db
-    .select({ status: contentPosts.status })
+    .select({ status: contentPosts.status, fbPostId: contentPosts.fbPostId })
     .from(contentPosts)
     .where(eq(contentPosts.id, id))
     .get();
-  return row?.status === "POSTED" ? "ok" : "stale";
+  return row?.status === "POSTED" && row.fbPostId == null ? "ok" : "stale";
 }
 
 /** ยิง FB ล้ม/ต้องปล่อย claim: PUBLISHING → FAILED (default) หรือ APPROVED (คืนคิว) + เคลียร์ lease marker */

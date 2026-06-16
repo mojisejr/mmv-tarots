@@ -100,30 +100,9 @@ export default function ContentCreatorPage() {
     }
   }, []);
 
-  const publishPost = useCallback(
-    async (id: string) => {
-      if (!confirm("เผยแพร่ขึ้นเพจ Facebook จริง? (โพสต์จะขึ้นหน้าเพจ)")) return;
-      setBusyId(id);
-      setError(null);
-      try {
-        const res = await fetch("/content-creator/api/publish", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        });
-        const d = await res.json().catch(() => ({}));
-        if (!res.ok || !d.ok) {
-          throw new Error(d.error ?? `publish ไม่สำเร็จ (${res.status})`);
-        }
-        await load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "publish ล้ม");
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [load],
-  );
+  // NOTE [PR#100]: auto-publish (publishPost → /api/publish) ถูกตัดออกจาก UX
+  // เพราะ Graph public auto-post ตัน (no-company). route/service ยังอยู่ใน code แต่ไม่ expose ที่นี่
+  // กัน​ฟีมเผลอกดยิง FB. legacy APPROVED row แสดงเป็น info เฉยๆ (ไม่มีปุ่มยิง FB)
 
   const pending = posts.filter((p) => p.status === "GENERATED");
   const approved = posts.filter((p) => p.status === "APPROVED");
@@ -238,10 +217,11 @@ export default function ContentCreatorPage() {
 
       {approved.length > 0 && (
         <section className="mt-8">
-          <h2 className="mb-2 text-sm font-semibold text-gray-500">รอเผยแพร่ (APPROVED {approved.length})</h2>
+          <h2 className="mb-2 text-sm font-semibold text-gray-500">APPROVED (legacy {approved.length})</h2>
+          <p className="mb-2 text-xs text-amber-700">⚠️ row เก่าจาก auto-publish ที่ปิดไปแล้ว — workflow มือไม่ใช้สถานะนี้ (ไม่มีปุ่มยิง FB)</p>
           <div className="space-y-4">
             {approved.map((p) => (
-              <article key={p.id} className="overflow-hidden rounded-xl border shadow-sm">
+              <article key={p.id} className="overflow-hidden rounded-xl border border-amber-200 shadow-sm">
                 {p.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element -- admin tool, local fs media
                   <img src={p.imageUrl} alt="approved" className="aspect-square w-full bg-gray-100 object-cover" />
@@ -254,13 +234,6 @@ export default function ContentCreatorPage() {
                     <span className="text-xs text-gray-400">{p.templateId}</span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm">{p.caption}</p>
-                  <button
-                    onClick={() => publishPost(p.id)}
-                    disabled={busyId === p.id}
-                    className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {busyId === p.id ? "กำลังเผยแพร่…" : "🚀 เผยแพร่ขึ้นเพจ (Publish)"}
-                  </button>
                 </div>
               </article>
             ))}

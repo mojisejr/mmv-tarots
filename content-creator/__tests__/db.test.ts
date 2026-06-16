@@ -123,6 +123,17 @@ describe("[PR#100] manual mark posted — ฟีมโพสต์ FB เอง 
     expect(statusOf(db, "b")).toBe("GENERATED"); // rollback — ไม่เปลี่ยน
   });
 
+  it("[P2] auto-posted row (fbPostId มีค่า) → stale ไม่ถูก manual-mark กลืน", () => {
+    const db = createContentDb(":memory:");
+    // จำลอง row ที่ publish ผ่าน auto path สำเร็จ (POSTED + fbPostId)
+    db.insert(contentPosts)
+      .values({ id: "auto", templateId: "daily-7", inputData: { targetDate: "2026-06-24" }, status: "POSTED", fbPostId: "fb_123", postedAt: new Date() })
+      .run();
+    expect(markPostedManual(db, "auto")).toBe("stale"); // ไม่ใช่ replay ของ manual → ไม่คืน ok
+    const row = db.select().from(contentPosts).where(eq(contentPosts.id, "auto")).get();
+    expect(row!.fbPostId).toBe("fb_123"); // ไม่ถูกแตะ
+  });
+
   it("non-GENERATED (CANCELED / ghost id) → stale ไม่แตะ", () => {
     const db = createContentDb(":memory:");
     db.insert(contentPosts).values({ id: "c", templateId: "daily-7", inputData: { targetDate: "2026-06-22" }, status: "CANCELED" }).run();
