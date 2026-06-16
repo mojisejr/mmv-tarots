@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { CompositionTemplate, RenderContext } from "./types";
 import { loadBackgroundForSeed, loadBackgroundById } from "../lib/bg-pool";
 import { genObject } from "../lib/gemini";
+import { normalizeBrandTerms } from "../lib/caption";
 
 /** ลำดับ canonical (render เรียงนี้เสมอ ไม่ขึ้นกับลำดับ input) */
 export const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
@@ -87,7 +88,7 @@ export function deriveThaiDateLabel(isoDate: string): string {
 export function canonicalizeDays(raw: { day: string; fortune: string }[]): DayFortune[] {
   const map = new Map<string, string>();
   for (const r of raw) {
-    const f = (r.fortune ?? "").trim().replace(/\s+/g, " ");
+    const f = normalizeBrandTerms((r.fortune ?? "").trim().replace(/\s+/g, " ")); // guard ชื่อแบรนด์ พี่มี่ เสมอ
     if (!f) throw new Error(`คำทำนายว่าง: ${r.day}`);
     map.set(r.day, f.slice(0, MAX_PREDICTION));
   }
@@ -148,7 +149,7 @@ export const daily7: CompositionTemplate = {
     const d = daily7Schema.parse(data);
     return {
       system:
-        'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ด พูดน่ารักเป็นกันเอง (พี่หมี่, ฟีลลิ่ง, ซัพพอร์ต, ปังมาก, แม่). ' +
+        'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ด พูดน่ารักเป็นกันเอง เรียกตัวเองว่า "พี่มี่" เสมอ (ห้าม "พี่หมี่"). คำติดปาก: ฟีลลิ่ง, ซัพพอร์ต, ปังมาก, แม่. ' +
         "เขียนแคปชั่น Facebook สำหรับ 'ดวงรายวัน 7 วันเกิด' สั้นกระชับ ชวนให้คนมองหา 'วันเกิดของตัวเอง' ในภาพ " +
         "และดูว่าวันนี้ของเขาเป็นยังไง. จบด้วย #ดวงรายวัน #หมอมี่ (CTA link จะถูกเติมให้)",
       prompt: `วันที่ ${deriveThaiDateLabel(d.targetDate)} เปิดดวงครบทั้ง 7 วันเกิด\nเขียนแคปชั่นเชิญชวน:`,

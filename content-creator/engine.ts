@@ -14,7 +14,7 @@ import { contentPosts, type BrandProfile } from "./db/schema";
 import { getBrandProfile } from "./db/brand";
 import { claimForGenerate, markGenerated, releaseGenerate } from "./db/transition";
 import { genCaption, genImage, genImageWithRef } from "./lib/gemini";
-import { buildCaptionRequest, validateCaption } from "./lib/caption";
+import { buildCaptionRequest, validateCaption, normalizeBrandTerms } from "./lib/caption";
 import { safeResolveUnderRoot } from "./lib/safe-path";
 import { getTemplate } from "./templates";
 import type { CaptionPrompt } from "./templates/types";
@@ -39,12 +39,13 @@ export function getRecentCaptions(db: ContentDb, excludeId: string, limit = 5): 
 /** gen caption + validate (length/CTA) ; ไม่ผ่าน → regen 1 ครั้ง (เข้มขึ้น) ; ยังไม่ผ่าน → throw (FAILED) [S5] */
 async function generateCaption(base: CaptionPrompt, brand: BrandProfile, recentCaptions: string[]): Promise<string> {
   const reqq = buildCaptionRequest({ base, brand, recentCaptions });
-  let caption = (await genCaption(reqq)).trim();
+  // normalizeBrandTerms = guard ชื่อแบรนด์ (พี่หมี่→พี่มี่) เสมอ แม้ model สะกดผิด [brand consistency]
+  let caption = normalizeBrandTerms((await genCaption(reqq)).trim());
   let v = validateCaption(caption, brand);
   if (!v.ok) {
     // regen 1 ครั้ง พร้อม feedback ว่าทำไมไม่ผ่าน (caption gen ถูก — ยอม regen ได้)
     const retry: CaptionPrompt = { system: `${reqq.system}\n\n(รอบก่อนไม่ผ่านกติกา: ${v.reason} — แก้ให้ถูกเป๊ะ)`, prompt: reqq.prompt };
-    caption = (await genCaption(retry)).trim();
+    caption = normalizeBrandTerms((await genCaption(retry)).trim());
     v = validateCaption(caption, brand);
     if (!v.ok) throw new Error(`caption ไม่ผ่านกติกาหลัง regen: ${v.reason}`);
   }

@@ -9,6 +9,15 @@ import type { CaptionPrompt } from "../templates/types";
 
 export type CaptionBrand = Pick<BrandProfile, "captionPersona" | "captionMaxChars" | "ctaText" | "ctaUrl">;
 
+/**
+ * normalize ชื่อแบรนด์ใน AI output — guarantee "พี่มี่" เสมอ [brand consistency].
+ * แบรนด์ = แม่หมอ "มี่" → เรียกตัวเองว่า "พี่มี่" ; "พี่หมี่" ผิดเสมอ. แม้แก้ prompt แล้ว
+ * model ยังอาจสะกด "พี่หมี่" เองได้ (non-deterministic) → guard ชั้นนี้การันตี (ฟีมเน้น "เสมอ").
+ */
+export function normalizeBrandTerms(text: string): string {
+  return text.replace(/พี่หมี่/g, "พี่มี่");
+}
+
 export interface CaptionContext {
   base: CaptionPrompt; // จาก template.buildCaptionPrompt
   brand: CaptionBrand;
