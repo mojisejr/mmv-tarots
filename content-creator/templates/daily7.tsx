@@ -103,9 +103,10 @@ export function canonicalizeDays(raw: { day: string; fortune: string }[]): DayFo
 const draftGenSchema = z.object({ days: z.array(z.object({ day: z.enum(WEEKDAYS), fortune: z.string() })).length(7) });
 
 const DRAFT_SYSTEM =
-  'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ดน่ารักเป็นกันเอง. เขียน "ดวงรายวัน" ภาพรวมของแต่ละวันเกิด ' +
-  "(จันทร์ อังคาร พุธ พฤหัสบดี ศุกร์ เสาร์ อาทิตย์) ว่าวันนี้โดยรวมเป็นยังไง — สั้นกระชับ 1 ประโยค " +
-  "ต่อวัน ฟันธงชัด ฟีลบวก ครบทั้ง 7 วัน ไม่ซ้ำ. แต่ละวันยาวไม่เกิน ~80 ตัวอักษร.";
+  'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ด. เขียน "ดวงรายวัน" ภาพรวมของแต่ละวันเกิด ' +
+  "(จันทร์ อังคาร พุธ พฤหัสบดี ศุกร์ เสาร์ อาทิตย์) ครบ 7 วันไม่ซ้ำ. " +
+  "สไตล์ **ฟันธงสั้นมาก punchy** — 1 วรรคเดียว ไม่เกิน ~40 ตัวอักษร ห้ามบรรยายยาว/ขยายความ " +
+  "เอาแบบคมๆ ฟีลบวก เช่น \"งานปัง เงินเข้ารัวๆ!\" / \"รักลงล็อก เจอคนถูกใจ\" / \"ระวังปากเสียง ใจเย็นไว้\".";
 
 /**
  * gen 7 คำทำนาย overall (1 call) + validate strict ; ไม่ผ่าน → regen ทั้งชุด 1 ครั้งพร้อม feedback →
@@ -128,7 +129,7 @@ export async function genDaily7Days(targetDate: string): Promise<DayFortune[]> {
 
 const OUT = 1080; // การ์ดสี่เหลี่ยมจัตุรัส (bg pool เป็น 1:1)
 const ROW_H = 88; // ความสูง slot คงที่ → layout golden นิ่งไม่ว่าคำทำนายยาว/สั้น
-const MAX_FORTUNE = 58; // deterministic truncate (content guard) — visual ถูก clip ด้วย geometry อีกชั้น
+const MAX_FORTUNE = 46; // ฟันธงสั้น — พอดี ~2 บรรทัดสั้น ไม่ "…" (gen target ~40) [ฟีม: สั้นลง ฟันธง]
 const FONT_PATH = join(process.cwd(), "assets", "fonts", "NotoSansThai-Bold.ttf");
 
 function truncate(s: string, n: number): string {
