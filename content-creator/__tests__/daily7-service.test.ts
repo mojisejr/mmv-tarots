@@ -9,7 +9,8 @@ vi.mock("../lib/gemini", () => ({ genObject: mockGenObject }));
 import { createContentDb, type ContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { createDaily7Draft, regenDaily7Draft, editDaily7Draft, finalizeDaily7Draft } from "../daily7-service";
+import { createDaily7Draft, regenDaily7Draft, editDaily7Draft, finalizeDaily7Draft, classifyFinalizeStatus } from "../daily7-service";
+import type { ContentStatus } from "../db/schema";
 import { getDraft } from "../db/drafts";
 
 const full = () => ({ days: WEEKDAYS.map((day) => ({ day, fortune: `${day} วันนี้ดีมาก` })) });
@@ -49,6 +50,22 @@ describe("regenDaily7Draft", () => {
     const after = await regenDaily7Draft(db, d.id, "attempt-1", d.revision);
     expect(after.status).toBe("READY");
     expect((after.draftData as { days: { fortune: string }[] }).days[0].fortune).toContain("เปลี่ยนแล้ว");
+  });
+});
+
+describe("classifyFinalizeStatus [ตู๋ P1 replay]", () => {
+  it("GENERATED+ → 200 definitive ok", () => {
+    for (const s of ["GENERATED", "APPROVED", "PUBLISHING", "POSTED"] as ContentStatus[]) {
+      expect(classifyFinalizeStatus(s)).toEqual({ http: 200, ok: true, definitive: true });
+    }
+  });
+  it("GENERATING/PENDING → 202 ไม่ definitive (keep session, ไม่จ่ายซ้ำ)", () => {
+    expect(classifyFinalizeStatus("GENERATING")).toEqual({ http: 202, ok: false, definitive: false });
+    expect(classifyFinalizeStatus("PENDING")).toEqual({ http: 202, ok: false, definitive: false });
+  });
+  it("FAILED/CANCELED → 502 definitive failed", () => {
+    expect(classifyFinalizeStatus("FAILED")).toEqual({ http: 502, ok: false, definitive: true });
+    expect(classifyFinalizeStatus("CANCELED")).toEqual({ http: 502, ok: false, definitive: true });
   });
 });
 

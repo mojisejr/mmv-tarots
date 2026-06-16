@@ -1,15 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { buildCaptionRequest, validateCaption, hasUrlToken } from "../lib/caption";
+import { buildCaptionRequest, validateCaption, hasUrlToken, normalizeBrandTerms } from "../lib/caption";
 
-const brand = { captionPersona: "หมอมี่ ฟันธงสั้น", captionMaxChars: 300, ctaText: "ทักพี่หมี่ดูดวงเต็ม", ctaUrl: "https://mmv.app" };
+const brand = { captionPersona: "หมอมี่ ฟันธงสั้น", captionMaxChars: 300, ctaText: "ทักพี่มี่ดูดวงเต็ม", ctaUrl: "https://mmv.app" };
 const base = { system: "คุณคือหมอมี่", prompt: "ไพ่: The Sun" };
+
+describe("normalizeBrandTerms — พี่มี่ เสมอ [brand consistency]", () => {
+  it("พี่หมี่ → พี่มี่ (ทุกที่ในข้อความ)", () => {
+    expect(normalizeBrandTerms("พี่หมี่ซัพพอร์ตเต็มที่ ทักพี่หมี่ได้")).toBe("พี่มี่ซัพพอร์ตเต็มที่ ทักพี่มี่ได้");
+  });
+  it("ไม่แตะ 'หมอมี่' (ชื่อแบรนด์ที่ถูก)", () => {
+    expect(normalizeBrandTerms("หมอมี่ทักทาย")).toBe("หมอมี่ทักทาย");
+  });
+});
 
 describe("buildCaptionRequest [S5]", () => {
   it("รวม length + persona + CTA(text+url) + anti-repeat เข้า system", () => {
     const r = buildCaptionRequest({ base, brand, recentCaptions: ["แคปเก่า A", "แคปเก่า B"] });
     expect(r.system).toContain("300 ตัวอักษร");
     expect(r.system).toContain("หมอมี่ ฟันธงสั้น");
-    expect(r.system).toContain("ทักพี่หมี่ดูดวงเต็ม");
+    expect(r.system).toContain("ทักพี่มี่ดูดวงเต็ม");
     expect(r.system).toContain("https://mmv.app");
     expect(r.system).toContain("แคปเก่า A"); // anti-repeat feed
     expect(r.prompt).toBe(base.prompt); // prompt เดิมไม่แตะ

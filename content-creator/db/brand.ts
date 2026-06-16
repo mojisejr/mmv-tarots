@@ -26,7 +26,7 @@ export const DEFAULT_BRAND: Omit<BrandProfile, "updatedAt"> = {
   imageModel: null,
   captionMaxChars: 450,
   // CTA default — ฟีมแก้ใน settings ให้ตรงระบบจริง (link/handle)
-  ctaText: "อยากรู้ดวงการเงินแบบเจาะลึกของตัวเอง? ทักหาพี่หมี่ดูดวงเต็ม ๆ ได้เลย",
+  ctaText: "อยากรู้ดวงการเงินแบบเจาะลึกของตัวเอง? ทักหาพี่มี่ดูดวงเต็ม ๆ ได้เลย",
   ctaUrl: "",
 };
 

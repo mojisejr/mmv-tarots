@@ -19,8 +19,25 @@ import {
 } from "./db/drafts";
 import { genDaily7Days, daily7Schema, canonicalizeDays } from "./templates/daily7";
 import { assertValidBackgroundId } from "./lib/bg-pool";
+import type { ContentStatus } from "./db/schema";
 
 export const DAILY7_TEMPLATE_ID = "daily-7";
+
+/**
+ * classify ผล finalize+generate จาก "status จริงของ contentPost" (อ่านหลัง generate) [ตู๋ P1].
+ * ห้ามเหมา generate SKIPPED = success — SKIPPED = claim ไม่ได้ (post ไม่ใช่ PENDING) รวม
+ * GENERATING/FAILED/GENERATED → retry finalize หลัง response หายต้อง classify ตาม status จริง:
+ *   - GENERATED+ (terminal-ish ที่ gen เสร็จ) → 200 definitive ok (ไปคิว approve)
+ *   - GENERATING/PENDING → 202 ยังไม่ definitive (กำลังทำ — เก็บ session ไว้ retry, ไม่จ่ายซ้ำ)
+ *   - FAILED/CANCELED → 502 definitive failed
+ */
+export function classifyFinalizeStatus(status: ContentStatus): { http: number; ok: boolean; definitive: boolean } {
+  if (status === "GENERATED" || status === "APPROVED" || status === "PUBLISHING" || status === "POSTED") {
+    return { http: 200, ok: true, definitive: true };
+  }
+  if (status === "GENERATING" || status === "PENDING") return { http: 202, ok: false, definitive: false };
+  return { http: 502, ok: false, definitive: true }; // FAILED / CANCELED
+}
 
 /** map error ของ draft lifecycle → HTTP status (route ใช้ร่วม) */
 export function draftErrorStatus(e: unknown): { status: number; error: string } {

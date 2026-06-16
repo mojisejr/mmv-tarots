@@ -14,6 +14,7 @@ import { z } from "zod";
 import type { CompositionTemplate, RenderContext } from "./types";
 import { loadBackgroundForSeed, loadBackgroundById } from "../lib/bg-pool";
 import { genObject } from "../lib/gemini";
+import { normalizeBrandTerms } from "../lib/caption";
 
 /** ลำดับ canonical (render เรียงนี้เสมอ ไม่ขึ้นกับลำดับ input) */
 export const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
@@ -87,7 +88,7 @@ export function deriveThaiDateLabel(isoDate: string): string {
 export function canonicalizeDays(raw: { day: string; fortune: string }[]): DayFortune[] {
   const map = new Map<string, string>();
   for (const r of raw) {
-    const f = (r.fortune ?? "").trim().replace(/\s+/g, " ");
+    const f = normalizeBrandTerms((r.fortune ?? "").trim().replace(/\s+/g, " ")); // guard ชื่อแบรนด์ พี่มี่ เสมอ
     if (!f) throw new Error(`คำทำนายว่าง: ${r.day}`);
     map.set(r.day, f.slice(0, MAX_PREDICTION));
   }
@@ -102,9 +103,10 @@ export function canonicalizeDays(raw: { day: string; fortune: string }[]): DayFo
 const draftGenSchema = z.object({ days: z.array(z.object({ day: z.enum(WEEKDAYS), fortune: z.string() })).length(7) });
 
 const DRAFT_SYSTEM =
-  'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ดน่ารักเป็นกันเอง. เขียน "ดวงรายวัน" ภาพรวมของแต่ละวันเกิด ' +
-  "(จันทร์ อังคาร พุธ พฤหัสบดี ศุกร์ เสาร์ อาทิตย์) ว่าวันนี้โดยรวมเป็นยังไง — สั้นกระชับ 1 ประโยค " +
-  "ต่อวัน ฟันธงชัด ฟีลบวก ครบทั้ง 7 วัน ไม่ซ้ำ. แต่ละวันยาวไม่เกิน ~80 ตัวอักษร.";
+  'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ด. เขียน "ดวงรายวัน" ภาพรวมของแต่ละวันเกิด ' +
+  "(จันทร์ อังคาร พุธ พฤหัสบดี ศุกร์ เสาร์ อาทิตย์) ครบ 7 วันไม่ซ้ำ. " +
+  "สไตล์ **ฟันธงสั้นมาก punchy** — 1 วรรคเดียว ไม่เกิน ~40 ตัวอักษร ห้ามบรรยายยาว/ขยายความ " +
+  "เอาแบบคมๆ ฟีลบวก เช่น \"งานปัง เงินเข้ารัวๆ!\" / \"รักลงล็อก เจอคนถูกใจ\" / \"ระวังปากเสียง ใจเย็นไว้\".";
 
 /**
  * gen 7 คำทำนาย overall (1 call) + validate strict ; ไม่ผ่าน → regen ทั้งชุด 1 ครั้งพร้อม feedback →
@@ -127,7 +129,7 @@ export async function genDaily7Days(targetDate: string): Promise<DayFortune[]> {
 
 const OUT = 1080; // การ์ดสี่เหลี่ยมจัตุรัส (bg pool เป็น 1:1)
 const ROW_H = 88; // ความสูง slot คงที่ → layout golden นิ่งไม่ว่าคำทำนายยาว/สั้น
-const MAX_FORTUNE = 58; // deterministic truncate (content guard) — visual ถูก clip ด้วย geometry อีกชั้น
+const MAX_FORTUNE = 46; // ฟันธงสั้น — พอดี ~2 บรรทัดสั้น ไม่ "…" (gen target ~40) [ฟีม: สั้นลง ฟันธง]
 const FONT_PATH = join(process.cwd(), "assets", "fonts", "NotoSansThai-Bold.ttf");
 
 function truncate(s: string, n: number): string {
@@ -148,7 +150,7 @@ export const daily7: CompositionTemplate = {
     const d = daily7Schema.parse(data);
     return {
       system:
-        'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ด พูดน่ารักเป็นกันเอง (พี่หมี่, ฟีลลิ่ง, ซัพพอร์ต, ปังมาก, แม่). ' +
+        'คุณคือ "หมอมี่" หมอดูสายฟีลกู้ด พูดน่ารักเป็นกันเอง เรียกตัวเองว่า "พี่มี่" เสมอ (ห้าม "พี่หมี่"). คำติดปาก: ฟีลลิ่ง, ซัพพอร์ต, ปังมาก, แม่. ' +
         "เขียนแคปชั่น Facebook สำหรับ 'ดวงรายวัน 7 วันเกิด' สั้นกระชับ ชวนให้คนมองหา 'วันเกิดของตัวเอง' ในภาพ " +
         "และดูว่าวันนี้ของเขาเป็นยังไง. จบด้วย #ดวงรายวัน #หมอมี่ (CTA link จะถูกเติมให้)",
       prompt: `วันที่ ${deriveThaiDateLabel(d.targetDate)} เปิดดวงครบทั้ง 7 วันเกิด\nเขียนแคปชั่นเชิญชวน:`,

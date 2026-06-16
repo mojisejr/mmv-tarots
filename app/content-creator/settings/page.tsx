@@ -119,7 +119,7 @@ export default function BrandSettingsPage() {
                 value={ctaText}
                 onChange={(e) => setCtaText(e.target.value)}
                 rows={2}
-                placeholder="เช่น อยากรู้ดวงการเงินเจาะลึก ทักหาพี่หมี่ได้เลย"
+                placeholder="เช่น อยากรู้ดวงการเงินเจาะลึก ทักหาพี่มี่ได้เลย"
                 className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
               />
             </label>
