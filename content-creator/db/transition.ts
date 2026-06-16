@@ -91,7 +91,7 @@ export function releaseGenerate(db: ContentDb, id: string, token: string): boole
 }
 
 /** unique-constraint violation ของ better-sqlite3 (per-day fence ชน) */
-function isUniqueViolation(e: unknown): boolean {
+export function isUniqueViolation(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return (e as { code?: string })?.code === "SQLITE_CONSTRAINT_UNIQUE" || /UNIQUE constraint failed/i.test(msg);
 }

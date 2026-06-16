@@ -13,6 +13,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { ContentDb } from "./client";
 import { contentDrafts, contentPosts, type ContentDraft } from "./schema";
+import { isUniqueViolation } from "./transition";
 
 export type { ContentDraft } from "./schema";
 
@@ -185,9 +186,18 @@ export function finalizeDraft(
       throw new DraftStaleError(`finalize ไม่ได้: status=${cur.status} revision=${cur.revision} (expected ${expectedRevision})`);
     }
     const postId = crypto.randomUUID();
-    tx.insert(contentPosts)
-      .values({ id: postId, requestKey: `draft:${id}`, templateId, inputData: finalInput, status: "PENDING" })
-      .run(); // requestKey unique = backstop กัน 2 post จาก draft เดียว
+    try {
+      tx.insert(contentPosts)
+        .values({ id: postId, requestKey: `draft:${id}`, templateId, inputData: finalInput, status: "PENDING" })
+        .run(); // requestKey unique = backstop กัน 2 post จาก draft เดียว
+    } catch (e) {
+      // daily-7 active fence (idx 0008): มี non-canceled artifact ของ targetDate เดียวกันแล้ว
+      // → domain result 409 (ไม่ใช่ 500). shared ทั้ง manual + auto finalize [PR#101 ตู๋ P1.2]
+      if (isUniqueViolation(e)) {
+        throw new DraftConflictError("มี content ของวันนี้อยู่แล้ว (daily-7 = 1 โพสต์/วัน) — ยกเลิกตัวเดิมก่อน");
+      }
+      throw e;
+    }
     const res = tx
       .update(contentDrafts)
       .set({ status: "FINALIZED", contentPostId: postId, finalizeKey, revision: sql`${contentDrafts.revision} + 1`, updatedAt: new Date() })

@@ -114,13 +114,21 @@ describe("[PR#100] manual mark posted — ฟีมโพสต์ FB เอง 
     expect(statusOf(db, "g")).toBe("POSTED");
   });
 
-  it("[P1.1] two rows same targetDate → row 1 ok, row 2 fence + status ไม่เปลี่ยน (atomic)", () => {
+  it("[fence 0008] DB block insert daily-7 ตัวที่ 2 วันเดียวกัน (non-canceled) → row แรกยัง mark posted ได้", () => {
     const db = createContentDb(":memory:");
     genDaily7(db, "a", "2026-06-20");
-    genDaily7(db, "b", "2026-06-20");
-    expect(markPostedManual(db, "a")).toBe("ok");
-    expect(markPostedManual(db, "b")).toBe("fence"); // a อยู่ POSTED วันเดียวกัน → unique index ชน
-    expect(statusOf(db, "b")).toBe("GENERATED"); // rollback — ไม่เปลี่ยน
+    // broad fence (idx 0008): 1 non-canceled artifact/วัน → ตัวที่ 2 ถูก block ตั้งแต่ insert
+    expect(() => genDaily7(db, "b", "2026-06-20")).toThrow(/UNIQUE constraint/);
+    expect(markPostedManual(db, "a")).toBe("ok"); // row เดียว → mark posted ปกติ
+    expect(statusOf(db, "a")).toBe("POSTED");
+  });
+
+  it("[fence 0008] CANCELED ไม่นับใน fence → สร้างใหม่วันเดียวกันได้หลังยกเลิกตัวเดิม", () => {
+    const db = createContentDb(":memory:");
+    genDaily7(db, "old", "2026-06-25");
+    tryTransition(db, "old", "GENERATED", "CANCELED"); // ยกเลิกตัวเดิม
+    expect(() => genDaily7(db, "new", "2026-06-25")).not.toThrow(); // วันเดียวกันสร้างใหม่ได้
+    expect(statusOf(db, "new")).toBe("GENERATED");
   });
 
   it("[P2] auto-posted row (fbPostId มีค่า) → stale ไม่ถูก manual-mark กลืน", () => {
