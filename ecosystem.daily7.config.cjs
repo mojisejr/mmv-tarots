@@ -10,8 +10,10 @@ module.exports = {
     {
       name: "mmv-daily7-scheduler",
       script: "scripts/publish-worker.ts",
+      cwd: __dirname, // รันจาก project root → CONTENT_DB_PATH default (content-creator/content.db) ตรงกับเว็บ
       interpreter: "node",
-      interpreter_args: "--import tsx",
+      // --env-file=.env.local → worker โหลด FB token + env เดียวกับ Next dev (ไม่ต้อง commit secret)
+      interpreter_args: "--import tsx --env-file=.env.local",
       autorestart: true, // ดับ/crash → ฟื้นเอง (จุดอ่อน worker downtime แก้ด้วย pm2 + reconcile catch-up)
       max_restarts: 20,
       env: {
