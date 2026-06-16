@@ -47,8 +47,15 @@
     {
       "idx": 6,
       "version": "6",
-      "when": 1781600000000,
+      "when": 1781550000000,
       "tag": "0006_daily7_perday_fence",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1781582089186,
+      "tag": "0007_clammy_black_tarantula",
       "breakpoints": true
     }
   ]

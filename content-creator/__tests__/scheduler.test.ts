@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockUpload = vi.hoisted(() => vi.fn());
 const mockPublish = vi.hoisted(() => vi.fn());
@@ -7,7 +7,8 @@ vi.mock("../lib/facebook", () => ({ uploadUnpublishedPhoto: mockUpload, publishT
 import { eq } from "drizzle-orm";
 import { createContentDb, type ContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
-import { runSchedulerTick, type ScheduleConfig } from "../scheduler";
+import { runSchedulerTick, getScheduleConfig, type ScheduleConfig } from "../scheduler";
+import { reconcileStuckPublishing } from "../db/transition";
 
 const FULL: ScheduleConfig = { days: [0, 1, 2, 3, 4, 5, 6], slots: ["09:00"] };
 const deps = (now: string, config: ScheduleConfig = FULL) => ({ pageId: "p", token: "t", config, now: new Date(now) });
@@ -85,5 +86,72 @@ describe("scheduler reconcile tick [S4b]", () => {
     expect(r.window).toBe("open");
     expect(r.published).toBeUndefined();
     expect(r.note).toContain("ว่าง");
+  });
+});
+
+// insert PUBLISHING row ที่ค้าง (จำลอง worker ตาย) — คุม publishStartedAt + feedAttemptedAt
+function stuckPublishing(targetDate: string, opts: { feedAttempted: boolean; startedAgoMs: number }): string {
+  const id = `pub-${n++}`;
+  db.insert(contentPosts).values({
+    id, templateId: "daily-7", inputData: { targetDate, days: [] }, status: "PUBLISHING", caption: "cap", imagePath: "/m/y.png", mediaFbid: "m1",
+    publishStartedAt: new Date(Date.now() - opts.startedAgoMs), feedAttemptedAt: opts.feedAttempted ? new Date(Date.now() - opts.startedAgoMs) : null,
+  }).run();
+  return id;
+}
+
+describe("reconcile stuck PUBLISHING [S4b ตู๋ P1]", () => {
+  const CUTOFF = () => new Date(Date.now() - 10 * 60 * 1000); // 10 นาที
+
+  it("worker dies BEFORE feed (pre-PONR) + lease หมดอายุ → release APPROVED (retry ได้)", () => {
+    const id = stuckPublishing("2026-06-16", { feedAttempted: false, startedAgoMs: 20 * 60 * 1000 });
+    expect(reconcileStuckPublishing(db, CUTOFF())).toBe(1);
+    expect(statusOf(id)).toBe("APPROVED");
+  });
+
+  it("worker dies AFTER feed-start (post-PONR) → ไม่ release คง PUBLISHING (ambiguous, ห้าม retry)", () => {
+    const id = stuckPublishing("2026-06-16", { feedAttempted: true, startedAgoMs: 20 * 60 * 1000 });
+    expect(reconcileStuckPublishing(db, CUTOFF())).toBe(0);
+    expect(statusOf(id)).toBe("PUBLISHING"); // คงไว้ surface/manual
+  });
+
+  it("PUBLISHING ยังไม่หมดอายุ (fresh claim) → ไม่แตะ", () => {
+    const id = stuckPublishing("2026-06-16", { feedAttempted: false, startedAgoMs: 60 * 1000 }); // 1 นาที
+    expect(reconcileStuckPublishing(db, CUTOFF())).toBe(0);
+    expect(statusOf(id)).toBe("PUBLISHING");
+  });
+
+  it("integration: tick reconcile pre-PONR stuck → release → publish ในรอบเดียว (resume)", async () => {
+    const id = stuckPublishing("2026-06-16", { feedAttempted: false, startedAgoMs: 20 * 60 * 1000 });
+    const r = await runSchedulerTick(db, deps(AFTER_SLOT));
+    expect(r.reclaimedStuck).toBe(1);
+    expect(r.published?.id).toBe(id);
+    expect(statusOf(id)).toBe("POSTED");
+  });
+});
+
+describe("getScheduleConfig fail-closed [ตู๋ P1.2]", () => {
+  const save = { d: process.env.CONTENT_SCHEDULE_DAYS, s: process.env.CONTENT_SCHEDULE_SLOTS };
+  const restore = (k: "CONTENT_SCHEDULE_DAYS" | "CONTENT_SCHEDULE_SLOTS", v: string | undefined) => {
+    if (v === undefined) delete process.env[k]; else process.env[k] = v; // กัน assign undefined → string "undefined"
+  };
+  afterEach(() => { restore("CONTENT_SCHEDULE_DAYS", save.d); restore("CONTENT_SCHEDULE_SLOTS", save.s); });
+
+  it("slot ผิดรูป → throw (ไม่ fail-open โพสต์ผิดเวลา)", () => {
+    process.env.CONTENT_SCHEDULE_SLOTS = "bad";
+    expect(() => getScheduleConfig()).toThrow(/SCHEDULE_SLOTS/);
+  });
+  it("slot นอกช่วง 25:99 → throw", () => {
+    process.env.CONTENT_SCHEDULE_SLOTS = "25:99";
+    expect(() => getScheduleConfig()).toThrow(/SCHEDULE_SLOTS/);
+  });
+  it("days ผิด → throw", () => {
+    process.env.CONTENT_SCHEDULE_SLOTS = "09:00";
+    process.env.CONTENT_SCHEDULE_DAYS = "9";
+    expect(() => getScheduleConfig()).toThrow(/SCHEDULE_DAYS/);
+  });
+  it("valid → ผ่าน", () => {
+    process.env.CONTENT_SCHEDULE_SLOTS = "09:00,13:30";
+    process.env.CONTENT_SCHEDULE_DAYS = "1,2,3";
+    expect(getScheduleConfig()).toEqual({ days: [1, 2, 3], slots: ["09:00", "13:30"] });
   });
 });

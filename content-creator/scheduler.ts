@@ -11,9 +11,13 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
 import { contentPosts } from "./db/schema";
 import { publishApprovedPost, type PublishOutcome } from "./publish-service";
+import { reconcileStuckPublishing } from "./db/transition";
 import { bangkokTodayISO, bangkokMinutesOfDay, bangkokDayOfWeek, hhmmToMinutes } from "./lib/time";
 
 const DAILY7 = "daily-7";
+/** PUBLISHING ที่ค้างเกินนี้ (pre-PONR) ถือว่า worker ตาย → reconcile release */
+const PUBLISH_LEASE_MS = Number(process.env.CONTENT_PUBLISH_LEASE_MS ?? 10 * 60 * 1000);
+const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/; // 00:00–23:59 เป๊ะ
 
 export interface ScheduleConfig {
   /** วันที่โพสต์ (0=อาทิตย์..6=เสาร์) ; default ทุกวัน */
@@ -22,9 +26,19 @@ export interface ScheduleConfig {
   slots: string[];
 }
 
+/**
+ * อ่าน schedule config — **fail-closed** [ตู๋ P1.2]: slot ผิดรูป (เช่น "bad") → throw
+ * (เดิม fail-open: NaN → window เปิดทันที โพสต์ผิดเวลา). worker จะไม่ start ถ้า config พัง.
+ */
 export function getScheduleConfig(): ScheduleConfig {
-  const days = (process.env.CONTENT_SCHEDULE_DAYS ?? "0,1,2,3,4,5,6").split(",").map((s) => Number(s.trim())).filter((n) => n >= 0 && n <= 6);
+  const days = (process.env.CONTENT_SCHEDULE_DAYS ?? "0,1,2,3,4,5,6").split(",").map((s) => Number(s.trim()));
+  if (days.some((n) => !Number.isInteger(n) || n < 0 || n > 6)) {
+    throw new Error(`CONTENT_SCHEDULE_DAYS ผิด (ต้องเป็น 0-6 คั่นด้วย ,): ${process.env.CONTENT_SCHEDULE_DAYS}`);
+  }
   const slots = (process.env.CONTENT_SCHEDULE_SLOTS ?? "09:00").split(",").map((s) => s.trim()).filter(Boolean);
+  if (slots.length === 0 || !slots.every((s) => HHMM.test(s))) {
+    throw new Error(`CONTENT_SCHEDULE_SLOTS ผิด (ต้องเป็น HH:mm คั่นด้วย ,): ${process.env.CONTENT_SCHEDULE_SLOTS}`);
+  }
   return { days, slots };
 }
 
@@ -38,6 +52,7 @@ export interface TickDeps {
 
 export interface TickResult {
   today: string;
+  reclaimedStuck: number;
   canceledStale: number;
   window: "closed-day" | "closed-time" | "open";
   published?: { id: string; status: PublishOutcome["status"] };
@@ -47,6 +62,10 @@ export interface TickResult {
 export async function runSchedulerTick(db: ContentDb, deps: TickDeps): Promise<TickResult> {
   const now = deps.now ?? new Date();
   const today = bangkokTodayISO(now);
+
+  // 0. reconcile stuck PUBLISHING (worker ตายหลัง claim) [ตู๋ P1] — pre-PONR หมดอายุ → release APPROVED
+  //    (post-PONR ambiguous ไม่แตะ — surface ผ่าน status API). ทำก่อนทุกอย่างให้ของ release กลับมา publish รอบนี้ได้
+  const reclaimedStuck = reconcileStuckPublishing(db, new Date(now.getTime() - PUBLISH_LEASE_MS));
 
   // 1. auto-cancel stale daily-7 (atomic: เฉพาะ row ที่ยัง APPROVED + targetDate < วันนี้) [ตู๋ P1]
   const canceled = db
@@ -58,11 +77,11 @@ export async function runSchedulerTick(db: ContentDb, deps: TickDeps): Promise<T
 
   // 2. gate วัน + เวลา (Bangkok)
   if (!deps.config.days.includes(bangkokDayOfWeek(now))) {
-    return { today, canceledStale, window: "closed-day", note: `วันนี้ไม่อยู่ใน schedule days` };
+    return { today, reclaimedStuck, canceledStale, window: "closed-day", note: `วันนี้ไม่อยู่ใน schedule days` };
   }
   const earliestSlot = Math.min(...deps.config.slots.map(hhmmToMinutes));
   if (bangkokMinutesOfDay(now) < earliestSlot) {
-    return { today, canceledStale, window: "closed-time", note: `ยังไม่ถึงเวลา slot (${deps.config.slots.join(",")})` };
+    return { today, reclaimedStuck, canceledStale, window: "closed-time", note: `ยังไม่ถึงเวลา slot (${deps.config.slots.join(",")})` };
   }
 
   // 3. หยิบ APPROVED daily-7 ของวันนี้ (เก่าสุด) → publish (fence การันตี 1/วัน ; ตื่นซ้ำไม่โพสต์ซ้ำ)
@@ -75,8 +94,8 @@ export async function runSchedulerTick(db: ContentDb, deps: TickDeps): Promise<T
     .get();
 
   if (!cand) {
-    return { today, canceledStale, window: "open", note: "ไม่มี daily-7 ของวันนี้ในคิว (ว่าง)" };
+    return { today, reclaimedStuck, canceledStale, window: "open", note: "ไม่มี daily-7 ของวันนี้ในคิว (ว่าง)" };
   }
   const outcome = await publishApprovedPost(db, cand.id, { pageId: deps.pageId, token: deps.token, today });
-  return { today, canceledStale, window: "open", published: { id: cand.id, status: outcome.status }, note: outcome.ok ? "โพสต์สำเร็จ" : outcome.reason };
+  return { today, reclaimedStuck, canceledStale, window: "open", published: { id: cand.id, status: outcome.status }, note: outcome.ok ? "โพสต์สำเร็จ" : outcome.reason };
 }

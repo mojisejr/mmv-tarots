@@ -46,6 +46,11 @@ export const contentPosts = sqliteTable("content_posts", {
   fbPostId: text("fb_post_id"),
   /** เวลาที่ตั้งจะโพสต์ */
   publishAt: integer("publish_at", { mode: "timestamp" }),
+  /** เวลาเริ่ม claim PUBLISHING (lease) — reconcile stuck: PUBLISHING เก่าเกิน lease → จัดการ [S4b ตู๋ P1] */
+  publishStartedAt: integer("publish_started_at", { mode: "timestamp" }),
+  /** PONR marker: เวลาเริ่มยิง POST /feed. NULL=pre-PONR (release APPROVED ได้) ; ไม่ NULL=ยิงแล้ว
+   *  (ambiguous — ห้าม auto-release/retry, surface ให้ reconcile มือ) [S4b ตู๋ P1] */
+  feedAttemptedAt: integer("feed_attempted_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   postedAt: integer("posted_at", { mode: "timestamp" }),

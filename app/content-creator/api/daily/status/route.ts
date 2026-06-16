@@ -26,6 +26,8 @@ export async function GET() {
   // เพิ่งถูก auto-cancel เพราะเลยวัน (24 ชม.ล่าสุด) — surface ให้ฟีมรู้ว่าพลาดโพสต์
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const staleCanceled = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "CANCELED"), sql`${td} < ${today}`, gte(contentPosts.updatedAt, cutoff)));
+  // PUBLISHING ค้าง = ambiguous (worker ตายหลังยิง feed) → ต้อง reconcile มือ [S4b ตู๋ P1]
+  const stuckPublishing = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "PUBLISHING")));
 
-  return NextResponse.json({ ok: true, today, posted: posted > 0, pending, staleCanceled });
+  return NextResponse.json({ ok: true, today, posted: posted > 0, pending, staleCanceled, stuckPublishing });
 }

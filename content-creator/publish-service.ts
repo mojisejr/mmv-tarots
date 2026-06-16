@@ -12,7 +12,7 @@ import { basename } from "node:path";
 import { and, eq } from "drizzle-orm";
 import type { ContentDb } from "./db/client";
 import { contentPosts, type ContentPost } from "./db/schema";
-import { claimForPublish, markPosted, releaseClaim } from "./db/transition";
+import { claimForPublish, markPosted, releaseClaim, markFeedAttempted } from "./db/transition";
 import { uploadUnpublishedPhoto, publishToFeed } from "./lib/facebook";
 import { safeResolveUnderRoot } from "./lib/safe-path";
 import { bangkokTodayISO } from "./lib/time";
@@ -74,9 +74,10 @@ export async function publishApprovedPost(db: ContentDb, id: string, deps: Publi
     }
   }
 
-  // ===== POINT OF NO RETURN — หลัง POST /feed ห้าม release (อาจขึ้นเพจแล้ว) [ตู๋ P1] =====
+  // ===== POINT OF NO RETURN — mark ก่อนยิง (reconcile จะไม่ auto-release หลังจุดนี้) แล้ว POST /feed =====
   let postId: string;
   try {
+    markFeedAttempted(db, id); // PONR marker [S4b ตู๋ P1] — worker ตายหลังจุดนี้ = ambiguous ห้าม auto-release
     postId = await publishToFeed({ pageId: deps.pageId, token: deps.token, mediaFbid, message: row.caption });
   } catch (e) {
     // AMBIGUOUS — คง PUBLISHING ไม่ release/ไม่ retry (กันโพสต์ซ้ำ) → reconcile มือ
