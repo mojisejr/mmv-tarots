@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { createContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
-import { transition, tryTransition, claimForPublish, markPosted, releaseClaim, markPostedManual } from "../db/transition";
+import { transition, tryTransition, claimForPublish, markPosted, releaseClaim, markPostedManual, isDaily7ActiveFenceViolation } from "../db/transition";
 import { canTransition } from "../db/state";
 
 const tmpDirs: string[] = [];
@@ -129,6 +129,21 @@ describe("[PR#100] manual mark posted — ฟีมโพสต์ FB เอง 
     tryTransition(db, "old", "GENERATED", "CANCELED"); // ยกเลิกตัวเดิม
     expect(() => genDaily7(db, "new", "2026-06-25")).not.toThrow(); // วันเดียวกันสร้างใหม่ได้
     expect(statusOf(db, "new")).toBe("GENERATED");
+  });
+
+  it("[ตู๋ P1] isDaily7ActiveFenceViolation match เฉพาะ uniq_daily7_active — ไม่กลืน unique อื่น", () => {
+    expect(isDaily7ActiveFenceViolation(new Error("UNIQUE constraint failed: index 'uniq_daily7_active'"))).toBe(true);
+    expect(isDaily7ActiveFenceViolation(new Error("UNIQUE constraint failed: content_posts.request_key"))).toBe(false);
+    expect(isDaily7ActiveFenceViolation(new Error("some other error"))).toBe(false);
+  });
+
+  it("[ตู๋ P2] daily-7 ไม่มี targetDate (malformed) → fence ไม่บังคับ (NULL ซ้ำได้)", () => {
+    const db = createContentDb(":memory:");
+    // 2 row ไม่มี targetDate → index partial WHERE targetDate IS NOT NULL ไม่ครอบ → insert ได้ทั้งคู่
+    db.insert(contentPosts).values({ id: "n1", templateId: "daily-7", inputData: { days: [] }, status: "GENERATED" }).run();
+    expect(() =>
+      db.insert(contentPosts).values({ id: "n2", templateId: "daily-7", inputData: { days: [] }, status: "GENERATED" }).run(),
+    ).not.toThrow();
   });
 
   it("[P2] auto-posted row (fbPostId มีค่า) → stale ไม่ถูก manual-mark กลืน", () => {

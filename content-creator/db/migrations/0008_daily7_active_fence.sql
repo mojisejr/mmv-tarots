@@ -17,9 +17,12 @@ WHERE `id` IN (
     ) AS rn
     FROM `content_posts`
     WHERE `template_id` = 'daily-7' AND `status` != 'CANCELED'
+      AND json_extract(`input_data`, '$.targetDate') IS NOT NULL
   ) WHERE `rn` > 1
 );--> statement-breakpoint
 -- step 2: drop fence เดิม (narrow) แล้วสร้าง fence ใหม่ (broad: non-canceled) แทน
+-- targetDate IS NOT NULL: invariant คือ "1 row ต่อ targetDate" — malformed row ที่ไม่มี targetDate
+-- ไม่ถูกบังคับ (และ data-fix ข้างบนก็ไม่ collapse partition NULL) [ตู๋ P2]
 DROP INDEX IF EXISTS `uniq_daily7_per_day`;--> statement-breakpoint
 CREATE UNIQUE INDEX `uniq_daily7_active` ON `content_posts` (json_extract(`input_data`, '$.targetDate'))
-WHERE `template_id` = 'daily-7' AND `status` != 'CANCELED';
+WHERE `template_id` = 'daily-7' AND `status` != 'CANCELED' AND json_extract(`input_data`, '$.targetDate') IS NOT NULL;

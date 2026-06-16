@@ -13,7 +13,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { ContentDb } from "./client";
 import { contentDrafts, contentPosts, type ContentDraft } from "./schema";
-import { isUniqueViolation } from "./transition";
+import { isDaily7ActiveFenceViolation } from "./transition";
 
 export type { ContentDraft } from "./schema";
 
@@ -191,9 +191,9 @@ export function finalizeDraft(
         .values({ id: postId, requestKey: `draft:${id}`, templateId, inputData: finalInput, status: "PENDING" })
         .run(); // requestKey unique = backstop กัน 2 post จาก draft เดียว
     } catch (e) {
-      // daily-7 active fence (idx 0008): มี non-canceled artifact ของ targetDate เดียวกันแล้ว
-      // → domain result 409 (ไม่ใช่ 500). shared ทั้ง manual + auto finalize [PR#101 ตู๋ P1.2]
-      if (isUniqueViolation(e)) {
+      // เฉพาะ daily-7 active fence (idx uniq_daily7_active) → domain result 409 (ไม่ใช่ 500) [PR#101 ตู๋ P1.2]
+      // unique อื่น (เช่น request_key) / error อื่น → throw เดิม ไม่กลืน domain [ตู๋ P1 re-review]
+      if (isDaily7ActiveFenceViolation(e)) {
         throw new DraftConflictError("มี content ของวันนี้อยู่แล้ว (daily-7 = 1 โพสต์/วัน) — ยกเลิกตัวเดิมก่อน");
       }
       throw e;

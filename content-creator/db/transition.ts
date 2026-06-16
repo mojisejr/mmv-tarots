@@ -97,6 +97,15 @@ export function isUniqueViolation(e: unknown): boolean {
 }
 
 /**
+ * เฉพาะ daily-7 active fence (idx uniq_daily7_active) ชน — ไม่รวม unique อื่น (เช่น content_posts.request_key)
+ * [PR#101 ตู๋ P1]: finalizeDraft เป็น generic ต่อ template → ห้ามแปลง unique อื่นเป็น "daily-7 conflict" ผิด domain.
+ */
+export function isDaily7ActiveFenceViolation(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /uniq_daily7_active/.test(msg);
+}
+
+/**
  * claim โพสต์เพื่อยิง Facebook (APPROVED → PUBLISHING แบบ atomic).
  * คืน true = worker นี้ claim ได้ (ยิง FB ต่อได้คนเดียว); false = claim ไม่ได้ — ได้ 2 กรณี:
  *   (a) row ไม่ใช่ APPROVED (worker อื่น claim ไป) — changes 0
