@@ -35,6 +35,16 @@ export default function ContentCreatorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // daily-7 scheduler status (modal/banner แจ้งเตือน) [S4b]
+  const [d7, setD7] = useState<{ today: string; posted: boolean; pending: number; staleCanceled: number; stuckPublishing: number } | null>(null);
+  const [d7Dismissed, setD7Dismissed] = useState(false);
+
+  useEffect(() => {
+    fetch("/content-creator/api/daily/status", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.ok && setD7({ today: d.today, posted: d.posted, pending: d.pending, staleCanceled: d.staleCanceled, stuckPublishing: d.stuckPublishing }))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
@@ -134,6 +144,18 @@ export default function ContentCreatorPage() {
           </button>
         </div>
       </header>
+
+      {/* daily-7 scheduler modal/banner — ปิดทิ้งได้ [S4b] */}
+      {d7 && !d7Dismissed && (d7.staleCanceled > 0 || d7.stuckPublishing > 0 || (!d7.posted && d7.pending === 0)) && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div>
+            {d7.stuckPublishing > 0 && <div>🛑 มี daily-7 {d7.stuckPublishing} โพสต์ค้าง PUBLISHING (อาจขึ้นเพจแล้ว) — เช็คเพจ + reconcile มือ ห้าม publish ซ้ำ</div>}
+            {d7.staleCanceled > 0 && <div>⚠️ มี daily-7 {d7.staleCanceled} โพสต์ถูกยกเลิก (เลยวันแล้ว — scheduler ไม่โพสต์ของผิดวัน)</div>}
+            {!d7.posted && d7.pending === 0 && <div>📭 วันนี้ ({d7.today}) ยังไม่มี daily-7 ในคิว — สร้าง+approve เพื่อให้ scheduler โพสต์</div>}
+          </div>
+          <button onClick={() => setD7Dismissed(true)} className="shrink-0 rounded px-2 text-amber-600 hover:bg-amber-100">✕</button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
