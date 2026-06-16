@@ -90,13 +90,27 @@ export function releaseGenerate(db: ContentDb, id: string, token: string): boole
   return res.changes === 1;
 }
 
+/** unique-constraint violation ของ better-sqlite3 (per-day fence ชน) */
+function isUniqueViolation(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return (e as { code?: string })?.code === "SQLITE_CONSTRAINT_UNIQUE" || /UNIQUE constraint failed/i.test(msg);
+}
+
 /**
  * claim โพสต์เพื่อยิง Facebook (APPROVED → PUBLISHING แบบ atomic).
- * คืน true = worker นี้ claim ได้ (ยิง FB ต่อได้คนเดียว); false = worker อื่น claim ไปแล้ว → skip.
- * กัน scheduler concurrent ยิง Facebook ซ้ำ. หลังยิงเสร็จ caller → markPosted/releaseClaim.
+ * คืน true = worker นี้ claim ได้ (ยิง FB ต่อได้คนเดียว); false = claim ไม่ได้ — ได้ 2 กรณี:
+ *   (a) row ไม่ใช่ APPROVED (worker อื่น claim ไป) — changes 0
+ *   (b) per-day fence ชน: daily-7 วันเดียวกันมี row อื่นใน PUBLISHING/POSTED แล้ว → unique index
+ *       violation [S4b ตู๋ P1] (กัน 2 row คนละ id วันเดียวกันโพสต์คู่)
+ * กัน scheduler concurrent + 2 row/วัน ยิง Facebook ซ้ำ. หลังยิงเสร็จ caller → markPosted/releaseClaim.
  */
 export function claimForPublish(db: ContentDb, id: string): boolean {
-  return tryTransition(db, id, "APPROVED", "PUBLISHING");
+  try {
+    return tryTransition(db, id, "APPROVED", "PUBLISHING");
+  } catch (e) {
+    if (isUniqueViolation(e)) return false; // per-day fence ชน → ถือว่า claim ไม่ได้ (วันนี้โพสต์/กำลังโพสต์แล้ว)
+    throw e;
+  }
 }
 
 /** ยิง FB สำเร็จแล้ว: PUBLISHING → POSTED (เก็บ fbPostId + postedAt) */

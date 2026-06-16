@@ -43,6 +43,13 @@
       "when": 1781505350803,
       "tag": "0005_amusing_risque",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1781600000000,
+      "tag": "0006_daily7_perday_fence",
+      "breakpoints": true
     }
   ]
 }
