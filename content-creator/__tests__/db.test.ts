@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { createContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
-import { transition, tryTransition, claimForPublish, markPosted, releaseClaim } from "../db/transition";
+import { transition, tryTransition, claimForPublish, markPosted, releaseClaim, markPostedManual } from "../db/transition";
+import { canTransition } from "../db/state";
 
 const tmpDirs: string[] = [];
 function tmpDbPath() {
@@ -83,6 +84,77 @@ describe("[altitude] PUBLISHING claim — กัน scheduler concurrent ยิ�
     const db = createContentDb(":memory:");
     db.insert(contentPosts).values({ id: "q", templateId: "t", inputData: {} }).run();
     expect(tryTransition(db, "q", "APPROVED", "PUBLISHING")).toBe(false); // status เป็น PENDING
+  });
+});
+
+describe("[PR#100] manual mark posted — ฟีมโพสต์ FB เอง [ตู๋ P1]", () => {
+  function genDaily7(db: ReturnType<typeof createContentDb>, id: string, targetDate: string) {
+    db.insert(contentPosts)
+      .values({ id, templateId: "daily-7", inputData: { targetDate, days: [] }, status: "GENERATED", caption: "c", imagePath: `/m/${id}.png` })
+      .run();
+  }
+  const statusOf = (db: ReturnType<typeof createContentDb>, id: string) =>
+    db.select().from(contentPosts).where(eq(contentPosts.id, id)).get()?.status;
+
+  it("GENERATED→POSTED สำเร็จ + fbPostId=null (ไม่ใช่ publish ผ่าน API)", () => {
+    const db = createContentDb(":memory:");
+    genDaily7(db, "g", "2026-06-21");
+    expect(markPostedManual(db, "g")).toBe("ok");
+    const row = db.select().from(contentPosts).where(eq(contentPosts.id, "g")).get();
+    expect(row!.status).toBe("POSTED");
+    expect(row!.fbPostId).toBeNull(); // manual: ไม่มี fbPostId
+    expect(row!.postedAt).not.toBeNull();
+  });
+
+  it("[P1.3] same-row replay (กดซ้ำ/response หาย) → ok idempotent ไม่ทำซ้ำ", () => {
+    const db = createContentDb(":memory:");
+    genDaily7(db, "g", "2026-06-21");
+    expect(markPostedManual(db, "g")).toBe("ok");
+    expect(markPostedManual(db, "g")).toBe("ok"); // replay
+    expect(statusOf(db, "g")).toBe("POSTED");
+  });
+
+  it("[P1.1] two rows same targetDate → row 1 ok, row 2 fence + status ไม่เปลี่ยน (atomic)", () => {
+    const db = createContentDb(":memory:");
+    genDaily7(db, "a", "2026-06-20");
+    genDaily7(db, "b", "2026-06-20");
+    expect(markPostedManual(db, "a")).toBe("ok");
+    expect(markPostedManual(db, "b")).toBe("fence"); // a อยู่ POSTED วันเดียวกัน → unique index ชน
+    expect(statusOf(db, "b")).toBe("GENERATED"); // rollback — ไม่เปลี่ยน
+  });
+
+  it("[P2] auto-posted row (fbPostId มีค่า) → stale ไม่ถูก manual-mark กลืน", () => {
+    const db = createContentDb(":memory:");
+    // จำลอง row ที่ publish ผ่าน auto path สำเร็จ (POSTED + fbPostId)
+    db.insert(contentPosts)
+      .values({ id: "auto", templateId: "daily-7", inputData: { targetDate: "2026-06-24" }, status: "POSTED", fbPostId: "fb_123", postedAt: new Date() })
+      .run();
+    expect(markPostedManual(db, "auto")).toBe("stale"); // ไม่ใช่ replay ของ manual → ไม่คืน ok
+    const row = db.select().from(contentPosts).where(eq(contentPosts.id, "auto")).get();
+    expect(row!.fbPostId).toBe("fb_123"); // ไม่ถูกแตะ
+  });
+
+  it("non-GENERATED (CANCELED / ghost id) → stale ไม่แตะ", () => {
+    const db = createContentDb(":memory:");
+    db.insert(contentPosts).values({ id: "c", templateId: "daily-7", inputData: { targetDate: "2026-06-22" }, status: "CANCELED" }).run();
+    expect(markPostedManual(db, "c")).toBe("stale");
+    expect(markPostedManual(db, "ghost")).toBe("stale");
+    expect(statusOf(db, "c")).toBe("CANCELED");
+  });
+
+  it("ลบ: GENERATED→CANCELED ยังทำงาน (manual delete)", () => {
+    const db = createContentDb(":memory:");
+    genDaily7(db, "d", "2026-06-23");
+    expect(tryTransition(db, "d", "GENERATED", "CANCELED")).toBe(true);
+    expect(statusOf(db, "d")).toBe("CANCELED");
+  });
+
+  it("[P1.4] auto path เดิม GENERATED→APPROVED→PUBLISHING→POSTED ไม่ regress", () => {
+    expect(canTransition("GENERATED", "APPROVED")).toBe(true);
+    expect(canTransition("APPROVED", "PUBLISHING")).toBe(true);
+    expect(canTransition("PUBLISHING", "POSTED")).toBe(true);
+    // และ manual transition ใหม่ก็ allowed จาก GENERATED
+    expect(canTransition("GENERATED", "POSTED")).toBe(true);
   });
 });
 

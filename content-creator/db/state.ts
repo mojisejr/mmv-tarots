@@ -2,6 +2,7 @@
  * content-creator state machine — transitions ที่อนุญาตของ ContentPost.status
  *
  * PENDING ─claim→ GENERATING ─gen สำเร็จ→ GENERATED ─approve(คน)→ APPROVED ─claim→ PUBLISHING ─post→ POSTED (terminal)
+ *   GENERATED ─mark posted(คน)→ POSTED   (manual workflow: ฟีมโพสต์ FB เอง แล้วบันทึกว่าโพสต์แล้ว — fbPostId=null) [PR#100]
  *   GENERATING ─recovery→ FAILED / PENDING   (gen ล้ม/ปล่อย claim)
  *   PUBLISHING ─recovery→ FAILED / APPROVED   (ยิง FB ล้ม/ปล่อย claim)
  *   (active state) ─→ CANCELED (terminal) ; ─error→ FAILED ─retry→ PENDING
@@ -16,7 +17,7 @@ import type { ContentStatus } from "./schema";
 const ALLOWED: Record<ContentStatus, readonly ContentStatus[]> = {
   PENDING: ["GENERATING", "CANCELED", "FAILED"], // GENERATING = claim ก่อนเรียก Gemini
   GENERATING: ["GENERATED", "FAILED"], // GENERATED=สำเร็จ ; FAILED=ล้ม. (ถอด →PENDING: reclaim ต้อง expiry+token ก่อน [ตู๋ P1] — ตอนนี้ retry ผ่าน FAILED→PENDING)
-  GENERATED: ["APPROVED", "CANCELED", "FAILED"], // APPROVED = human gate
+  GENERATED: ["APPROVED", "CANCELED", "FAILED", "POSTED"], // APPROVED = human gate (auto path) ; POSTED = manual mark (ฟีมโพสต์เอง) [PR#100]
   APPROVED: ["PUBLISHING", "CANCELED", "FAILED"], // PUBLISHING = claim ก่อนยิง FB
   PUBLISHING: ["POSTED", "FAILED", "APPROVED"], // POSTED=สำเร็จ ; FAILED/APPROVED=recovery (ปล่อย claim)
   POSTED: [], // terminal

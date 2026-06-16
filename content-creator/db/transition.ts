@@ -153,6 +153,38 @@ export function markPosted(db: ContentDb, id: string, fbPostId: string): void {
   transition(db, id, "PUBLISHING", "POSTED", { fbPostId, postedAt: new Date() });
 }
 
+/** ผลของ markPostedManual (manual workflow) — domain result ไม่ throw [PR#100 ตู๋ P1] */
+export type ManualPostResult =
+  | "ok" // GENERATED → POSTED สำเร็จ (หรือ same-row replay = idempotent)
+  | "fence" // per-day fence ชน: daily-7 วันเดียวกันมี POSTED/PUBLISHING แล้ว (1 โพสต์/วัน)
+  | "stale"; // row ไม่ใช่ GENERATED และไม่ใช่ POSTED (cancel/ไม่พบ id)
+
+/**
+ * manual mark posted [PR#100 ตู๋ P1] — ฟีมโพสต์ FB เองด้วยมือ แล้วบันทึกว่าโพสต์แล้ว.
+ * GENERATED → POSTED โดย **ไม่ set fbPostId** (null = แยกจาก auto path ที่ publish ผ่าน API).
+ *  - P1.1/1.2: per-day fence (idx 0006) ครอบ POSTED ด้วย → ถ้า daily-7 วันเดียวกันมี POSTED/PUBLISHING แล้ว
+ *    UPDATE จะชน unique → catch เป็น "fence" (atomic: statement ชน = ไม่เปลี่ยน status), ไม่ throw 500
+ *  - P1.3: กดซ้ำ/response หาย → row เป็น POSTED อยู่แล้ว → คืน "ok" (idempotent ไม่ทำซ้ำ)
+ *  - ห้ามแตะ APPROVED/PUBLISHING (auto path เดิม) — เฉพาะ GENERATED เท่านั้น
+ */
+export function markPostedManual(db: ContentDb, id: string): ManualPostResult {
+  try {
+    if (tryTransition(db, id, "GENERATED", "POSTED", { postedAt: new Date() })) return "ok";
+  } catch (e) {
+    if (isUniqueViolation(e)) return "fence"; // วันนี้มีโพสต์ daily-7 แล้ว
+    throw e;
+  }
+  // changes 0: row ไม่ใช่ GENERATED — เช็ค same-row idempotent replay (P1.3)
+  // ok เฉพาะ POSTED แบบ manual (fbPostId=null) เท่านั้น — auto-posted row (fbPostId มีค่า) = stale
+  // กันไม่ให้ manual-mark กลืน auto-posted row [ตู๋ P2]
+  const row = db
+    .select({ status: contentPosts.status, fbPostId: contentPosts.fbPostId })
+    .from(contentPosts)
+    .where(eq(contentPosts.id, id))
+    .get();
+  return row?.status === "POSTED" && row.fbPostId == null ? "ok" : "stale";
+}
+
 /** ยิง FB ล้ม/ต้องปล่อย claim: PUBLISHING → FAILED (default) หรือ APPROVED (คืนคิว) + เคลียร์ lease marker */
 export function releaseClaim(db: ContentDb, id: string, to: "FAILED" | "APPROVED" = "FAILED"): void {
   transition(db, id, "PUBLISHING", to, { publishStartedAt: null, feedAttemptedAt: null });
