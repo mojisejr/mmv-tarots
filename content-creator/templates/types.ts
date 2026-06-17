@@ -24,8 +24,9 @@ export interface RenderContext {
  * imageStrategy:
  *  - "ai": gen ภาพด้วย Gemini (buildImagePrompt) — ใช้ brand ref/nano banana [finance]
  *  - "composition": template render ภาพเอง (renderImage) — **ไม่แตะ Gemini image / brand ref** [daily-7]
+ *  - "hybrid": AI scene (buildImagePrompt, no text) → composition overlay (renderComposite วางไพ่+ข้อความ) [random-cards]
  */
-export type ImageStrategy = "ai" | "composition";
+export type ImageStrategy = "ai" | "composition" | "hybrid";
 
 interface BaseTemplate {
   /** templateId — ผูกกับ ContentPost.templateId */
@@ -51,8 +52,20 @@ export interface CompositionTemplate extends BaseTemplate {
 }
 
 /**
- * discriminated union — แต่ละ strategy บังคับ method ของตัวเอง [ตู๋ P1]:
- *   ai → ต้องมี buildImagePrompt ; composition → ต้องมี renderImage
- * (เลิก optional ทั้งคู่ → ไม่มี impossible combo หลุดถึง runtime + engine narrow ได้ ไม่ต้อง guard/?.)
+ * template ที่ผสม AI + composition [random-cards] — buildImagePrompt (AI scene, no text) + renderComposite บังคับ.
+ * pipeline (engine): caption → AI scene (ref แมว, no text) → renderComposite(scene) วางไพ่จริง+ข้อความไทยทับ.
  */
-export type ContentTemplate = AiTemplate | CompositionTemplate;
+export interface HybridTemplate extends BaseTemplate {
+  imageStrategy: "hybrid";
+  /** prompt ฉาก AI (ไม่มีข้อความ/ไพ่ — ไพ่+ข้อความมาจาก composition เท่านั้น) [ตู๋ P1] */
+  buildImagePrompt(data: unknown): string;
+  /** วาง composition (ไพ่จริง + ข้อความไทย) ทับ AI scene ที่ gen มาแล้ว → ภาพ final */
+  renderComposite(data: unknown, ctx: RenderContext, scene: Uint8Array): Promise<Uint8Array>;
+}
+
+/**
+ * discriminated union — แต่ละ strategy บังคับ method ของตัวเอง [ตู๋ P1]:
+ *   ai → buildImagePrompt ; composition → renderImage ; hybrid → buildImagePrompt + renderComposite
+ * (เลิก optional → ไม่มี impossible combo หลุดถึง runtime + engine narrow ได้ ไม่ต้อง guard/?.)
+ */
+export type ContentTemplate = AiTemplate | CompositionTemplate | HybridTemplate;
