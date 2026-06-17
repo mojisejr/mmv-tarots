@@ -3,9 +3,9 @@
  * { today, posted (โพสต์วันนี้แล้ว?), pending (APPROVED รอโพสต์วันนี้), staleCanceled (เพิ่งถูก auto-cancel) }
  */
 import { NextResponse } from "next/server";
-import { and, eq, gte, sql, type SQL } from "drizzle-orm";
+import { and, eq, gte, like, sql, type SQL } from "drizzle-orm";
 import { getContentDb } from "@/content-creator/db/client";
-import { contentPosts } from "@/content-creator/db/schema";
+import { contentPosts, contentDrafts } from "@/content-creator/db/schema";
 import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
 import { bangkokTodayISO } from "@/content-creator/lib/time";
 
@@ -28,6 +28,15 @@ export async function GET() {
   const staleCanceled = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "CANCELED"), sql`${td} < ${today}`, gte(contentPosts.updatedAt, cutoff)));
   // PUBLISHING ค้าง = ambiguous (worker ตายหลังยิง feed) → ต้อง reconcile มือ [S4b ตู๋ P1]
   const stuckPublishing = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "PUBLISHING")));
+  // auto-gen วันนี้ FAILED → surface ให้ฟีมรู้ว่าต้อง manual (ไม่เงียบ) [Phase 2b ตู๋ P2]
+  // นับทั้ง contentPost FAILED + auto draft FAILED (gen 7 ล้ม ก่อนมี contentPost — ไม่งั้นเงียบ) [ตู๋ P2.1]
+  const postFailed = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "FAILED"), sql`${td} = ${today}`));
+  const draftFailed = db
+    .select({ id: contentDrafts.id })
+    .from(contentDrafts)
+    .where(and(eq(contentDrafts.status, "FAILED"), like(contentDrafts.requestKey, `auto-daily7-${today}-%`)))
+    .all().length;
+  const failedToday = postFailed + draftFailed;
 
-  return NextResponse.json({ ok: true, today, posted: posted > 0, pending, staleCanceled, stuckPublishing });
+  return NextResponse.json({ ok: true, today, posted: posted > 0, pending, staleCanceled, stuckPublishing, failedToday });
 }
