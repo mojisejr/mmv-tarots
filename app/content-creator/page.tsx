@@ -145,7 +145,7 @@ export default function ContentCreatorPage() {
             {d7.stuckPublishing > 0 && <div>🛑 มี daily-7 {d7.stuckPublishing} โพสต์ค้าง PUBLISHING (อาจขึ้นเพจแล้ว) — เช็คเพจ + reconcile มือ ห้าม publish ซ้ำ</div>}
             {d7.failedToday > 0 && <div>⚠️ auto-gen วันนี้ ({d7.today}) FAILED {d7.failedToday} ตัว — กด &quot;+ สร้างใหม่&quot; ลองเอง หรือยกเลิกตัวที่ FAILED</div>}
             {d7.staleCanceled > 0 && <div>⚠️ มี daily-7 {d7.staleCanceled} โพสต์ถูกยกเลิก (เลยวันแล้ว — scheduler ไม่โพสต์ของผิดวัน)</div>}
-            {!d7.posted && d7.pending === 0 && <div>📭 วันนี้ ({d7.today}) ยังไม่มี daily-7 — กด &quot;+ สร้างใหม่&quot; เพื่อ gen แล้วโพสต์เอง</div>}
+            {!d7.posted && d7.pending === 0 && d7.failedToday === 0 && <div>📭 วันนี้ ({d7.today}) ยังไม่มี daily-7 — กด &quot;+ สร้างใหม่&quot; เพื่อ gen แล้วโพสต์เอง</div>}
           </div>
           <button onClick={() => setD7Dismissed(true)} className="shrink-0 rounded px-2 text-amber-600 hover:bg-amber-100">✕</button>
         </div>
