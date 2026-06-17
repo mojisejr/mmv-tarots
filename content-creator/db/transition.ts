@@ -91,9 +91,18 @@ export function releaseGenerate(db: ContentDb, id: string, token: string): boole
 }
 
 /** unique-constraint violation ของ better-sqlite3 (per-day fence ชน) */
-function isUniqueViolation(e: unknown): boolean {
+export function isUniqueViolation(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return (e as { code?: string })?.code === "SQLITE_CONSTRAINT_UNIQUE" || /UNIQUE constraint failed/i.test(msg);
+}
+
+/**
+ * เฉพาะ daily-7 active fence (idx uniq_daily7_active) ชน — ไม่รวม unique อื่น (เช่น content_posts.request_key)
+ * [PR#101 ตู๋ P1]: finalizeDraft เป็น generic ต่อ template → ห้ามแปลง unique อื่นเป็น "daily-7 conflict" ผิด domain.
+ */
+export function isDaily7ActiveFenceViolation(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /uniq_daily7_active/.test(msg);
 }
 
 /**

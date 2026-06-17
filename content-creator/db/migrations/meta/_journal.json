@@ -57,6 +57,13 @@
       "when": 1781700000000,
       "tag": "0007_clammy_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1781800000000,
+      "tag": "0008_daily7_active_fence",
+      "breakpoints": true
     }
   ]
 }

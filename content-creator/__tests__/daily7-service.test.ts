@@ -88,4 +88,14 @@ describe("finalizeDaily7Draft validation [ตู๋ P1.A/B]", () => {
     expect(() => finalizeDaily7Draft(db, d.id, "fk", edited.revision, VALID_BG)).toThrow();
     expect(getDraft(db, d.id)!.status).toBe("READY"); // ไม่ถูก finalize
   });
+
+  it("[fence 0008 / P1.2] finalize draft ที่ 2 (targetDate เดียวกัน) → DraftConflictError ไม่ใช่ 500 ; draft ยัง READY", async () => {
+    // 2 draft คนละ requestKey วันเดียวกัน (manual parallel ทำได้) — fence บังคับตอน finalize → contentPost
+    const d1 = await createDaily7Draft(db, "rk1", "2026-06-15");
+    finalizeDaily7Draft(db, d1.id, "fk1", d1.revision, VALID_BG); // PENDING post #1 (non-canceled)
+    const d2 = await createDaily7Draft(db, "rk2", "2026-06-15");
+    expect(() => finalizeDaily7Draft(db, d2.id, "fk2", d2.revision, VALID_BG)).toThrow(/วันนี้/); // DraftConflictError → 409
+    expect(getDraft(db, d2.id)!.status).toBe("READY"); // transaction rollback — ไม่ถูก finalize
+    expect(db.select().from(contentPosts).all()).toHaveLength(1); // post เดียว (ตัวที่ 2 ไม่ถูกสร้าง)
+  });
 });

@@ -31,15 +31,11 @@ function approvedDaily7(targetDate: string, opts: { mediaFbid?: string | null } 
 const statusOf = (id: string) => db.select().from(contentPosts).where(eq(contentPosts.id, id)).get()?.status;
 
 describe("publish-service — per-day fence + point-of-no-return [S4b ตู๋ P1]", () => {
-  it("two rows same day → row 2 SKIPPED (per-day fence) ; ยิง FB ครั้งเดียว", async () => {
-    const a = approvedDaily7(TODAY);
-    const b = approvedDaily7(TODAY);
-    const r1 = await publishApprovedPost(db, a, deps);
-    const r2 = await publishApprovedPost(db, b, deps);
-    expect(r1.status).toBe("POSTED");
-    expect(r2.status).toBe("SKIPPED"); // fence ชน (a อยู่ POSTED วันเดียวกัน)
-    expect(mockPublish).toHaveBeenCalledTimes(1);
-    expect(statusOf(b)).toBe("APPROVED"); // b ไม่ถูกแตะ (claim ไม่ผ่าน fence)
+  it("[fence 0008] daily-7 วันเดียวกันตัวที่ 2 (non-canceled) ถูก DB block ตั้งแต่ insert → โพสต์คู่เป็นไปไม่ได้", () => {
+    // broad fence (idx 0008): 1 non-canceled artifact/วัน → ไม่มีทางมี 2 APPROVED วันเดียวกันให้ publish คู่
+    // (claimForPublish fence-catch เดิมกลายเป็น defensive — invariant ถูกบังคับตั้งแต่ create แล้ว)
+    approvedDaily7(TODAY);
+    expect(() => approvedDaily7(TODAY)).toThrow(/UNIQUE constraint/);
   });
 
   it("two workers same row → ครั้งที่ 2 SKIPPED (ไม่โพสต์ซ้ำ)", async () => {
