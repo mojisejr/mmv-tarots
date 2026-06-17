@@ -123,7 +123,7 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
       // seed = post id (immutable) → bg selection deterministic: retry/reclaim/preview ได้ใบเดิม [S6b]
       bytes = await template.renderImage(parsed, { brand, seed: id });
       caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
-    } else {
+    } else if (template.imageStrategy === "ai") {
       // ai [finance]: narrow → buildImagePrompt บังคับมี ; preflight ref ก่อน paid → caption → Gemini image (เดิม)
       const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
       caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
@@ -136,6 +136,23 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
             model: brand.imageModel ?? undefined,
           })
         : await genImage({ prompt: themeWithStyle });
+    } else {
+      // hybrid [random-cards PR#103]: caption → AI scene (ref แมว, NO text/cards) → renderComposite วางไพ่จริง+ข้อความ
+      // explicit pipeline [ตู๋ P1]: ไพ่ถูก draw+persist ใน inputData ตั้งแต่ draft (ก่อน paid) → renderComposite อ่าน cardIds เดิม
+      const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
+      if (!refImage) throw new Error("hybrid template ต้องมี brand ref image (ตั้ง refImagePath ใน Settings ก่อน gen)");
+      caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
+      const basePrompt = template.buildImagePrompt(parsed); // ฉาก AI (no text/cards)
+      const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
+      // AI scene fail → throw → FAILED (ไม่มี composition fallback — final ขึ้นกับ brand visual) [ตู๋ P1]
+      const scene = await genImageWithRef({
+        prompt: `${refDirective(themeWithStyle)}\n\n${NO_TEXT_DIRECTIVE}`,
+        refImage,
+        model: brand.imageModel ?? undefined,
+      });
+      // scene = in-memory (ไม่เขียน temp → ไม่มี temp artifact ต้อง cleanup) ; final image คือ artifact เดียว (cleanup ใน catch)
+      // compose fail หลัง paid scene → throw → catch ลบ final artifact ที่ persist (ถ้ามี) [ตู๋ P1]
+      bytes = await template.renderComposite(parsed, { brand, seed: id }, scene);
     }
     attemptPath = persistImage(id, token, bytes); // fence เดิม (token-scoped) ครอบทั้ง 2 path
 

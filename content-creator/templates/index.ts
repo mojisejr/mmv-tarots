@@ -5,10 +5,12 @@
 import type { ContentTemplate } from "./types";
 import { financeDaily } from "./finance-daily";
 import { daily7 } from "./daily7";
+import { randomCardsTemplate } from "./random-cards";
 
 const TEMPLATES: Record<string, ContentTemplate> = {
   [financeDaily.id]: financeDaily,
   [daily7.id]: daily7,
+  [randomCardsTemplate.id]: randomCardsTemplate,
 };
 
 /** @throws Error ถ้า templateId ไม่รู้จัก */
