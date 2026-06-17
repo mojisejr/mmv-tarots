@@ -16,7 +16,7 @@ import { createContentDb, type ContentDb } from "../db/client";
 import { contentPosts } from "../db/schema";
 import { tryTransition } from "../db/transition";
 import { updateBrandProfile } from "../db/brand";
-import { runGenTick, getGenConfig, precheckGenReady, type GenConfig } from "../gen-scheduler";
+import { runGenTick, getGenConfig, getGenTickMs, precheckGenReady, type GenConfig } from "../gen-scheduler";
 
 // 2026-06-20 12:00 Bangkok (UTC+7) → today=2026-06-20, minutesOfDay=720
 const NOW = new Date("2026-06-20T05:00:00Z");
@@ -48,6 +48,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env.CONTENT_GEN_SLOT;
   delete process.env.CONTENT_GEN_DAYS;
+  delete process.env.CONTENT_GEN_TICK_MS;
 });
 
 describe("getGenConfig — fail-closed", () => {
@@ -61,6 +62,20 @@ describe("getGenConfig — fail-closed", () => {
   it("days ผิด → throw", () => {
     process.env.CONTENT_GEN_DAYS = "9";
     expect(() => getGenConfig()).toThrow(/CONTENT_GEN_DAYS/);
+  });
+});
+
+describe("getGenTickMs — fail-closed [ตู๋ P2.2]", () => {
+  it("default → 10 นาที", () => expect(getGenTickMs()).toBe(600000));
+  it("positive int → ใช้ค่านั้น", () => {
+    process.env.CONTENT_GEN_TICK_MS = "60000";
+    expect(getGenTickMs()).toBe(60000);
+  });
+  it("NaN/0/ลบ → throw (ไม่ fail-open setInterval รัว)", () => {
+    for (const bad of ["abc", "0", "-5", "1.5"]) {
+      process.env.CONTENT_GEN_TICK_MS = bad;
+      expect(() => getGenTickMs()).toThrow(/CONTENT_GEN_TICK_MS/);
+    }
   });
 });
 
@@ -170,5 +185,31 @@ describe("runGenTick — existing states", () => {
     insertDaily7("c", "CANCELED");
     const r = await runGenTick(db, { config: ALL_DAYS, now: NOW });
     expect(r.action).toBe("generated"); // CANCELED ไม่บล็อก → สร้างใหม่
+  });
+
+  it("[ตู๋ P1.1] sequence: tick→generated → ฟีมลบ(CANCELED) → tick สร้าง post ใหม่ (ไม่ติด replay key เดิม)", async () => {
+    setCta();
+    // tick 1 → post A GENERATED
+    const r1 = await runGenTick(db, { config: ALL_DAYS, now: NOW });
+    expect(r1.action).toBe("generated");
+    const a = db.select().from(contentPosts).all();
+    expect(a).toHaveLength(1);
+    const idA = a[0].id;
+
+    // ฟีมลบ A → CANCELED (ผ่าน manual workflow)
+    tryTransition(db, idA, "GENERATED", "CANCELED");
+
+    // tick 2 → ต้องสร้าง post ใหม่ (epoch เปลี่ยนเพราะ canceledCount=1 → key ใหม่ → draft+gen ใหม่)
+    const r2 = await runGenTick(db, { config: ALL_DAYS, now: NOW });
+    expect(r2.action).toBe("generated"); // ไม่ใช่ skip/replay
+    expect(r2.status).toBe("GENERATED");
+
+    const all = db.select().from(contentPosts).all();
+    expect(all).toHaveLength(2); // A (CANCELED) + B (GENERATED) — ของจริงคนละ row
+    expect(all.filter((p) => p.status === "CANCELED")).toHaveLength(1);
+    expect(all.filter((p) => p.status === "GENERATED")).toHaveLength(1);
+    expect(all.find((p) => p.status === "GENERATED")!.id).not.toBe(idA);
+    expect(mockGenObject).toHaveBeenCalledTimes(2); // draft ใหม่ (key ต่าง epoch) → gen 7 ใหม่
+    expect(mockGenerate).toHaveBeenCalledTimes(2);
   });
 });

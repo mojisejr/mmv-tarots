@@ -8,9 +8,9 @@
  * tick ไม่ overlap: in-process running flag (worker เดียว process เดียว) — กัน tick ซ้อนจ่าย gen ซ้ำ.
  */
 import { getContentDb } from "../content-creator/db/client";
-import { runGenTick, getGenConfig } from "../content-creator/gen-scheduler";
+import { runGenTick, getGenConfig, getGenTickMs } from "../content-creator/gen-scheduler";
 
-const INTERVAL_MS = Number(process.env.CONTENT_GEN_TICK_MS ?? 10 * 60 * 1000); // default 10 นาที
+const INTERVAL_MS = getGenTickMs(); // fail-closed: ผิด → throw → worker ไม่ start [ตู๋ P2.2]
 let running = false;
 
 async function tick(): Promise<void> {
