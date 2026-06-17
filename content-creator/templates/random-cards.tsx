@@ -35,6 +35,9 @@ function loadFont(): ArrayBuffer {
   return new Uint8Array(readFileSync(FONT_PATH)).buffer;
 }
 const dataUri = (bytes: Uint8Array, mime: string) => `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
+/** กัน text overflow (no-space Thai) — ตัด + … ก่อน ; CSS line-clamp ตัดส่วนเกินอีกชั้น [ตู๋ P1.2] */
+const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+const clamp = (lines: number) => ({ display: "-webkit-box" as const, WebkitBoxOrient: "vertical" as const, WebkitLineClamp: lines, overflow: "hidden" as const, wordBreak: "break-word" as const });
 
 export const randomCardsTemplate = {
   id: RANDOM_CARDS_TEMPLATE_ID,
@@ -77,8 +80,8 @@ export const randomCardsTemplate = {
           <div style={{ display: "flex", background: "rgba(255,240,245,0.92)", borderRadius: 28, padding: "12px 38px", border: "3px solid #E8A0B8" }}>
             <span style={{ fontSize: 44, fontWeight: 700, color: "#8B4B6B" }}>{HEADER}</span>
           </div>
-          <div style={{ display: "flex", width: 860, marginTop: 22, justifyContent: "center" }}>
-            <span style={{ fontSize: 40, fontWeight: 700, color: "#6E2F50", textAlign: "center" }}>{d.quote}</span>
+          <div style={{ display: "flex", width: 860, marginTop: 22, justifyContent: "center", overflow: "hidden" }}>
+            <div style={{ ...clamp(2), fontSize: 40, fontWeight: 700, color: "#6E2F50", textAlign: "center", lineHeight: 1.25 }}>{truncate(d.quote, 90)}</div>
           </div>
           {/* panel รองหลังไพ่ — การันตีไพ่เด่น/เห็นชัดทุก AI scene (กัน bg สว่าง/แมวบัง) [ตู๋ P2] */}
           <div style={{ display: "flex", marginTop: 26, background: "rgba(74,42,58,0.42)", borderRadius: 24, padding: "22px 26px" }}>
@@ -86,8 +89,8 @@ export const randomCardsTemplate = {
               <img key={i} src={c} width={196} height={336} style={{ objectFit: "cover", borderRadius: 12, border: "4px solid #fff", marginLeft: i ? 18 : 0, transform: `rotate(${(i - 1) * 5}deg)` }} />
             ))}
           </div>
-          <div style={{ display: "flex", width: 880, marginTop: 28, background: "rgba(255,248,240,0.93)", borderRadius: 20, padding: "20px 32px", justifyContent: "center" }}>
-            <span style={{ fontSize: 27, color: "#6B4555", textAlign: "center", lineHeight: 1.5 }}>{d.body}</span>
+          <div style={{ display: "flex", width: 880, marginTop: 28, background: "rgba(255,248,240,0.93)", borderRadius: 20, padding: "20px 32px", justifyContent: "center", overflow: "hidden" }}>
+            <div style={{ ...clamp(5), fontSize: 27, color: "#6B4555", textAlign: "center", lineHeight: 1.5 }}>{truncate(d.body, 260)}</div>
           </div>
           <div style={{ display: "flex", flex: 1 }} />
           <div style={{ display: "flex", background: "rgba(110,47,80,0.55)", borderRadius: 24, padding: "8px 30px" }}>

@@ -81,16 +81,29 @@ export function drawCards(seed: string, n: number, manifest: CardManifestEntry[]
   return picked;
 }
 
+/** อ่าน {width,height} จาก PNG IHDR (24 ไบต์แรก) ; ไม่ใช่ PNG → null [เหมือน bg-pool] */
+function readPngSize(bytes: Uint8Array): { width: number; height: number } | null {
+  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (bytes.length < 24 || !sig.every((b, i) => bytes[i] === b)) return null;
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { width: dv.getUint32(16), height: dv.getUint32(20) };
+}
+
 /**
- * อ่าน bytes ของไพ่ + validate (path-safe + .png + sha256 + dimension ตรง manifest). ผิด → throw [ตู๋ P1].
+ * อ่าน bytes ของไพ่ + validate เต็ม (path-safe + .png + sha256 + **dimension ตรง manifest**). ผิด → throw [ตู๋ P1/P2].
  */
 export function loadCardBytes(entry: CardManifestEntry): Uint8Array {
-  if (!entry.file.endsWith(".png")) throw new Error(`card ต้องเป็น .png: ${entry.file}`);
+  if (!entry.file.toLowerCase().endsWith(".png")) throw new Error(`card ต้องเป็น .png: ${entry.file}`);
   const real = safeResolveUnderRoot(CARD_POOL_DIR, entry.file);
   if (!real) throw new Error(`card ไม่พบ/ไม่ปลอดภัย: ${entry.file}`);
   const bytes = new Uint8Array(readFileSync(real));
   if (createHash("sha256").update(bytes).digest("hex") !== entry.sha256) {
     throw new Error(`card sha256 ไม่ตรง manifest: ${entry.file} (corrupt/ถูกแก้?)`);
+  }
+  const size = readPngSize(bytes);
+  if (!size) throw new Error(`card ไม่ใช่ PNG ที่อ่าน header ได้: ${entry.file}`);
+  if (size.width !== entry.width || size.height !== entry.height) {
+    throw new Error(`card dimension ไม่ตรง manifest: ${entry.file} (${size.width}x${size.height} ≠ ${entry.width}x${entry.height})`);
   }
   return bytes;
 }

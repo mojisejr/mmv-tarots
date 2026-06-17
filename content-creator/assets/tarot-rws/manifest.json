@@ -2,7 +2,7 @@
   {
     "id": "major-00",
     "file": "major-00.png",
-    "sha256": "ab8ffedb5c0dd04035e3a14c77ac484e7d2ae4839ba8159204269c241de85675",
+    "sha256": "e6736273593999e86104f23c80babfe3dca79ee8f2c2d8cdcf68b76816e6221b",
     "width": 357,
     "height": 600,
     "arcana": "major",
@@ -13,7 +13,7 @@
   {
     "id": "major-01",
     "file": "major-01.png",
-    "sha256": "e7c78c89d0743cc87420787c21165b11306f1af522601a12f66e00db949643b4",
+    "sha256": "9b4394c94ecaf03cfb8c17185a6145f351ebefe7b08999cf6e57a4e9146bbc46",
     "width": 346,
     "height": 600,
     "arcana": "major",
@@ -24,7 +24,7 @@
   {
     "id": "major-02",
     "file": "major-02.png",
-    "sha256": "67072dc4398a3233f3c7d3d4f35442596c206a1e4353e27e918b665a2d858792",
+    "sha256": "d5c69a3076ebab90ad82c900446c26804a43041b41dbebb3e8bc617b23c8c2fd",
     "width": 349,
     "height": 600,
     "arcana": "major",
@@ -35,7 +35,7 @@
   {
     "id": "major-03",
     "file": "major-03.png",
-    "sha256": "b4bc75dd92acfe7266a3cd53ed35774f0e8fc57e25f93ac1a043d36ef96e14f0",
+    "sha256": "1d1b2e8e672e304f57a802c6d8268c8f9bf39eb71d1b044609475d217b31b973",
     "width": 351,
     "height": 600,
     "arcana": "major",
@@ -46,7 +46,7 @@
   {
     "id": "major-04",
     "file": "major-04.png",
-    "sha256": "fe815675ba3c6fb2c77bcbbc80d6c401b8254ae6200c2ede78ad002935b42ab8",
+    "sha256": "5845c2362007dd65abcd52455520ebd452b2330aaac01fa17c008c7b92edf4df",
     "width": 349,
     "height": 600,
     "arcana": "major",
@@ -57,7 +57,7 @@
   {
     "id": "major-05",
     "file": "major-05.png",
-    "sha256": "bb63b0f57aad549b90f355247a3910c168dd2f41369a001107b9e20522bde3cb",
+    "sha256": "d563a93942407dd7fc4aca204b0df8f3e19775ca6e18c2a426f91baa186ce545",
     "width": 348,
     "height": 600,
     "arcana": "major",
@@ -68,7 +68,7 @@
   {
     "id": "major-06",
     "file": "major-06.png",
-    "sha256": "f35eacf5a9f9f880bad630205dd03caf2e55906096db3a29970d62615bdd0963",
+    "sha256": "4fd31a5a56ff4afd54bf5b09bc667a7338e5814b9adbdde62a7aafe59515cae0",
     "width": 350,
     "height": 600,
     "arcana": "major",
@@ -79,7 +79,7 @@
   {
     "id": "major-07",
     "file": "major-07.png",
-    "sha256": "8c19405f46b577420b11097d986fd0be4024cc33f9a405d5fc3ab90a39651575",
+    "sha256": "054827600fe8756f219cebbc656964b5558fe0512d289db6d5d6de54b49f78d2",
     "width": 347,
     "height": 600,
     "arcana": "major",
@@ -90,7 +90,7 @@
   {
     "id": "major-08",
     "file": "major-08.png",
-    "sha256": "1f6429d70cb355e6afbcf1cb624e7aeb8766fe9c869e2681a7891a830490ec34",
+    "sha256": "0de82f0b272a4c48283f8c44ba7a0a0f107da19a315ec9446355818bf6a4afda",
     "width": 348,
     "height": 600,
     "arcana": "major",
@@ -101,7 +101,7 @@
   {
     "id": "major-09",
     "file": "major-09.png",
-    "sha256": "1f47a7a50e038321498802b05517776f51595d93dc13ddaf3c5d83bdef82bb86",
+    "sha256": "c245bec10ab1a16a71e9b1365c959be1ddcb2b59b183d2914bec1f6e526c08bf",
     "width": 351,
     "height": 600,
     "arcana": "major",
@@ -112,7 +112,7 @@
   {
     "id": "major-10",
     "file": "major-10.png",
-    "sha256": "fa1a7d11911ede498ca25043573589c735f68362a1e5f0656bf445db5b3c7700",
+    "sha256": "4d76896e3c8c4d6f5f43a2a2f9e30463be47cf4e6abc32f449430fec273ee2e1",
     "width": 345,
     "height": 600,
     "arcana": "major",
@@ -123,7 +123,7 @@
   {
     "id": "major-11",
     "file": "major-11.png",
-    "sha256": "4f5f791da83ac2a6f9d25f3061fa3121065b09a529363820413becd50c7477f2",
+    "sha256": "67951bfa574f6e0da02de60224168174424a911c0486d5d0152797b3c83b6334",
     "width": 348,
     "height": 600,
     "arcana": "major",
@@ -134,7 +134,7 @@
   {
     "id": "major-12",
     "file": "major-12.png",
-    "sha256": "fe2a442dbc57c04f410693dee2ddb71f388e85ce001239dbba07e5628fe2ef4c",
+    "sha256": "ea0221a2a7cb637a3e4bf33f8af43c67f1f61aa7d8573012a403ab0948842e6b",
     "width": 341,
     "height": 600,
     "arcana": "major",
@@ -145,7 +145,7 @@
   {
     "id": "major-13",
     "file": "major-13.png",
-    "sha256": "9a01fda0cd098bd0370e33a15a8aead7f407d9cd6154fa0f6b90d89e87fa4a2f",
+    "sha256": "1cbaef590560b1f878b66284cb280bc3a663f33fce56ff40c9c207bb580645df",
     "width": 347,
     "height": 600,
     "arcana": "major",
@@ -156,7 +156,7 @@
   {
     "id": "major-14",
     "file": "major-14.png",
-    "sha256": "53fd8ae0e106af146c53787cda056da822489e0cdf594f47136626f7839d35e6",
+    "sha256": "c0b61e0b999dc9c86d5ecfce91ff5b3a9acb7ef793774a544f06bca7c1780c1b",
     "width": 345,
     "height": 600,
     "arcana": "major",
@@ -167,7 +167,7 @@
   {
     "id": "major-15",
     "file": "major-15.png",
-    "sha256": "55660c0e2670cade466b34880f603e89070c1a3c7d57b8296b79c05ee32ac274",
+    "sha256": "02ba28bc1717b4a68b0f82da41870cc30b5ed299b0eec608fac7c259aa792727",
     "width": 340,
     "height": 600,
     "arcana": "major",
@@ -178,7 +178,7 @@
   {
     "id": "major-16",
     "file": "major-16.png",
-    "sha256": "9a8a0b260dc4c229ba0457ead093289c9503aa9f5b5db8a96a70b756a9f34c24",
+    "sha256": "36a7fe0910c06aada1c25eed626c12dbf14b27d7b070edb0c50750ac380fdba7",
     "width": 346,
     "height": 600,
     "arcana": "major",
@@ -189,7 +189,7 @@
   {
     "id": "major-17",
     "file": "major-17.png",
-    "sha256": "8692231e93f3b138b8e984eb068fbfdeb00cb52730c033523099a0bcb218cc56",
+    "sha256": "17ff1d2856c12213deb136541e7d10ada06dc4aff3069a0b338189c48886d236",
     "width": 348,
     "height": 600,
     "arcana": "major",
@@ -200,7 +200,7 @@
   {
     "id": "major-18",
     "file": "major-18.png",
-    "sha256": "3357386d9c18e3c5f9a70befcd729e63561e69a3d48e678050ca8d79fa142858",
+    "sha256": "46667da659bf15bcc3a7ffbfae18e78ce86c65b65d9e1a2c523a6ff2954307d4",
     "width": 347,
     "height": 600,
     "arcana": "major",
@@ -211,7 +211,7 @@
   {
     "id": "major-19",
     "file": "major-19.png",
-    "sha256": "ddbfc7fc830049b519652760a2ffe74f9418475cc644422a00c4da3a987f4297",
+    "sha256": "a0c9840e3a7b1b4c968990cb89255c1f8dd8bd041383ca679f1b727c3c71dba9",
     "width": 348,
     "height": 600,
     "arcana": "major",
@@ -222,7 +222,7 @@
   {
     "id": "major-20",
     "file": "major-20.png",
-    "sha256": "98949e9a7ee97b22bae0acffd3ebacc324e5f4c3644b2be91d335e6b2890afd3",
+    "sha256": "e5746f644e21a8a095dec6ecb8f46507cc6aedb531842d8341e99c125163d99b",
     "width": 348,
     "height": 600,
     "arcana": "major",
@@ -233,7 +233,7 @@
   {
     "id": "major-21",
     "file": "major-21.png",
-    "sha256": "5564e28dd208fa8151a38bbe393ddc0e09bf47810dea988753aba836a75c12e6",
+    "sha256": "6422e930b221da7dba67b5811c00f36bb4b33757f4a1d5485621c7dfe8a482e8",
     "width": 347,
     "height": 600,
     "arcana": "major",
