@@ -28,6 +28,8 @@ export async function GET() {
   const staleCanceled = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "CANCELED"), sql`${td} < ${today}`, gte(contentPosts.updatedAt, cutoff)));
   // PUBLISHING ค้าง = ambiguous (worker ตายหลังยิง feed) → ต้อง reconcile มือ [S4b ตู๋ P1]
   const stuckPublishing = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "PUBLISHING")));
+  // auto-gen วันนี้ FAILED → surface ให้ฟีมรู้ว่าต้อง manual (ไม่เงียบ) [Phase 2b ตู๋ P2]
+  const failedToday = count(and(eq(contentPosts.templateId, DAILY7), eq(contentPosts.status, "FAILED"), sql`${td} = ${today}`));
 
-  return NextResponse.json({ ok: true, today, posted: posted > 0, pending, staleCanceled, stuckPublishing });
+  return NextResponse.json({ ok: true, today, posted: posted > 0, pending, staleCanceled, stuckPublishing, failedToday });
 }
