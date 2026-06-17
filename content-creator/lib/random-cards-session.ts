@@ -57,9 +57,21 @@ export function reduceDraft(draft: DraftView, session: Session): Reduced {
   const dd = draft.draftData;
   const data = dd?.cardIds && dd.quote != null && dd.body != null ? { cardIds: dd.cardIds, quote: dd.quote, body: dd.body } : null;
   if (draft.status === "FINALIZED") {
-    return { revision: draft.revision, status: "FINALIZED", data, postId: draft.contentPostId ?? null, session: null };
+    // **keep session** (finalizeKey) — restore-after-finalize ต้อง replay finalize route เพื่อ classify
+    // status จริงของ contentPost (PENDING/GENERATING/GENERATED/FAILED) ไม่ใช่เหมาเป็นเสร็จ/เคลียร์ [ตู๋ P1 reload recovery]
+    return { revision: draft.revision, status: "FINALIZED", data, postId: draft.contentPostId ?? null, session: { ...session, draftId: draft.id } };
   }
   return { revision: draft.revision, status: draft.status, data, postId: null, session: { ...session, draftId: draft.id } };
+}
+
+/**
+ * decision หลัง restore (mount GET draft) [ตู๋ P1 reload recovery]:
+ *  - FINALIZED → "replay-finalize" (POST finalize ด้วย finalizeKey เดิม → route classify status จริง → reduceFinalize)
+ *  - อื่น (READY/GENERATING/FAILED ของ draft) → "show-draft"
+ */
+export type RestoreAction = { kind: "replay-finalize"; revision: number } | { kind: "show-draft" };
+export function restoreAction(draft: DraftView): RestoreAction {
+  return draft.status === "FINALIZED" ? { kind: "replay-finalize", revision: draft.revision } : { kind: "show-draft" };
 }
 
 export type MountAction =

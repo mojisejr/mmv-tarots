@@ -5,7 +5,7 @@
  * (persist requestKey/finalizeKey/draftId/pendingAttemptKey ; lost-response/reload ไม่จ่าย Gemini ซ้ำ) [ตู๋ P1]
  */
 import { useCallback, useEffect, useState } from "react";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "@/content-creator/lib/random-cards-session";
+import { parseSession, freshSession, reduceDraft, mountAction, restoreAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "@/content-creator/lib/random-cards-session";
 
 const SKEY = "random-cards-session-v1";
 const uuid = () => crypto.randomUUID();
@@ -49,6 +49,23 @@ export default function RandomCardsAuthoring({ onFinalized }: { onFinalized: () 
     }).catch(() => {});
   }, []);
 
+  // replay finalize (idempotent route ด้วย finalizeKey เดิม) → classify status จริง [ตู๋ P1]
+  // ใช้ทั้ง: กดยืนยัน inline / restore เจอ FINALIZED / ปุ่ม "เช็คอีกครั้ง"
+  const replayFinalize = useCallback(async (sess: Session, rev: number) => {
+    if (!sess.draftId) return;
+    setBusy(true); setErr("");
+    try {
+      const res = await fetch(`/content-creator/api/cards/draft/${sess.draftId}/finalize`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalizeKey: sess.finalizeKey, expectedRevision: rev }),
+      });
+      const o = reduceFinalize(await res.json());
+      if (o.kind === "queue") { persist(null); onFinalized(); return; } // GENERATED → ไปคิว
+      if (o.kind === "processing") { setSession(sess); setRevision(rev); setStatus("FINALIZED"); persist(sess); } // PENDING/GENERATING → lock, keep session
+      else { persist(null); setStatus(""); setData(null); setErr(o.message); } // FAILED → reset
+    } catch (e) { setErr(String(e)); } finally { setBusy(false); }
+  }, [persist, onFinalized]);
+
   // restore/resume หลัง reload (recovery)
   useEffect(() => {
     const s = parseSession(localStorage.getItem(SKEY));
@@ -58,12 +75,17 @@ export default function RandomCardsAuthoring({ onFinalized }: { onFinalized: () 
     (async () => {
       if (act.kind === "restore") {
         const res = await fetch(`/content-creator/api/cards/draft/${act.draftId}`);
-        if (res.ok) onDraft((await res.json()).draft, s);
+        if (!res.ok) return;
+        const draft = (await res.json()).draft as DraftView;
+        // FINALIZED (finalize response หาย + reload) → replay → classify contentPost จริง ไม่เหมาเป็น new [ตู๋ P1]
+        const ra = restoreAction(draft);
+        if (ra.kind === "replay-finalize") await replayFinalize(s, ra.revision);
+        else onDraft(draft, s);
       } else if (act.kind === "resume") {
         onDraft((await send("/content-creator/api/cards/draft", { requestKey: act.requestKey }))?.draft, s);
       }
     })();
-  }, [onDraft, send]);
+  }, [onDraft, send, replayFinalize]);
 
   const startNew = async () => {
     if (session?.draftId && !window.confirm("เริ่มใหม่ = ทิ้งชุดเดิม ดำเนินต่อ?")) return;
@@ -85,20 +107,7 @@ export default function RandomCardsAuthoring({ onFinalized }: { onFinalized: () 
     if (d?.draft) onDraft(d.draft, { ...session, pendingAttemptKey: undefined });
   };
 
-  const finalize = async () => {
-    if (!session?.draftId) return;
-    setBusy(true); setErr("");
-    try {
-      const res = await fetch(`/content-creator/api/cards/draft/${session.draftId}/finalize`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ finalizeKey: session.finalizeKey, expectedRevision: revision }),
-      });
-      const o = reduceFinalize(await res.json());
-      if (o.kind === "queue") { persist(null); onFinalized(); return; }
-      if (o.kind === "processing") { setStatus("FINALIZED"); } // lock — keep session ให้ retry replay
-      else { persist(null); setStatus(""); setData(null); setErr(o.message); } // failed → reset
-    } catch (e) { setErr(String(e)); } finally { setBusy(false); }
-  };
+  const finalize = () => { if (session) replayFinalize(session, revision); };
 
   const ready = status === "READY" && !!data;
   const mode = createButtonMode(session);

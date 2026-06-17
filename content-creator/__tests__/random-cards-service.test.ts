@@ -62,4 +62,14 @@ describe("regen + finalize", () => {
     expect(input.cardIds).toEqual((d.draftData as { cardIds: string[] }).cardIds); // ไพ่ persist เดิม
     expect(getDraft(db, d.id)!.status).toBe("FINALIZED");
   });
+
+  it("[ตู๋ P1 reload] finalize replay (finalizeKey เดิม หลัง FINALIZED) → contentPost เดิม ไม่สร้างซ้ำ", async () => {
+    const d = await createRandomCardsDraft(db, "rk");
+    const first = finalizeRandomCardsDraft(db, d.id, "fk", d.revision);
+    // จำลอง reload → POST finalize ซ้ำด้วย key เดิม (draft FINALIZED แล้ว) → ต้องคืน post เดิม (idempotent)
+    const replay = finalizeRandomCardsDraft(db, d.id, "fk", d.revision);
+    expect(replay.contentPostId).toBe(first.contentPostId);
+    expect(replay.replay).toBe(true);
+    expect(db.select().from(contentPosts).all()).toHaveLength(1); // ไม่มี post ซ้ำ
+  });
 });
