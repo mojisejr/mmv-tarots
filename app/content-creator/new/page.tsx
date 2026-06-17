@@ -13,6 +13,7 @@ import { PreviewGuard } from "@/content-creator/lib/preview-guard";
 import { readPending, writePending, clearPending, resolveRequestKey } from "@/content-creator/lib/request-draft";
 import { classifyCreateResponse, shouldClearPending } from "@/content-creator/lib/create-outcome";
 import Daily7Authoring from "./Daily7Authoring";
+import RandomCardsAuthoring from "./RandomCardsAuthoring";
 
 type TemplateOpt = { id: string; name: string };
 
@@ -142,6 +143,8 @@ export default function NewContentPage() {
 
         {templateId === "daily-7" ? (
           <Daily7Authoring onFinalized={() => router.push("/content-creator")} />
+        ) : templateId === "random-cards" ? (
+          <RandomCardsAuthoring onFinalized={() => router.push("/content-creator")} />
         ) : (
         <>
         <label className="block">

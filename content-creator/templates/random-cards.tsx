@@ -45,9 +45,11 @@ export const randomCardsTemplate = {
   /** ฉาก AI: แมว Mimi + บรรยากาศ tarot + เว้นที่วางไพ่ — ห้ามมีข้อความ/ไพ่ (มาจาก composition) */
   buildImagePrompt(): string {
     return (
-      "แมวหมอดูนั่งอยู่ข้างโต๊ะไม้สำหรับเปิดไพ่ทาโรต์ บรรยากาศห้อง cozy mystic อบอุ่น " +
-      "มีเทียนจุด คริสตัล/หินสีพาสเทล ดอกไม้แห้งสีพีช ธูปควันบางๆ โทนพีช-ชมพู-ลาเวนเดอร์ นุ่มนวล สวยงาม aesthetic. " +
-      "จัดองค์ประกอบให้มีพื้นที่โล่งบนพื้นโต๊ะตรงกลางค่อนล่างของภาพ (สำหรับวางไพ่ภายหลัง — ห้ามวาดไพ่ใด ๆ). ภาพจัตุรัส 1:1."
+      "ฉากโต๊ะดูดวงทาโรต์ บรรยากาศห้อง cozy mystic อบอุ่น มีเทียนจุด คริสตัล/หินสีพาสเทล ดอกไม้แห้งสีพีช " +
+      "ธูปควันบางๆ โทนพีช-ชมพู-ลาเวนเดอร์ นุ่มนวล สวยงาม aesthetic. " +
+      "**วางแมวตัวเล็ก ๆ ไว้มุมบน (ขวาบนหรือซ้ายบน) ขนาดไม่เกิน 1 ใน 4 ของภาพ — ห้ามให้แมวอยู่กลางภาพหรือตัวใหญ่จนเด่น**. " +
+      "**ครึ่งกลางและล่างของภาพต้องเป็นพื้นโต๊ะโล่ง ๆ เรียบ ไม่มี object เด่นบัง (สำหรับวางไพ่+ข้อความภายหลัง)**. " +
+      "ห้ามวาดไพ่ใด ๆ. ภาพจัตุรัส 1:1."
     );
   },
 
@@ -78,7 +80,8 @@ export const randomCardsTemplate = {
           <div style={{ display: "flex", width: 860, marginTop: 22, justifyContent: "center" }}>
             <span style={{ fontSize: 40, fontWeight: 700, color: "#6E2F50", textAlign: "center" }}>{d.quote}</span>
           </div>
-          <div style={{ display: "flex", marginTop: 26 }}>
+          {/* panel รองหลังไพ่ — การันตีไพ่เด่น/เห็นชัดทุก AI scene (กัน bg สว่าง/แมวบัง) [ตู๋ P2] */}
+          <div style={{ display: "flex", marginTop: 26, background: "rgba(74,42,58,0.42)", borderRadius: 24, padding: "22px 26px" }}>
             {cards.map((c, i) => (
               <img key={i} src={c} width={196} height={336} style={{ objectFit: "cover", borderRadius: 12, border: "4px solid #fff", marginLeft: i ? 18 : 0, transform: `rotate(${(i - 1) * 5}deg)` }} />
             ))}
