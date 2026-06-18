@@ -123,6 +123,12 @@ export default function ContentCreatorPage() {
             + สร้างใหม่
           </Link>
           <Link
+            href="/content-creator/scenes"
+            className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
+          >
+            🎴 Scenes
+          </Link>
+          <Link
             href="/content-creator/settings"
             className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
           >

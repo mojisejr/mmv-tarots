@@ -14,6 +14,7 @@ import { contentPosts, type BrandProfile } from "./db/schema";
 import { getBrandProfile } from "./db/brand";
 import { claimForGenerate, markGenerated, releaseGenerate } from "./db/transition";
 import { genCaption, genImage, genImageWithRef } from "./lib/gemini";
+import { pickApprovedScene } from "./scene-pool";
 import { buildCaptionRequest, validateCaption, normalizeBrandTerms } from "./lib/caption";
 import { safeResolveUnderRoot } from "./lib/safe-path";
 import { getTemplate } from "./templates";
@@ -137,21 +138,12 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
           })
         : await genImage({ prompt: themeWithStyle });
     } else {
-      // hybrid [random-cards PR#103]: caption → AI scene (ref แมว, NO text/cards) → renderComposite วางไพ่จริง+ข้อความ
-      // explicit pipeline [ตู๋ P1]: ไพ่ถูก draw+persist ใน inputData ตั้งแต่ draft (ก่อน paid) → renderComposite อ่าน cardIds เดิม
-      const refImage = brand.refImagePath ? loadBrandRef(brand.refImagePath) : null;
-      if (!refImage) throw new Error("hybrid template ต้องมี brand ref image (ตั้ง refImagePath ใน Settings ก่อน gen)");
+      // hybrid [random-cards PR#103 → PR#105 scene library]: pick scene (approved) → caption → composite
+      // [ก้อน 4] สุ่มจาก scene library (APPROVED, exclude RETIRED) = human gate กันแมวหาย/crop 100%
+      // **pick ก่อน generateCaption** [ตู๋ PR#105 P1]: ไม่มี approved scene → throw ก่อนจ่าย caption (fail loud ไม่เสีย paid)
+      const scene = pickApprovedScene(db);
       caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
-      const basePrompt = template.buildImagePrompt(parsed); // ฉาก AI (no text/cards)
-      const themeWithStyle = brand.stylePrompt ? `${basePrompt}\n\nสไตล์ภาพ: ${brand.stylePrompt}` : basePrompt;
-      // AI scene fail → throw → FAILED (ไม่มี composition fallback — final ขึ้นกับ brand visual) [ตู๋ P1]
-      const scene = await genImageWithRef({
-        prompt: `${refDirective(themeWithStyle)}\n\n${NO_TEXT_DIRECTIVE}`,
-        refImage,
-        model: brand.imageModel ?? undefined,
-      });
-      // scene = in-memory (ไม่เขียน temp → ไม่มี temp artifact ต้อง cleanup) ; final image คือ artifact เดียว (cleanup ใน catch)
-      // compose fail หลัง paid scene → throw → catch ลบ final artifact ที่ persist (ถ้ามี) [ตู๋ P1]
+      // scene = in-memory ; final composed image คือ artifact เดียว (cleanup ใน catch) [ตู๋ P1]
       bytes = await template.renderComposite(parsed, { brand, seed: id }, scene);
     }
     attemptPath = persistImage(id, token, bytes); // fence เดิม (token-scoped) ครอบทั้ง 2 path

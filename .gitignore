@@ -47,3 +47,6 @@ next-env.d.ts
 # Oracle Framework
 content-creator/*.db*
 content-creator/media/
+
+# scene library runtime-gen images (เก็บ .gitkeep)
+content-creator/brand/scenes/*.png
