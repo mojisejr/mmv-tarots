@@ -75,6 +75,8 @@ export interface ImageWithRefInput {
   refImage: Uint8Array;
   /** model override (default REF_IMAGE_MODEL = nano banana) */
   model?: string;
+  /** aspect ratio เช่น "1:1" — **optional** (ไม่ส่ง = behavior เดิม) backward-compat caller อื่น [PR#105 ก้อน2] */
+  aspectRatio?: string;
 }
 
 /**
@@ -86,7 +88,13 @@ export interface ImageWithRefInput {
 export async function genImageWithRef(input: ImageWithRefInput): Promise<Uint8Array> {
   const result = await generateText({
     model: google(input.model ?? REF_IMAGE_MODEL),
-    providerOptions: { google: { responseModalities: ["TEXT", "IMAGE"] } },
+    providerOptions: {
+      google: {
+        responseModalities: ["TEXT", "IMAGE"],
+        // imageConfig.aspectRatio: ส่งเฉพาะเมื่อ caller ระบุ (ไม่ระบุ = ไม่ใส่ = behavior เดิม) [PR#105]
+        ...(input.aspectRatio ? { imageConfig: { aspectRatio: input.aspectRatio } } : {}),
+      },
+    },
     messages: [
       {
         role: "user",

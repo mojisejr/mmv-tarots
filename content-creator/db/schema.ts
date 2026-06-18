@@ -127,3 +127,26 @@ export const contentDrafts = sqliteTable("content_drafts", {
 
 export type ContentDraft = typeof contentDrafts.$inferSelect;
 export type NewContentDraft = typeof contentDrafts.$inferInsert;
+
+/** scene library [PR#105 D2/D6] — AI scene ที่ gen ไว้ล่วงหน้า + ฟีม approve ด้วยตา (human gate กันแมวหาย/crop 100%) */
+export const SCENE_STATUSES = [
+  "PENDING", // เพิ่ง gen รอฟีม approve
+  "APPROVED", // ฟีมอนุมัติ — random-cards สุ่มใช้ได้
+  "REJECTED", // ฟีมปฏิเสธ (แมวหาย/crop/ไม่สวย)
+  "RETIRED", // เคย APPROVED แต่เลิกใช้ (เก็บไฟล์ — Nothing is Deleted)
+] as const;
+export type SceneStatus = (typeof SCENE_STATUSES)[number];
+
+export const sceneLibrary = sqliteTable("scene_library", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  theme: text("theme").notNull(),
+  imagePath: text("image_path").notNull(),
+  status: text("status").$type<SceneStatus>().notNull().default("PENDING"),
+  genBatch: text("gen_batch").notNull(), // จัดกลุ่ม gen รอบเดียวกัน (retire เป็น batch ได้)
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  approvedAt: integer("approved_at", { mode: "timestamp" }),
+  retiredAt: integer("retired_at", { mode: "timestamp" }),
+});
+
+export type SceneRow = typeof sceneLibrary.$inferSelect;
+export type NewScene = typeof sceneLibrary.$inferInsert;

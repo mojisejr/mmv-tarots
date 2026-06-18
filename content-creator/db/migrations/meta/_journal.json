@@ -64,6 +64,13 @@
       "when": 1781800000000,
       "tag": "0008_daily7_active_fence",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1781900000000,
+      "tag": "0009_scene_library",
+      "breakpoints": true
     }
   ]
 }
