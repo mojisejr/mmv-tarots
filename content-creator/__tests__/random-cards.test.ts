@@ -38,10 +38,10 @@ describe("random-cards template [PR#103]", () => {
     expect(bytes[0]).toBe(0x89); // PNG signature
   });
 
-  it("[ตู๋ P1.2] worst-case Thai no-space (quote/body ยาวสุด ไม่มีช่องว่าง) → render ผ่าน ไม่ overflow throw", async () => {
+  it("[D3] worst-case Thai no-space (quote/body ยาวสุดตาม schema ไม่มีช่องว่าง) → render ผ่าน ไม่ overflow throw", async () => {
     const scene = new Uint8Array(readFileSync(join(process.cwd(), "content-creator", "brand", "mimi-reference.png")));
-    const input = { cardIds: drawCards("ovf", 3).map((c) => c.id), quote: "ก".repeat(160), body: "ก".repeat(500) }; // max schema, no space
+    const input = { cardIds: drawCards("ovf", 3).map((c) => c.id), quote: "ก".repeat(110), body: "ก".repeat(260) }; // max schema (110/260), no space
     const bytes = await randomCardsTemplate.renderComposite(input, { brand: {} as never, seed: "ovf" }, scene);
-    expect(bytes[0]).toBe(0x89); // ยัง render เป็น PNG (clamp+wordBreak+truncate กัน overflow)
+    expect(bytes[0]).toBe(0x89); // render เป็น PNG (fitBox maxHeight+overflow hidden + fitCap measure กัน overflow)
   });
 });
