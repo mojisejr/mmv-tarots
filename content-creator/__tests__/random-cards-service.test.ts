@@ -8,6 +8,7 @@ import { createContentDb, type ContentDb } from "../db/client";
 import { contentPosts, sceneLibrary } from "../db/schema";
 import { getDraft } from "../db/drafts";
 import { createRandomCardsDraft, regenRandomCardsDraft, finalizeRandomCardsDraft } from "../random-cards-service";
+import { countApproved } from "../scene-pool";
 
 const reading = () => ({ quote: "เปลี่ยนแปลงสู่สิ่งที่ดี", body: "ช่วงนี้มีพลังบวกเข้ามา จงเชื่อมั่น" });
 // finalize ต้องมี approved scene (preflight) — helper เพิ่ม 1 ใบ
@@ -83,5 +84,19 @@ describe("regen + finalize", () => {
     expect(replay.contentPostId).toBe(first.contentPostId);
     expect(replay.replay).toBe(true);
     expect(db.select().from(contentPosts).all()).toHaveLength(1); // ไม่มี post ซ้ำ
+  });
+
+  it("[ตู๋ re-review] finalize สำเร็จ → retire approved scenes หมด (count=0) → replay key เดิ่ม คืน post เดิม ไม่ 409", async () => {
+    const d = await createRandomCardsDraft(db, "rk");
+    approveScene(db);
+    const first = finalizeRandomCardsDraft(db, d.id, "fk", d.revision); // สำเร็จ
+    // จำลอง: scenes ทั้งหมดถูก retire → count=0 (response finalize หาย + reload)
+    db.update(sceneLibrary).set({ status: "RETIRED" }).run();
+    expect(countApproved(db)).toBe(0);
+    // replay key เดิม → fast-path คืน post เดิม **ก่อน** preflight (ไม่ 409, ไม่สร้างซ้ำ)
+    const replay = finalizeRandomCardsDraft(db, d.id, "fk", d.revision);
+    expect(replay.contentPostId).toBe(first.contentPostId);
+    expect(replay.replay).toBe(true);
+    expect(db.select().from(contentPosts).all()).toHaveLength(1);
   });
 });

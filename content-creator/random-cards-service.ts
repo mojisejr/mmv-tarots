@@ -70,8 +70,13 @@ export async function regenRandomCardsDraft(db: ContentDb, id: string, attemptKe
 export function finalizeRandomCardsDraft(db: ContentDb, id: string, finalizeKey: string, expectedRevision: number): FinalizeResult {
   const draft = getDraft(db, id);
   if (!draft) throw new DraftStaleError(`ไม่พบ draft: ${id}`);
-  // preflight [ตู๋/บอง PR#105 P1]: ไม่มี approved scene → throw **ก่อน** finalizeDraft → draft คง READY (ไม่ lock,
-  // ไม่สร้าง contentPost, ไม่จ่าย caption/image ตอน generate). DraftConflictError → route map 409.
+  // fast-path replay [ตู๋ PR#105 re-review]: finalize สำเร็จแล้ว (response หาย+reload) → คืน post เดิม **ก่อน** preflight
+  // (ไม่งั้น scene ถูก retire จน count=0 → reload จะ 409 แทน replay → ฟีมค้าง classify status จริงไม่ได้)
+  if (draft.finalizeKey === finalizeKey && draft.contentPostId) {
+    return { contentPostId: draft.contentPostId, replay: true };
+  }
+  // preflight (fresh finalize เท่านั้น) [ตู๋/บอง P1]: ไม่มี approved scene → throw ก่อน finalizeDraft →
+  // draft คง READY (ไม่ lock/ไม่สร้าง contentPost/ไม่จ่าย caption). DraftConflictError → route map 409.
   if (countApproved(db) === 0) {
     throw new DraftConflictError("ยังไม่มี approved scene — gen batch + approve ที่ /content-creator/scenes ก่อน finalize");
   }
