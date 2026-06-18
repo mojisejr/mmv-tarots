@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { createContentDb, type ContentDb } from "../db/client";
 import { sceneLibrary } from "../db/schema";
 import { approveScene, rejectScene, retireScene, pickApprovedScene, listScenes, countApproved } from "../scene-pool";
+import { buildImageProviderOptions } from "../lib/gemini";
 
 const REF = "content-creator/brand/mimi-reference.png"; // ไฟล์จริง readable (สำหรับ pick อ่าน bytes)
 function insertScene(db: ContentDb, id: string, status: string, imagePath = REF) {
@@ -64,12 +65,26 @@ describe("pickApprovedScene [ก้อน 4 — exclude RETIRED/PENDING/REJECTED
 });
 
 describe("list / count", () => {
-  it("listScenes(status) filter + countApproved", () => {
+  it("listScenes(status) filter + countApproved count(*) เฉพาะ APPROVED (exclude RETIRED) [P2]", () => {
     insertScene(db, "p1", "PENDING");
     insertScene(db, "p2", "PENDING");
     insertScene(db, "a1", "APPROVED");
+    insertScene(db, "a2", "APPROVED");
+    insertScene(db, "ret", "RETIRED");
     expect(listScenes(db, "PENDING")).toHaveLength(2);
-    expect(listScenes(db)).toHaveLength(3);
-    expect(countApproved(db)).toBe(1);
+    expect(listScenes(db)).toHaveLength(5);
+    expect(countApproved(db)).toBe(2); // นับเฉพาะ APPROVED — RETIRED ไม่นับ
+  });
+});
+
+describe("[P2] genImageWithRef aspectRatio — backward-compat", () => {
+  it("ไม่ส่ง aspectRatio → providerOptions.google ไม่มี imageConfig (behavior เดิม)", () => {
+    const o = buildImageProviderOptions();
+    expect(o.google.responseModalities).toEqual(["TEXT", "IMAGE"]);
+    expect("imageConfig" in o.google).toBe(false);
+  });
+  it("ส่ง '1:1' → imageConfig.aspectRatio = '1:1'", () => {
+    const o = buildImageProviderOptions("1:1") as { google: { imageConfig?: { aspectRatio: string } } };
+    expect(o.google.imageConfig?.aspectRatio).toBe("1:1");
   });
 });

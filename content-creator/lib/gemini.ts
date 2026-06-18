@@ -85,16 +85,23 @@ export interface ImageWithRefInput {
  * ส่ง ref ใน messages + responseModalities IMAGE, image output ที่ result.files[].uint8Array.
  * @throws ถ้า model ไม่คืน image
  */
+/**
+ * providerOptions.google สำหรับ ref-image gen [PR#105] — pure/testable.
+ * aspectRatio: ใส่ imageConfig เฉพาะเมื่อระบุ (ไม่ระบุ = ไม่มี imageConfig = behavior เดิม → backward-compat)
+ */
+export function buildImageProviderOptions(aspectRatio?: string) {
+  return {
+    google: {
+      responseModalities: ["TEXT", "IMAGE"],
+      ...(aspectRatio ? { imageConfig: { aspectRatio } } : {}),
+    },
+  };
+}
+
 export async function genImageWithRef(input: ImageWithRefInput): Promise<Uint8Array> {
   const result = await generateText({
     model: google(input.model ?? REF_IMAGE_MODEL),
-    providerOptions: {
-      google: {
-        responseModalities: ["TEXT", "IMAGE"],
-        // imageConfig.aspectRatio: ส่งเฉพาะเมื่อ caller ระบุ (ไม่ระบุ = ไม่ใส่ = behavior เดิม) [PR#105]
-        ...(input.aspectRatio ? { imageConfig: { aspectRatio: input.aspectRatio } } : {}),
-      },
-    },
+    providerOptions: buildImageProviderOptions(input.aspectRatio),
     messages: [
       {
         role: "user",

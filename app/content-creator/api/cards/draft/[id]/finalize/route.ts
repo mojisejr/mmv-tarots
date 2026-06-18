@@ -31,6 +31,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const db = getContentDb();
+  // preflight (no approved scene → 409 draft READY) อยู่ใน finalizeRandomCardsDraft → throw DraftConflictError → draftErrorStatus 409
   let contentPostId: string;
   try {
     contentPostId = finalizeRandomCardsDraft(db, id, body.finalizeKey, body.expectedRevision).contentPostId;

@@ -87,7 +87,8 @@ export function listScenes(db: ContentDb, status?: SceneRow["status"]): SceneRow
   return (status ? q.where(eq(sceneLibrary.status, status)) : q).all();
 }
 export function countApproved(db: ContentDb): number {
-  return db.select({ id: sceneLibrary.id }).from(sceneLibrary).where(eq(sceneLibrary.status, "APPROVED")).all().length;
+  const r = db.select({ n: sql<number>`count(*)` }).from(sceneLibrary).where(eq(sceneLibrary.status, "APPROVED")).get();
+  return r?.n ?? 0;
 }
 
 /**

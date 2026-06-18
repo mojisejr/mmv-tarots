@@ -138,12 +138,11 @@ export async function generate(db: ContentDb, id: string): Promise<GenerateResul
           })
         : await genImage({ prompt: themeWithStyle });
     } else {
-      // hybrid [random-cards PR#103 → PR#105 scene library]: caption → pick scene ที่ฟีม approve แล้ว → composite
-      // [ก้อน 4] เลิก gen AI scene live → สุ่มจาก scene library (status APPROVED, exclude RETIRED)
-      // = human gate กันแมวหาย/crop 100% (ฟีม approve ด้วยตาแล้ว) + AI cost เกิดครั้งเดียวตอน gen batch
-      caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
-      // ไม่มี approved scene → throw → FAILED (fail loud: ฟีมต้อง gen batch + approve ก่อน) [ตู๋ no-fallback]
+      // hybrid [random-cards PR#103 → PR#105 scene library]: pick scene (approved) → caption → composite
+      // [ก้อน 4] สุ่มจาก scene library (APPROVED, exclude RETIRED) = human gate กันแมวหาย/crop 100%
+      // **pick ก่อน generateCaption** [ตู๋ PR#105 P1]: ไม่มี approved scene → throw ก่อนจ่าย caption (fail loud ไม่เสีย paid)
       const scene = pickApprovedScene(db);
+      caption = await generateCaption(template.buildCaptionPrompt(parsed), brand, recentCaptions);
       // scene = in-memory ; final composed image คือ artifact เดียว (cleanup ใน catch) [ตู๋ P1]
       bytes = await template.renderComposite(parsed, { brand, seed: id }, scene);
     }

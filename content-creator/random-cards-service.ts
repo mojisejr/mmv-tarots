@@ -5,9 +5,10 @@
  */
 import { z } from "zod";
 import type { ContentDb } from "./db/client";
-import { createDraft, completeDraftGen, failDraftGen, claimRegen, finalizeDraft, getDraft, DraftStaleError, type ContentDraft, type FinalizeResult } from "./db/drafts";
+import { createDraft, completeDraftGen, failDraftGen, claimRegen, finalizeDraft, getDraft, DraftStaleError, DraftConflictError, type ContentDraft, type FinalizeResult } from "./db/drafts";
 import { genObject } from "./lib/gemini";
 import { drawCards, selectCardById } from "./lib/card-pool";
+import { countApproved } from "./scene-pool";
 import { randomCardsSchema, RANDOM_CARDS_TEMPLATE_ID } from "./templates/random-cards";
 
 export { RANDOM_CARDS_TEMPLATE_ID };
@@ -65,10 +66,15 @@ export async function regenRandomCardsDraft(db: ContentDb, id: string, attemptKe
   return getDraft(db, id)!;
 }
 
-/** finalize → สร้าง contentPost (persist cardIds+quote+body). ไม่มี backgroundId (hybrid ใช้ AI scene) */
+/** finalize → สร้าง contentPost (persist cardIds+quote+body). ไม่มี backgroundId (hybrid ใช้ scene library) */
 export function finalizeRandomCardsDraft(db: ContentDb, id: string, finalizeKey: string, expectedRevision: number): FinalizeResult {
   const draft = getDraft(db, id);
   if (!draft) throw new DraftStaleError(`ไม่พบ draft: ${id}`);
+  // preflight [ตู๋/บอง PR#105 P1]: ไม่มี approved scene → throw **ก่อน** finalizeDraft → draft คง READY (ไม่ lock,
+  // ไม่สร้าง contentPost, ไม่จ่าย caption/image ตอน generate). DraftConflictError → route map 409.
+  if (countApproved(db) === 0) {
+    throw new DraftConflictError("ยังไม่มี approved scene — gen batch + approve ที่ /content-creator/scenes ก่อน finalize");
+  }
   const finalInput = randomCardsSchema.parse(draft.draftData ?? {}); // strict: 3 ใบ unique + quote/body
   return finalizeDraft(db, id, finalizeKey, expectedRevision, finalInput, RANDOM_CARDS_TEMPLATE_ID);
 }
