@@ -16,9 +16,11 @@ const N_CARDS = 3;
 /** schema ที่ model ต้องคืน — ตีความรวม 3 ใบ (quote สั้น + body) */
 const readingGenSchema = z.object({ quote: z.string(), body: z.string() });
 
+// fit-by-design [D3]: คุม source ให้สั้น "จริง" — ไม่ใช่ปล่อยยาวแล้วตัด/clip ทีหลัง (ฟีม: ห้ามตัดทอน)
 const READING_SYSTEM =
   'คุณคือ "แม่หมอ Mimi" (แมวหมอดูสายฟีลกู้ด). ตีความไพ่ทาโรต์ 3 ใบ "รวมเป็นสถานการณ์เดียว" โทนอบอุ่นให้กำลังใจ. ' +
-  "คืน quote = ประโยคเด่นสั้น ๆ ไม่เกิน ~110 ตัวอักษร (1 บรรทัด), body = คำทำนายสถานการณ์ ไม่เกิน ~280 ตัวอักษร (3-4 บรรทัด). ห้ามใส่ชื่อไพ่ผิด.";
+  "**สั้น กระชับ**: quote = ประโยคเด่น 1 บรรทัด **ไม่เกิน 80 ตัวอักษร**, body = คำทำนาย **ไม่เกิน 220 ตัวอักษร** (2-3 ประโยคสั้น). " +
+  "ห้ามเขียนยาว/ขยายความเกินกำหนด (ภาพมีพื้นที่จำกัด ยาวเกินจะถูกตัด). ห้ามใส่ชื่อไพ่ผิด.";
 
 /** ตีความไพ่ 3 ใบ → {quote, body} (1 call) + validate length ; ไม่ผ่าน → regen 1 ครั้ง → throw [เหมือน genDaily7Days] */
 async function genReading(cardIds: string[]): Promise<{ quote: string; body: string }> {
@@ -29,7 +31,7 @@ async function genReading(cardIds: string[]): Promise<{ quote: string; body: str
     const obj = await genObject({ schema: readingGenSchema, system, prompt: `ไพ่ที่จั่วได้ 3 ใบ (เรียงซ้าย→ขวา): ${cardList}\nตีความรวมเป็นสถานการณ์เดียว` });
     const quote = obj.quote.trim();
     const body = obj.body.trim();
-    // validate ตาม randomCardsSchema (quote<=160, body<=500) — มี margin จาก system (~110/~280)
+    // validate ตาม randomCardsSchema (quote<=110, body<=260) — system ตั้งเป้าสั้นกว่า (~80/~220) ให้ fit โปร่ง
     const parsed = randomCardsSchema.safeParse({ cardIds, quote, body });
     if (parsed.success) return { quote, body };
     lastErr = parsed.error.issues.map((i) => i.message).join("; ");

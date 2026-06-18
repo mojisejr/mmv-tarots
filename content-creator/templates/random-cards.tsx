@@ -23,8 +23,8 @@ const FOOTER = "แม่หมอ Mimi";
 export const randomCardsSchema = z
   .object({
     cardIds: z.array(z.string().min(1)).length(3),
-    quote: z.string().min(1).max(160), // คำพูดสั้นเด่นกลางภาพ
-    body: z.string().min(1).max(500), // ตีความสถานการณ์ (กล่องล่าง)
+    quote: z.string().min(1).max(110), // คำพูดสั้นเด่น — hard cap (fit-by-design D3: เกิน→regen สั้นลง ไม่ปล่อยล้น)
+    body: z.string().min(1).max(260), // ตีความ — hard cap (fit container โปร่งที่ font 23 ไม่ clip)
   })
   .superRefine((d, ctx) => {
     if (new Set(d.cardIds).size !== d.cardIds.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "cardIds ต้องไม่ซ้ำ (3 ใบ)" });
@@ -35,9 +35,36 @@ function loadFont(): ArrayBuffer {
   return new Uint8Array(readFileSync(FONT_PATH)).buffer;
 }
 const dataUri = (bytes: Uint8Array, mime: string) => `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
-/** กัน text overflow (no-space Thai) — ตัด + … ก่อน ; CSS line-clamp ตัดส่วนเกินอีกชั้น [ตู๋ P1.2] */
-const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-const clamp = (lines: number) => ({ display: "-webkit-box" as const, WebkitBoxOrient: "vertical" as const, WebkitLineClamp: lines, overflow: "hidden" as const, wordBreak: "break-word" as const });
+
+// font sizes (ก้อน 5 / D3: ลด ~10-15% จาก baseline ตามที่ฟีมสั่ง — fit เนื้อหามากขึ้น)
+const QUOTE_FS = 34; // เดิม 40
+const BODY_FS = 23; // เดิม 27
+const THAI_W = 0.52; // สัดส่วนความกว้างตัวอักษร NotoSansThai-Bold โดยประมาณ (heuristic — Satori ไม่มี font-metric ตอน pre-render)
+
+/**
+ * measure-based fit cap (D3) [ก้อน 5]: budget = lines × (width / (fontSize·THAI_W)) → คำนวณจาก container จริง
+ * ไม่ใช่ blind char-count. content ปกติ (genReading ตั้งเป้า quote≤110/body≤280) จะ fit ไม่ถูกตัด ;
+ * เฉพาะ pathological (no-space ยาวสุด) ถึง cap + … ให้พอดี container.
+ */
+function fitCap(text: string, width: number, fontSize: number, lines: number): string {
+  const perLine = Math.max(1, Math.floor(width / (fontSize * THAI_W)));
+  const budget = perLine * lines;
+  return text.length > budget ? `${text.slice(0, budget - 1)}…` : text;
+}
+/**
+ * text box ที่ fit จริงใน Satori (D3): explicit maxHeight + overflow hidden (Satori **ไม่ support**
+ * -webkit-line-clamp → เดิมเป็น dead code → text ล้นทับไพ่/footer). + wordBreak (no-space Thai แตกบรรทัด).
+ */
+const fitBox = (maxHeight: number, fontSize: number, color: string, weight = 400) => ({
+  maxHeight,
+  overflow: "hidden" as const,
+  wordBreak: "break-word" as const,
+  fontSize,
+  fontWeight: weight,
+  color,
+  textAlign: "center" as const,
+  lineHeight: 1.4,
+});
 
 export const randomCardsTemplate = {
   id: RANDOM_CARDS_TEMPLATE_ID,
@@ -77,21 +104,27 @@ export const randomCardsTemplate = {
       <div style={{ width: OUT, height: OUT, display: "flex", position: "relative", fontFamily: "Noto Sans Thai" }}>
         <img src={bg} width={OUT} height={OUT} style={{ position: "absolute", objectFit: "cover" }} />
         <div style={{ position: "absolute", top: 0, left: 0, width: OUT, height: OUT, display: "flex", flexDirection: "column", alignItems: "center", padding: 48 }}>
+          {/* header — บนสุด */}
           <div style={{ display: "flex", background: "rgba(255,240,245,0.92)", borderRadius: 28, padding: "12px 38px", border: "3px solid #E8A0B8" }}>
             <span style={{ fontSize: 44, fontWeight: 700, color: "#8B4B6B" }}>{HEADER}</span>
           </div>
-          <div style={{ display: "flex", width: 860, marginTop: 22, justifyContent: "center", overflow: "hidden" }}>
-            <div style={{ ...clamp(2), fontSize: 40, fontWeight: 700, color: "#6E2F50", textAlign: "center", lineHeight: 1.25 }}>{truncate(d.quote, 90)}</div>
+          {/* D5: spacer บน — เกลี่ย vertical budget ให้ middle group (quote/cards/body) อยู่กลาง สมดุลบน-ล่าง */}
+          <div style={{ display: "flex", flex: 1 }} />
+          {/* quote — fit box (maxHeight + overflow hidden, ไม่พึ่ง line-clamp) [D3] */}
+          <div style={{ display: "flex", width: 860, justifyContent: "center", overflow: "hidden" }}>
+            <div style={fitBox(150, QUOTE_FS, "#6E2F50", 700)}>{fitCap(d.quote, 800, QUOTE_FS, 3)}</div>
           </div>
-          {/* panel รองหลังไพ่ — การันตีไพ่เด่น/เห็นชัดทุก AI scene (กัน bg สว่าง/แมวบัง) [ตู๋ P2] */}
-          <div style={{ display: "flex", marginTop: 26, background: "rgba(74,42,58,0.42)", borderRadius: 24, padding: "22px 26px" }}>
+          {/* panel รองหลังไพ่ — การันตีไพ่เด่นทุก AI scene [ตู๋ PR#103 P2] ; D4: วางตรง gap เท่า (drop rotate) */}
+          <div style={{ display: "flex", marginTop: 24, background: "rgba(74,42,58,0.42)", borderRadius: 24, padding: "22px 26px" }}>
             {cards.map((c, i) => (
-              <img key={i} src={c} width={196} height={336} style={{ objectFit: "cover", borderRadius: 12, border: "4px solid #fff", marginLeft: i ? 18 : 0, transform: `rotate(${(i - 1) * 5}deg)` }} />
+              <img key={i} src={c} width={196} height={336} style={{ objectFit: "cover", borderRadius: 12, border: "4px solid #fff", marginLeft: i ? 22 : 0 }} />
             ))}
           </div>
-          <div style={{ display: "flex", width: 880, marginTop: 28, background: "rgba(255,248,240,0.93)", borderRadius: 20, padding: "20px 32px", justifyContent: "center", overflow: "hidden" }}>
-            <div style={{ ...clamp(5), fontSize: 27, color: "#6B4555", textAlign: "center", lineHeight: 1.5 }}>{truncate(d.body, 260)}</div>
+          {/* body — fit box (maxHeight 6 บรรทัด + overflow hidden) [D3] */}
+          <div style={{ display: "flex", width: 880, marginTop: 24, background: "rgba(255,248,240,0.93)", borderRadius: 20, padding: "20px 32px", justifyContent: "center", overflow: "hidden" }}>
+            <div style={fitBox(208, BODY_FS, "#6B4555")}>{fitCap(d.body, 816, BODY_FS, 6)}</div>
           </div>
+          {/* D5: spacer ล่าง (เท่ากับบน) → middle group กึ่งกลาง ; footer ติดล่าง */}
           <div style={{ display: "flex", flex: 1 }} />
           <div style={{ display: "flex", background: "rgba(110,47,80,0.55)", borderRadius: 24, padding: "8px 30px" }}>
             <span style={{ fontSize: 38, fontWeight: 700, color: "#FFF" }}>{FOOTER}</span>
