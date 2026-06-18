@@ -31,7 +31,7 @@ async function genReading(cardIds: string[]): Promise<{ quote: string; body: str
     const obj = await genObject({ schema: readingGenSchema, system, prompt: `ไพ่ที่จั่วได้ 3 ใบ (เรียงซ้าย→ขวา): ${cardList}\nตีความรวมเป็นสถานการณ์เดียว` });
     const quote = obj.quote.trim();
     const body = obj.body.trim();
-    // validate ตาม randomCardsSchema (quote<=160, body<=500) — มี margin จาก system (~110/~280)
+    // validate ตาม randomCardsSchema (quote<=110, body<=260) — system ตั้งเป้าสั้นกว่า (~80/~220) ให้ fit โปร่ง
     const parsed = randomCardsSchema.safeParse({ cardIds, quote, body });
     if (parsed.success) return { quote, body };
     lastErr = parsed.error.issues.map((i) => i.message).join("; ");
