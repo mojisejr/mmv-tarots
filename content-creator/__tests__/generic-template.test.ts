@@ -52,7 +52,7 @@ describe("generic.renderImage [P2.3 visual budget — Satori composition]", () =
     expect(isPng(await generic.renderImage(c, ctx))).toBe(true);
   });
 
-  it("worst-case ไทยไม่มี space ยาวสุด → ยัง render ได้ (fitCap + overflow hidden, ไม่ล้น)", async () => {
+  it("worst-case ไทยไม่มี space ยาวสุด → ยัง render ได้ (line-clamp + wordBreak, ไม่ล้น/ไม่ cut-off)", async () => {
     const c: GenericContent = {
       title: "ก".repeat(60),
       blocks: [

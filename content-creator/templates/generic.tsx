@@ -118,7 +118,7 @@ export const generic: CompositionTemplate = {
           <div style={{ position: "absolute", top: 0, left: 0, width: OUT, height: OUT, display: "flex", flexDirection: "column", alignItems: "center", padding: 56 }}>
             {/* title panel — fontSize 36 + lineHeight 1.4 + line-clamp 2 (ลดจาก 44 ; กัน tone-mark ชิด/cut-off) */}
             <div style={{ display: "flex", maxWidth: 940, backgroundColor: "rgba(74,44,90,0.82)", borderRadius: 22, padding: "16px 30px" }}>
-              <div style={{ ...clampBox(36, 2, "#FFFFFF", 700, 1.4), width: 860, textAlign: "center" }}>{d.title}</div>
+              <div style={{ ...clampBox(36, 2, "#FFFFFF", 700, 1.4), maxWidth: 860, textAlign: "center" }}>{d.title}</div>
             </div>
 
             {/* spacer บน → blocks อยู่กลาง สมดุลบน-ล่าง */}
@@ -131,7 +131,7 @@ export const generic: CompositionTemplate = {
                   // hero — fontSize 40 (ลดจาก 56 ที่ล้น) + lineHeight 1.45 + line-clamp 2
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 900, maxHeight: 240, overflow: "hidden", backgroundColor: "rgba(255,240,245,0.92)", border: "3px solid #E8A0B8", borderRadius: 26, padding: "22px 30px", marginBottom: 16 }}>
                     {b.label ? <div style={{ ...clampBox(24, 1, "#8B4B6B", 700, 1.4), maxWidth: 760, textAlign: "center", marginBottom: 8 }}>{b.label}</div> : null}
-                    <div style={{ ...clampBox(40, 2, "#6E2F50", 700, 1.45), width: 820, textAlign: "center" }}>{b.text}</div>
+                    <div style={{ ...clampBox(40, 2, "#6E2F50", 700, 1.45), maxWidth: 820, textAlign: "center" }}>{b.text}</div>
                   </div>
                 ) : (
                   // normal — fontSize 24 (ลดจาก 26) + lineHeight 1.5 + line-clamp 2 ; row สูงขึ้นรับ lineHeight
