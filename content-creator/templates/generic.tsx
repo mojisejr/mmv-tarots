@@ -4,7 +4,7 @@
  * imageStrategy = composition: render เอง ผ่าน Satori (next/og) — **ไม่เรียก Gemini/brand ref** (เหมือน daily-7)
  *  - content มาจาก agent (resolveTypeToContent) ที่อ่าน free-text type แล้ว reason เป็น title + blocks
  *  - bg = สุ่มจาก daily-7 bg pool แบบ deterministic ด้วย ctx.seed (post id) → retry/preview ได้ใบเดิม
- *  - blocks 1..5 (hero ≤ 1) วาง fixed geometry + fitCap → ไทยไม่มี space ก็ไม่ล้น panel
+ *  - blocks 1..5 (hero ≤ 1) วาง fixed geometry + line-clamp (-webkit-box) → ไทยไม่มี space ก็ตัดที่ขอบบรรทัด ไม่ cut-off
  *  - text ทุกตัวถูก normalizeBrandTerms ตั้งแต่ resolve (ก่อน persist) → ภาพไม่หลุดแบรนด์
  *  - caption = แยกต่างหาก (engine genCaption) + CTA บังคับผ่าน brand.ctaUrl
  *
@@ -59,7 +59,6 @@ export const genericContentSchema = z
 export type GenericContent = z.infer<typeof genericContentSchema>;
 
 const OUT = 1080;
-const THAI_W = 0.52; // heuristic ความกว้างตัวอักษร NotoSansThai-Bold (Satori ไม่มี font-metric ตอน pre-render)
 const FONT_PATH = join(process.cwd(), "assets", "fonts", "NotoSansThai-Bold.ttf");
 
 function loadFont(): ArrayBuffer {
@@ -67,25 +66,26 @@ function loadFont(): ArrayBuffer {
 }
 
 /**
- * measure-based fit cap (เหมือน random-cards) — budget = lines × (width / (fontSize·THAI_W)).
- * เฉพาะ pathological (no-space ยาวสุด) ถึงโดน cap + … ให้พอดี container ; content ปกติไม่ถูกตัด
+ * line-clamp box — ยืนรูปแบบ daily-7 ที่ผ่าน browser-truth [render-fix PR#106]:
+ *  - `-webkit-box` + `WebkitLineClamp` → ตัดที่ "ขอบบรรทัด" (graceful + … ไม่ cut-off กลางตัวอักษร)
+ *    Satori รุ่นนี้ support (daily-7 ใช้อยู่จริง) ; `overflow:hidden` คุมส่วนเกิน
+ *  - `wordBreak:"break-word"` → ไทยไม่มี space แตกบรรทัดได้
+ *  - `lineHeight ~1.5` → fontSize ใหญ่ แล้ววรรณยุค/สระเกา (อยู่เหนือ/ใต้ตัว) ไม่ชิด/ทับพยัญชนะ
+ *  - `maxHeight` ผูกกับ lineHeight×lines → ให้ "line-clamp" เป็นตัวตัด ไม่ใช่ overflow ตัดก่อน (กัน cut-off)
+ * เลิกใช้ char-count heuristic (THAI_W เดิมคำนวณความกว้างไทยผิด = สาเหตุ cut-off) → เชื่อ clamp + measure ของ Satori
  */
-function fitCap(text: string, width: number, fontSize: number, lines: number): string {
-  const perLine = Math.max(1, Math.floor(width / (fontSize * THAI_W)));
-  const budget = perLine * lines;
-  return text.length > budget ? `${text.slice(0, budget - 1)}…` : text;
-}
-
-/** text box ที่ fit จริงใน Satori — maxHeight + overflow hidden + wordBreak (Satori ไม่ support line-clamp) */
-const fitBox = (maxHeight: number, fontSize: number, color: string, weight = 400) =>
+const clampBox = (fontSize: number, lines: number, color: string, weight = 400, lineHeight = 1.5) =>
   ({
-    maxHeight,
+    display: "-webkit-box" as const,
+    WebkitBoxOrient: "vertical" as const,
+    WebkitLineClamp: lines,
     overflow: "hidden" as const,
     wordBreak: "break-word" as const,
     fontSize,
     fontWeight: weight,
     color,
-    lineHeight: 1.3,
+    lineHeight,
+    maxHeight: Math.ceil(fontSize * lineHeight * lines) + 6,
   });
 
 export const generic: CompositionTemplate = {
@@ -116,9 +116,9 @@ export const generic: CompositionTemplate = {
 
           {/* overlay column */}
           <div style={{ position: "absolute", top: 0, left: 0, width: OUT, height: OUT, display: "flex", flexDirection: "column", alignItems: "center", padding: 56 }}>
-            {/* title panel */}
+            {/* title panel — fontSize 36 + lineHeight 1.4 + line-clamp 2 (ลดจาก 44 ; กัน tone-mark ชิด/cut-off) */}
             <div style={{ display: "flex", maxWidth: 940, backgroundColor: "rgba(74,44,90,0.82)", borderRadius: 22, padding: "16px 30px" }}>
-              <div style={{ display: "flex", ...fitBox(120, 44, "#FFFFFF", 700) }}>{fitCap(d.title, 860, 44, 2)}</div>
+              <div style={{ ...clampBox(36, 2, "#FFFFFF", 700, 1.4), width: 860, textAlign: "center" }}>{d.title}</div>
             </div>
 
             {/* spacer บน → blocks อยู่กลาง สมดุลบน-ล่าง */}
@@ -128,19 +128,21 @@ export const generic: CompositionTemplate = {
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
               {d.blocks.map((b, i) =>
                 b.emphasis === "hero" ? (
-                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 900, maxHeight: 240, overflow: "hidden", backgroundColor: "rgba(255,240,245,0.92)", border: "3px solid #E8A0B8", borderRadius: 26, padding: "20px 30px", marginBottom: 16 }}>
-                    {b.label ? <div style={{ display: "flex", fontSize: 26, fontWeight: 700, color: "#8B4B6B", marginBottom: 6 }}>{fitCap(b.label, 360, 26, 1)}</div> : null}
-                    <div style={{ display: "flex", textAlign: "center", ...fitBox(150, 56, "#6E2F50", 700) }}>{fitCap(b.text, 840, 56, 2)}</div>
+                  // hero — fontSize 40 (ลดจาก 56 ที่ล้น) + lineHeight 1.45 + line-clamp 2
+                  <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 900, maxHeight: 240, overflow: "hidden", backgroundColor: "rgba(255,240,245,0.92)", border: "3px solid #E8A0B8", borderRadius: 26, padding: "22px 30px", marginBottom: 16 }}>
+                    {b.label ? <div style={{ ...clampBox(24, 1, "#8B4B6B", 700, 1.4), maxWidth: 760, textAlign: "center", marginBottom: 8 }}>{b.label}</div> : null}
+                    <div style={{ ...clampBox(40, 2, "#6E2F50", 700, 1.45), width: 820, textAlign: "center" }}>{b.text}</div>
                   </div>
                 ) : (
-                  <div key={i} style={{ display: "flex", flexDirection: "row", alignItems: "center", width: 900, minHeight: 76, maxHeight: 120, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.84)", borderRadius: 16, padding: "12px 18px", marginBottom: 12 }}>
+                  // normal — fontSize 24 (ลดจาก 26) + lineHeight 1.5 + line-clamp 2 ; row สูงขึ้นรับ lineHeight
+                  <div key={i} style={{ display: "flex", flexDirection: "row", alignItems: "center", width: 900, minHeight: 80, maxHeight: 150, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.84)", borderRadius: 16, padding: "14px 18px", marginBottom: 12 }}>
                     {b.label ? (
-                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minWidth: 120, maxWidth: 200, height: 46, flexShrink: 0, backgroundColor: "#7B4FC9", borderRadius: 12, marginRight: 14, padding: "0 10px" }}>
-                        <span style={{ fontSize: 22, fontWeight: 700, color: "#FFFFFF" }}>{fitCap(b.label, 180, 22, 1)}</span>
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minWidth: 120, maxWidth: 220, height: 52, flexShrink: 0, overflow: "hidden", backgroundColor: "#7B4FC9", borderRadius: 12, marginRight: 14, padding: "0 12px" }}>
+                        <div style={{ ...clampBox(22, 1, "#FFFFFF", 700, 1.4), maxWidth: 196, textAlign: "center" }}>{b.label}</div>
                       </div>
                     ) : null}
                     <div style={{ display: "flex", flex: 1, minWidth: 0, overflow: "hidden" }}>
-                      <div style={fitBox(96, 26, "#3D2B52", 400)}>{fitCap(b.text, b.label ? 700 : 840, 26, 3)}</div>
+                      <div style={{ ...clampBox(24, 2, "#3D2B52", 400, 1.5), width: "100%" }}>{b.text}</div>
                     </div>
                   </div>
                 ),
