@@ -6,11 +6,13 @@ import type { ContentTemplate } from "./types";
 import { financeDaily } from "./finance-daily";
 import { daily7 } from "./daily7";
 import { randomCardsTemplate } from "./random-cards";
+import { generic } from "./generic";
 
 const TEMPLATES: Record<string, ContentTemplate> = {
   [financeDaily.id]: financeDaily,
   [daily7.id]: daily7,
   [randomCardsTemplate.id]: randomCardsTemplate,
+  [generic.id]: generic,
 };
 
 /** @throws Error ถ้า templateId ไม่รู้จัก */

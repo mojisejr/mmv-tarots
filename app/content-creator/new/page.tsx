@@ -14,6 +14,7 @@ import { readPending, writePending, clearPending, resolveRequestKey } from "@/co
 import { classifyCreateResponse, shouldClearPending } from "@/content-creator/lib/create-outcome";
 import Daily7Authoring from "./Daily7Authoring";
 import RandomCardsAuthoring from "./RandomCardsAuthoring";
+import GenericAuthoring from "./GenericAuthoring";
 
 type TemplateOpt = { id: string; name: string };
 
@@ -145,6 +146,8 @@ export default function NewContentPage() {
           <Daily7Authoring onFinalized={() => router.push("/content-creator")} />
         ) : templateId === "random-cards" ? (
           <RandomCardsAuthoring onFinalized={() => router.push("/content-creator")} />
+        ) : templateId === "generic" ? (
+          <GenericAuthoring onFinalized={() => router.push("/content-creator")} />
         ) : (
         <>
         <label className="block">
