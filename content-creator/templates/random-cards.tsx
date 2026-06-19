@@ -4,14 +4,14 @@
  * imageStrategy = "hybrid":
  *   AI scene (แมว Mimi + บรรยากาศ tarot, NO text/cards) → renderComposite วางไพ่จริง 3 ใบ + ข้อความไทยทับ.
  *   ไพ่ถูก draw + persist (cardIds) ตั้งแต่ draft (ก่อน paid) → render/replay ใช้ไพ่ชุดเดิม [ตู๋ P1].
- *   ข้อความไทยทั้งหมดมาจาก composition (next/og) เท่านั้น — AI scene ห้ามมีตัวอักษร (กันไทยมั่ว) [ตู๋ P1].
+ *   ข้อความไทยทั้งหมดมาจาก composition renderer เท่านั้น — AI scene ห้ามมีตัวอักษร (กันไทยมั่ว) [ตู๋ P1].
  */
-import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import type { CaptionPrompt, RenderContext } from "./types";
 import { selectCardById, loadCardBytes } from "../lib/card-pool";
+import { renderOgImage } from "../lib/render-og";
 
 export const RANDOM_CARDS_TEMPLATE_ID = "random-cards";
 const OUT = 1080;
@@ -133,7 +133,6 @@ export const randomCardsTemplate = {
       </div>
     );
 
-    const resp = new ImageResponse(el, { width: OUT, height: OUT, fonts: [{ name: "Noto Sans Thai", data: loadFont(), style: "normal", weight: 700 }] });
-    return new Uint8Array(await resp.arrayBuffer());
+    return renderOgImage(el, { width: OUT, height: OUT, fonts: [{ name: "Noto Sans Thai", data: loadFont(), style: "normal", weight: 700 }] });
   },
 };

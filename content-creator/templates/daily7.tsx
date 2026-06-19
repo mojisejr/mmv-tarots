@@ -1,13 +1,12 @@
 /**
  * template: daily-7 — "ดวงรายวัน 7 วันเกิด" (หมอมี่) [S6b]
  *
- * imageStrategy = composition: render ภาพเอง (next/og) — **ไม่เรียก Gemini/brand ref**
+ * imageStrategy = composition: render ภาพเองผ่าน shared Satori renderer — **ไม่เรียก Gemini/brand ref**
  *  - bg = สุ่มจาก pool แบบ deterministic ด้วย ctx.seed (post id) → retry/preview ได้ใบเดิม
  *  - วาง text 7 วัน (จันทร์–อาทิตย์) ด้วย satori + NotoSansThai → ไทยคมชัด (nano banana สะกดไทยมั่ว)
  *  - chip สีประจำวันเกิดไทย (deterministic, ไม่พึ่ง emoji font/CDN) + per-slot panel กัน readability
  *  - caption = แยกต่างหาก (เชิญคนหา "วันเกิดตัวเอง" ในภาพ) + CTA บังคับผ่าน brand.ctaUrl (engine)
  */
-import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
@@ -15,6 +14,7 @@ import type { CompositionTemplate, RenderContext } from "./types";
 import { loadBackgroundForSeed, loadBackgroundById } from "../lib/bg-pool";
 import { genObject } from "../lib/gemini";
 import { normalizeBrandTerms } from "../lib/caption";
+import { renderOgImage } from "../lib/render-og";
 
 /** ลำดับ canonical (render เรียงนี้เสมอ ไม่ขึ้นกับลำดับ input) */
 export const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
@@ -166,7 +166,7 @@ export const daily7: CompositionTemplate = {
     const byDay = new Map(d.days.map((x) => [x.day, x.fortune] as const));
     const rows = WEEKDAYS.map((day) => ({ day, color: DAY_COLOR[day], fortune: truncate(byDay.get(day) ?? "", MAX_FORTUNE) }));
 
-    const response = new ImageResponse(
+    return renderOgImage(
       (
         <div style={{ width: OUT, height: OUT, display: "flex", position: "relative", fontFamily: "Noto Sans Thai" }}>
           {/* bg layer (เต็มภาพ) */}
@@ -218,6 +218,5 @@ export const daily7: CompositionTemplate = {
       ),
       { width: OUT, height: OUT, fonts: [{ name: "Noto Sans Thai", data: loadFont(), style: "normal", weight: 700 }] }
     );
-    return new Uint8Array(await response.arrayBuffer());
   },
 };

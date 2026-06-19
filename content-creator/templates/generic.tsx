@@ -1,7 +1,7 @@
 /**
  * template: generic — "type อะไรก็ได้" (Phase C generic content engine)
  *
- * imageStrategy = composition: render เอง ผ่าน Satori (next/og) — **ไม่เรียก Gemini/brand ref** (เหมือน daily-7)
+ * imageStrategy = composition: render เองผ่าน shared Satori renderer — **ไม่เรียก Gemini/brand ref** (เหมือน daily-7)
  *  - content มาจาก agent (resolveTypeToContent) ที่อ่าน free-text type แล้ว reason เป็น title + blocks
  *  - bg = สุ่มจาก daily-7 bg pool แบบ deterministic ด้วย ctx.seed (post id) → retry/preview ได้ใบเดิม
  *  - blocks 1..5 (hero ≤ 1) วาง fixed geometry + line-clamp (-webkit-box) → ไทยไม่มี space ก็ตัดที่ขอบบรรทัด ไม่ cut-off
@@ -11,12 +11,12 @@
  * NOTE: schema นี้เป็น contract กลางของ Phase C — agent คืน content ตามนี้, route lock templateId="generic"
  *       (agent เลือก template เองไม่ได้ — กัน bypass lifecycle ของ daily-7/random-cards) [too P1.2]
  */
-import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import type { CompositionTemplate, RenderContext } from "./types";
 import { loadBackgroundForSeed } from "../lib/bg-pool";
+import { renderOgImage } from "../lib/render-og";
 
 export const GENERIC_TEMPLATE_ID = "generic";
 
@@ -108,7 +108,7 @@ export const generic: CompositionTemplate = {
     const { bytes } = loadBackgroundForSeed(ctx.seed);
     const bgUri = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
 
-    const response = new ImageResponse(
+    return renderOgImage(
       (
         <div style={{ width: OUT, height: OUT, display: "flex", position: "relative", fontFamily: "Noto Sans Thai" }}>
           {/* bg */}
@@ -159,6 +159,5 @@ export const generic: CompositionTemplate = {
       ),
       { width: OUT, height: OUT, fonts: [{ name: "Noto Sans Thai", data: loadFont(), style: "normal", weight: 700 }] },
     );
-    return new Uint8Array(await response.arrayBuffer());
   },
 };
