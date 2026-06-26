@@ -40,11 +40,13 @@ Use `migrate deploy` for local bootstrap so the database matches committed migra
 
 ## 4. Seed local data
 
-The seed preserves master seed behavior and still expects the private local master config:
+The seed preserves master seed behavior when this optional file exists:
 
-```bash
+```text
 .tmp/master-seed-config.json
 ```
+
+When that private config is absent, local seeding falls back to committed safe defaults for packages and suggested questions. This keeps a fresh checkout self-contained.
 
 Then run:
 

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { encrypt } from "../lib/server/security/encryption";
 import { assertNonProductionLocalSeedTarget } from "../lib/server/dev-local-db";
+import { loadSeedConfig } from "../lib/server/dev-seed-config";
 
 const prisma = new PrismaClient();
 
@@ -13,23 +14,6 @@ const PROMPTS_DIR = path.join(process.cwd(), "lib", "server", "ai", "prompts");
 const DEV_USER_ID = "dev-reading-notes-user";
 const DEV_USER_EMAIL = "dev-reading-notes@localhost.test";
 const DEV_READING_JOB_ID = "job-1700000000000-devnotes1";
-
-interface SeedConfig {
-  packages: Array<{
-    name: string;
-    description: string;
-    stars: number;
-    prices: Array<{
-      amount: number;
-      isPromo: boolean;
-      promoLabel: string | null;
-    }>;
-  }>;
-  suggestedQuestions: Array<{
-    text: string;
-    category: string;
-  }>;
-}
 
 // Helper: Parse Keywords from CSV
 function parseKeywords(keywordsStr: string): string[] {
@@ -136,10 +120,14 @@ async function main() {
   console.log("🚀 Starting Unified Master Seeding...");
 
   // 1. Load Configuration
-  if (!fs.existsSync(CONFIG_PATH)) {
-    throw new Error(`Config file not found at: ${CONFIG_PATH}`);
+  const { config, source } = loadSeedConfig(CONFIG_PATH);
+  if (source === "file") {
+    console.log(`✅ Loaded master seed config from ${CONFIG_PATH}`);
+  } else {
+    console.log(
+      `ℹ️  ${CONFIG_PATH} not found; using committed safe local seed defaults.`,
+    );
   }
-  const config: SeedConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
 
   // 2. Clear Master Data (Safe Mode - No User Data Touched)
   console.log("🧹 Cleaning up master data...");
