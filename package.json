@@ -18,6 +18,8 @@
     "test:ai": "vitest run --exclude=tests/e2e",
     "test:real-ai": "NODE_ENV=test vitest run --run tests/e2e",
     "test:coverage": "vitest run --coverage",
+    "db:up": "docker compose up -d db",
+    "seed:dev": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "db:snapshot-prod": "chmod +x scripts/neon-snapshot-rotate.sh && ./scripts/neon-snapshot-rotate.sh",
     "migrate:safe": "node scripts/prisma-safety-check.js && prisma migrate deploy",
     "content-creator:dev": "CONTENT_CREATOR_ENABLED=true next dev",
@@ -87,6 +89,7 @@
     "postcss": "^8.5.6",
     "prettier": "^3.7.4",
     "tailwindcss": "^4.1.17",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"
   },
