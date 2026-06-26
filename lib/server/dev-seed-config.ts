@@ -17,6 +17,8 @@ export interface SeedConfig {
   }>;
 }
 
+export const DEV_READING_CARD_IMAGE_PATH = "/logo.webp";
+
 export const DEFAULT_LOCAL_SEED_CONFIG: SeedConfig = {
   packages: [
     {

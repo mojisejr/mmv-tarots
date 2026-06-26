@@ -4,6 +4,7 @@ import path from "path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_LOCAL_SEED_CONFIG,
+  DEV_READING_CARD_IMAGE_PATH,
   loadSeedConfig,
 } from "../../lib/server/dev-seed-config";
 
@@ -49,5 +50,18 @@ describe("local seed config loader", () => {
 
     expect(result.source).toBe("file");
     expect(result.config).toEqual(fileConfig);
+  });
+
+  it("uses an existing public asset for the dev reading fixture image", () => {
+    expect(DEV_READING_CARD_IMAGE_PATH).toMatch(/^\//);
+    expect(
+      fs.existsSync(
+        path.join(
+          process.cwd(),
+          "public",
+          DEV_READING_CARD_IMAGE_PATH.slice(1),
+        ),
+      ),
+    ).toBe(true);
   });
 });

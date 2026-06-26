@@ -3,7 +3,10 @@ import fs from "fs";
 import path from "path";
 import { encrypt } from "../lib/server/security/encryption";
 import { assertNonProductionLocalSeedTarget } from "../lib/server/dev-local-db";
-import { loadSeedConfig } from "../lib/server/dev-seed-config";
+import {
+  DEV_READING_CARD_IMAGE_PATH,
+  loadSeedConfig,
+} from "../lib/server/dev-seed-config";
 
 const prisma = new PrismaClient();
 
@@ -75,7 +78,7 @@ async function seedDevReadingNotesFixture() {
           position: 1,
           name_th: "ไพ่ผู้วิเศษ",
           name_en: "The Magician",
-          image: "/images/cards/01-the-magician.jpg",
+          image: DEV_READING_CARD_IMAGE_PATH,
         },
       ],
       finalReading: {
@@ -90,7 +93,7 @@ async function seedDevReadingNotesFixture() {
               arcana: "Major Arcana",
               keywords: ["เริ่มต้น", "ลงมือ", "เครื่องมือพร้อม"],
               interpretation: "สภาพแวดล้อม local พร้อมให้ทดสอบครบลูปแบบปลอดภัย",
-              image: "/images/cards/01-the-magician.jpg",
+              image: DEV_READING_CARD_IMAGE_PATH,
             },
           ],
           reading:
