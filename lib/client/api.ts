@@ -19,7 +19,6 @@ const GetPredictResponseSchema = z.object({
   jobId: z.string(),
   status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED']),
   question: z.string(),
-  notes: z.string().optional(),
   createdAt: z.string(),
   completedAt: z.string().optional(),
   error: z.object({

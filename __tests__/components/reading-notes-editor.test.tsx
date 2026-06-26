@@ -55,11 +55,10 @@ import {
   ReadingNotesEditor,
 } from "@/app/history/[id]/history-detail-view";
 
-const completedReading = (notes = "") => ({
+const completedReading = () => ({
   jobId: "job-owner-reading",
   status: "COMPLETED" as const,
   question: "งานนี้ควรไปต่อยังไง",
-  notes,
   createdAt: "2026-06-26T00:00:00.000Z",
   completedAt: "2026-06-26T00:01:00.000Z",
   result: {
@@ -325,16 +324,26 @@ describe("HistoryDetailView reading notes", () => {
 
   it("shows the owner reading and lets the owner edit notes", async () => {
     const user = userEvent.setup();
-    apiMocks.checkJobStatus.mockResolvedValue(completedReading("โน้ตเจ้าของ"));
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ prediction: { notes: "โน้ตเจ้าของที่แก้แล้ว" } }),
+    apiMocks.checkJobStatus.mockResolvedValue(completedReading());
+    const fetchMock = vi.fn().mockImplementation(async (_url, init) => {
+      if ((init as RequestInit | undefined)?.method === "PATCH") {
+        return new Response(
+          JSON.stringify({ prediction: { notes: "โน้ตเจ้าของที่แก้แล้ว" } }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ prediction: { notes: "โน้ตเจ้าของ" } }),
         {
           status: 200,
           headers: { "Content-Type": "application/json" },
         },
-      ),
-    );
+      );
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     render(<HistoryDetailView id="job-owner-reading" />);
@@ -344,7 +353,7 @@ describe("HistoryDetailView reading notes", () => {
       screen.getByText("คำทำนายสำหรับเจ้าของ reading"),
     ).toBeInTheDocument();
     const textarea = screen.getByLabelText("โน้ตส่วนตัว");
-    expect(textarea).toHaveValue("โน้ตเจ้าของ");
+    await waitFor(() => expect(textarea).toHaveValue("โน้ตเจ้าของ"));
 
     await user.clear(textarea);
     await user.type(textarea, "โน้ตเจ้าของที่แก้แล้ว");

@@ -24,9 +24,11 @@ const MAX_READING_NOTES_LENGTH = 5000;
 export function ReadingNotesEditor({
   predictionId,
   initialNotes = '',
+  loadNotes = false,
 }: {
   predictionId: string;
   initialNotes?: string;
+  loadNotes?: boolean;
 }) {
   const [notes, setNotes] = useState(initialNotes);
   const [lastSavedNotes, setLastSavedNotes] = useState(initialNotes);
@@ -40,6 +42,41 @@ export function ReadingNotesEditor({
     setError(null);
     setSaved(false);
   }, [predictionId, initialNotes]);
+
+  useEffect(() => {
+    if (!loadNotes) return;
+
+    let cancelled = false;
+
+    const fetchNotes = async () => {
+      try {
+        const response = await fetch(`/api/predictions/${encodeURIComponent(predictionId)}/notes`);
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(body.error || 'โหลดโน้ตไม่สำเร็จ');
+        }
+
+        if (cancelled) return;
+
+        const fetchedNotes = body.prediction?.notes ?? '';
+        setNotes(fetchedNotes);
+        setLastSavedNotes(fetchedNotes);
+        setError(null);
+        setSaved(false);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'โหลดโน้ตไม่สำเร็จ');
+        }
+      }
+    };
+
+    fetchNotes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [predictionId, loadNotes]);
 
   const isDirty = notes !== lastSavedNotes;
   const remaining = MAX_READING_NOTES_LENGTH - notes.length;
@@ -349,7 +386,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
                <p className="whitespace-pre-wrap text-lg font-serif">{mappedData.reading}</p>
             </GlassCard>
           )}
-          <ReadingNotesEditor predictionId={jobId} initialNotes={prediction.notes ?? ''} />
+          <ReadingNotesEditor predictionId={jobId} loadNotes />
         </div>
         <div className="mt-12 pt-8 pb-12 border-t border-border-medium flex justify-center">
           <GlassButton 
@@ -396,7 +433,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
           </GlassCard>
         )}
 
-        <ReadingNotesEditor predictionId={jobId} initialNotes={prediction.notes ?? ''} />
+        <ReadingNotesEditor predictionId={jobId} loadNotes />
 
         {mappedData?.suggestions && <SuggestionsList suggestions={mappedData.suggestions} />}
         {mappedData?.nextQuestions && <NextQuestions questions={mappedData.nextQuestions} />}

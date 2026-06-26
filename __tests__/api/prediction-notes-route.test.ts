@@ -18,6 +18,7 @@ vi.mock("@/lib/server/db", () => ({
 }));
 
 import {
+  GET,
   PATCH,
   MAX_READING_NOTES_LENGTH,
 } from "@/app/api/predictions/[id]/notes/route";
@@ -67,6 +68,7 @@ describe("PATCH /api/predictions/[id]/notes", () => {
         id: true,
         jobId: true,
         userIdentifier: true,
+        notes: true,
       },
     });
     expect(db.prediction.update).toHaveBeenCalledWith({
@@ -75,6 +77,7 @@ describe("PATCH /api/predictions/[id]/notes", () => {
       select: {
         id: true,
         jobId: true,
+        userIdentifier: true,
         notes: true,
       },
     });
@@ -120,7 +123,60 @@ describe("PATCH /api/predictions/[id]/notes", () => {
       params: Promise.resolve({ id: "job-123-abcdefghi" }),
     });
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(400);
+    expect(db.prediction.update).not.toHaveBeenCalled();
+  });
+
+  it("clears missing or null notes without crashing", async () => {
+    vi.mocked(db.prediction.update).mockResolvedValue({
+      id: "prediction_uuid",
+      jobId: "job-123-abcdefghi",
+      userIdentifier: "user_001",
+      notes: null,
+    } as any);
+
+    for (const body of [{}, { notes: null }]) {
+      vi.mocked(db.prediction.update).mockClear();
+
+      const request = new Request(
+        "http://localhost/api/predictions/job-123-abcdefghi/notes",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+
+      const response = await PATCH(request as any, {
+        params: Promise.resolve({ id: "job-123-abcdefghi" }),
+      });
+      const responseBody = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(responseBody.prediction.notes).toBe("");
+      expect(db.prediction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { notes: null },
+        }),
+      );
+    }
+  });
+
+  it("returns 400 for non-string note values", async () => {
+    const request = new Request(
+      "http://localhost/api/predictions/job-123-abcdefghi/notes",
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: 123 }),
+      },
+    );
+
+    const response = await PATCH(request as any, {
+      params: Promise.resolve({ id: "job-123-abcdefghi" }),
+    });
+
+    expect(response.status).toBe(400);
     expect(db.prediction.update).not.toHaveBeenCalled();
   });
 
@@ -172,5 +228,47 @@ describe("PATCH /api/predictions/[id]/notes", () => {
 
     expect(response.status).toBe(401);
     expect(db.prediction.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("returns owner notes through authenticated GET", async () => {
+    vi.mocked(db.prediction.findFirst).mockResolvedValue({
+      id: "prediction_uuid",
+      jobId: "job-123-abcdefghi",
+      userIdentifier: "user_001",
+      notes: "โน้ตส่วนตัว",
+    } as any);
+
+    const request = new Request(
+      "http://localhost/api/predictions/job-123-abcdefghi/notes",
+      { method: "GET" },
+    );
+
+    const response = await GET(request as any, {
+      params: Promise.resolve({ id: "job-123-abcdefghi" }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.prediction.notes).toBe("โน้ตส่วนตัว");
+  });
+
+  it("returns 403 for non-owner notes GET", async () => {
+    vi.mocked(db.prediction.findFirst).mockResolvedValue({
+      id: "prediction_uuid",
+      jobId: "job-123-abcdefghi",
+      userIdentifier: "other_user",
+      notes: "ห้ามหลุด",
+    } as any);
+
+    const request = new Request(
+      "http://localhost/api/predictions/job-123-abcdefghi/notes",
+      { method: "GET" },
+    );
+
+    const response = await GET(request as any, {
+      params: Promise.resolve({ id: "job-123-abcdefghi" }),
+    });
+
+    expect(response.status).toBe(403);
   });
 });
