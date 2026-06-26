@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mmv-tarots-dev-db
+    environment:
+      POSTGRES_DB: mmv_tarots_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - mmv_tarots_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mmv_tarots_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mmv_tarots_dev_pgdata:
