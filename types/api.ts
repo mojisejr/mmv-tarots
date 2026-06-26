@@ -49,6 +49,7 @@ export interface GetPredictResponse {
   jobId: string
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
   question: string
+  notes?: string
   result?: PredictionResult
   error?: {
     code: string

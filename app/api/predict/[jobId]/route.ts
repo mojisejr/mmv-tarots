@@ -72,7 +72,8 @@ export async function GET(
       jobId: prediction.jobId,
       status: prediction.status as 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED',
       question: prediction.question,
-      createdAt: prediction.createdAt.toISOString()
+      createdAt: prediction.createdAt.toISOString(),
+      notes: prediction.notes ?? undefined
     }
 
     // Add error information if status is FAILED
