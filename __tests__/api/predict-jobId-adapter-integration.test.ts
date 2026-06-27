@@ -99,6 +99,27 @@ describe('GET /api/predict/[jobId] - Adapter Integration', () => {
     expect(data.jobId).toBe('test-job-123')
   })
 
+  it('does not expose private notes on the public prediction status route', async () => {
+    const mockPrediction = {
+      id: 'prediction-1',
+      jobId: 'test-job-123',
+      status: 'COMPLETED',
+      question: 'What does my future hold?',
+      notes: 'private owner note',
+      createdAt: new Date(),
+      finalReading: null
+    }
+
+    vi.mocked(db.prediction.findFirst).mockResolvedValue(mockPrediction)
+
+    const request = new Request('http://localhost:3000/api/predict/test-job-123')
+    const response = await GET(request, { params: mockParams })
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).not.toHaveProperty('notes')
+  })
+
   it('should handle adapter returning null (invalid data)', async () => {
     // Mock database response with invalid wrapper format
     const mockPrediction = {

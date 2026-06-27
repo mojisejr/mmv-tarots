@@ -19,6 +19,149 @@ import { mapReadingData } from '@/lib/client/reading-utils';
 import { useNavigation } from '@/lib/client/providers/navigation-provider';
 import type { CardReading } from '@/types/reading';
 
+const MAX_READING_NOTES_LENGTH = 5000;
+
+export function ReadingNotesEditor({
+  predictionId,
+  initialNotes = '',
+  loadNotes = false,
+}: {
+  predictionId: string;
+  initialNotes?: string;
+  loadNotes?: boolean;
+}) {
+  const [notes, setNotes] = useState(initialNotes);
+  const [lastSavedNotes, setLastSavedNotes] = useState(initialNotes);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setNotes(initialNotes);
+    setLastSavedNotes(initialNotes);
+    setError(null);
+    setSaved(false);
+  }, [predictionId, initialNotes]);
+
+  useEffect(() => {
+    if (!loadNotes) return;
+
+    let cancelled = false;
+
+    const fetchNotes = async () => {
+      try {
+        const response = await fetch(`/api/predictions/${encodeURIComponent(predictionId)}/notes`);
+        const body = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(body.error || 'โหลดโน้ตไม่สำเร็จ');
+        }
+
+        if (cancelled) return;
+
+        const fetchedNotes = body.prediction?.notes ?? '';
+        setNotes(fetchedNotes);
+        setLastSavedNotes(fetchedNotes);
+        setError(null);
+        setSaved(false);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'โหลดโน้ตไม่สำเร็จ');
+        }
+      }
+    };
+
+    fetchNotes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [predictionId, loadNotes]);
+
+  const isDirty = notes !== lastSavedNotes;
+  const remaining = MAX_READING_NOTES_LENGTH - notes.length;
+
+  const handleSave = async () => {
+    if (!isDirty || saving) return;
+
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+
+    try {
+      const response = await fetch(`/api/predictions/${encodeURIComponent(predictionId)}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(body.error || 'บันทึกโน้ตไม่สำเร็จ');
+      }
+
+      const savedNotes = body.prediction?.notes ?? '';
+      setNotes(savedNotes);
+      setLastSavedNotes(savedNotes);
+      setSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'บันทึกโน้ตไม่สำเร็จ');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <GlassCard className="p-6 bg-glass-mimi">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-serif text-foreground">โน้ตส่วนตัว</h2>
+            <p className="text-sm text-muted-foreground">เก็บความคิดหลังอ่านคำทำนายนี้ เห็นเฉพาะคุณ</p>
+          </div>
+          <span className={remaining < 0 ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}>
+            {notes.length}/{MAX_READING_NOTES_LENGTH}
+          </span>
+        </div>
+
+        <textarea
+          aria-label="โน้ตส่วนตัว"
+          value={notes}
+          onChange={(event) => {
+            setNotes(event.target.value);
+            setError(null);
+            setSaved(false);
+          }}
+          placeholder="ยังไม่มีโน้ต ลองจดสิ่งที่อยากจำจาก reading นี้..."
+          rows={5}
+          maxLength={MAX_READING_NOTES_LENGTH + 1}
+          className="w-full rounded-2xl border border-border-subtle bg-surface-card/70 px-4 py-3 text-foreground placeholder:text-muted-foreground/60 outline-none transition focus:border-accent/50 focus:ring-2 focus:ring-accent/20"
+        />
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-h-5 text-sm" aria-live="polite">
+            {error && <span className="text-destructive">{error}</span>}
+            {!error && saved && <span className="text-success">บันทึกแล้ว</span>}
+            {!error && !saved && !notes.trim() && (
+              <span className="text-muted-foreground">ยังไม่มีโน้ตสำหรับ reading นี้</span>
+            )}
+          </div>
+          <GlassButton
+            type="button"
+            onClick={handleSave}
+            isLoading={saving}
+            disabled={!isDirty || saving || remaining < 0}
+            className="sm:min-w-[140px]"
+          >
+            บันทึกโน้ต
+          </GlassButton>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 export function HistoryDetailView({ id: jobId }: { id: string }) {
   const router = useRouter();
   const { setCurrentPage } = useNavigation();
@@ -243,6 +386,7 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
                <p className="whitespace-pre-wrap text-lg font-serif">{mappedData.reading}</p>
             </GlassCard>
           )}
+          <ReadingNotesEditor predictionId={jobId} loadNotes />
         </div>
         <div className="mt-12 pt-8 pb-12 border-t border-border-medium flex justify-center">
           <GlassButton 
@@ -288,6 +432,8 @@ export function HistoryDetailView({ id: jobId }: { id: string }) {
             </p>
           </GlassCard>
         )}
+
+        <ReadingNotesEditor predictionId={jobId} loadNotes />
 
         {mappedData?.suggestions && <SuggestionsList suggestions={mappedData.suggestions} />}
         {mappedData?.nextQuestions && <NextQuestions questions={mappedData.nextQuestions} />}
