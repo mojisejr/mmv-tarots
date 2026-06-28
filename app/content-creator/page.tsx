@@ -20,6 +20,13 @@ type Post = {
   updatedAt: string;
 };
 
+type Readiness = {
+  status: "pass" | "warn" | "fail";
+  checkedAt: string;
+  summary: { pass: number; warn: number; fail: number };
+  checks: { id: string; label: string; status: "pass" | "warn" | "fail"; detail: string }[];
+};
+
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "bg-gray-200 text-gray-700",
   GENERATING: "bg-amber-100 text-amber-800",
@@ -30,6 +37,16 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELED: "bg-gray-300 text-gray-600",
   FAILED: "bg-red-100 text-red-800",
 };
+const READINESS_STYLE: Record<Readiness["status"], string> = {
+  pass: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  warn: "border-amber-200 bg-amber-50 text-amber-900",
+  fail: "border-red-200 bg-red-50 text-red-900",
+};
+const READINESS_DOT: Record<Readiness["status"], string> = {
+  pass: "bg-emerald-500",
+  warn: "bg-amber-500",
+  fail: "bg-red-500",
+};
 
 export default function ContentCreatorPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -37,6 +54,7 @@ export default function ContentCreatorPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<Readiness | null>(null);
   // daily-7 scheduler status (modal/banner แจ้งเตือน) [S4b]
   const [d7, setD7] = useState<{ today: string; posted: boolean; pending: number; staleCanceled: number; stuckPublishing: number; failedToday: number } | null>(null);
   const [d7Dismissed, setD7Dismissed] = useState(false);
@@ -48,10 +66,21 @@ export default function ContentCreatorPage() {
       .catch(() => {});
   }, []);
 
+  const loadReadiness = useCallback(async () => {
+    try {
+      const res = await fetch("/content-creator/api/readiness", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setReadiness(data);
+    } catch {
+      setReadiness(null);
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch("/content-creator/api/posts", { cache: "no-store" });
+      const [res] = await Promise.all([fetch("/content-creator/api/posts", { cache: "no-store" }), loadReadiness()]);
       if (!res.ok) throw new Error(`โหลดไม่สำเร็จ (${res.status})`);
       const data = await res.json();
       setPosts(data.posts ?? []);
@@ -60,7 +89,7 @@ export default function ContentCreatorPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadReadiness]);
 
   useEffect(() => {
     load();
@@ -160,6 +189,32 @@ export default function ContentCreatorPage() {
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
+
+      {readiness && (
+        <section className={`mb-4 rounded-lg border px-4 py-3 text-sm ${READINESS_STYLE[readiness.status]}`}>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <span className={`h-2.5 w-2.5 rounded-full ${READINESS_DOT[readiness.status]}`} />
+              Local readiness: {readiness.status.toUpperCase()}
+            </div>
+            <div className="text-xs opacity-80">
+              pass {readiness.summary.pass} · warn {readiness.summary.warn} · fail {readiness.summary.fail}
+            </div>
+          </div>
+          <div className="grid gap-1 md:grid-cols-2">
+            {readiness.checks.map((c) => (
+              <div key={c.id} className="flex gap-2">
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${READINESS_DOT[c.status]}`} />
+                <div>
+                  <div className="font-medium">{c.label}</div>
+                  <div className="text-xs opacity-80">{c.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {loading && <p className="text-gray-500">กำลังโหลด…</p>}
 
       {!loading && pending.length === 0 && (
