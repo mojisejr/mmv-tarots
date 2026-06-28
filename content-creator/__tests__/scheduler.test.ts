@@ -90,11 +90,12 @@ describe("scheduler reconcile tick [S4b]", () => {
 });
 
 // insert PUBLISHING row ที่ค้าง (จำลอง worker ตาย) — คุม publishStartedAt + feedAttemptedAt
-function stuckPublishing(targetDate: string, opts: { feedAttempted: boolean; startedAgoMs: number }): string {
+function stuckPublishing(targetDate: string, opts: { feedAttempted: boolean; startedAgoMs: number; now?: Date }): string {
   const id = `pub-${n++}`;
+  const base = opts.now ?? new Date();
   db.insert(contentPosts).values({
     id, templateId: "daily-7", inputData: { targetDate, days: [] }, status: "PUBLISHING", caption: "cap", imagePath: "/m/y.png", mediaFbid: "m1",
-    publishStartedAt: new Date(Date.now() - opts.startedAgoMs), feedAttemptedAt: opts.feedAttempted ? new Date(Date.now() - opts.startedAgoMs) : null,
+    publishStartedAt: new Date(base.getTime() - opts.startedAgoMs), feedAttemptedAt: opts.feedAttempted ? new Date(base.getTime() - opts.startedAgoMs) : null,
   }).run();
   return id;
 }
@@ -121,7 +122,7 @@ describe("reconcile stuck PUBLISHING [S4b ตู๋ P1]", () => {
   });
 
   it("integration: tick reconcile pre-PONR stuck → release → publish ในรอบเดียว (resume)", async () => {
-    const id = stuckPublishing("2026-06-16", { feedAttempted: false, startedAgoMs: 20 * 60 * 1000 });
+    const id = stuckPublishing("2026-06-16", { feedAttempted: false, startedAgoMs: 20 * 60 * 1000, now: new Date(AFTER_SLOT) });
     const r = await runSchedulerTick(db, deps(AFTER_SLOT));
     expect(r.reclaimedStuck).toBe(1);
     expect(r.published?.id).toBe(id);

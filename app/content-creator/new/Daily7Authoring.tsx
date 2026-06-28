@@ -5,7 +5,7 @@
  * recovery lifecycle: lib/daily7-session (pure, test ครบ) ; preview = POST+blob (robust)
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
+import { parseSession, freshSession, reduceDraft, mountAction, restoreAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "@/content-creator/lib/daily7-session";
 
 const WEEKDAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"] as const;
 type Day = { day: string; fortune: string };
@@ -41,7 +41,10 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
     try {
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
-      if (!res.ok) { setErr(`${res.status}: ${data.error ?? "error"}${res.status === 409 ? " (ข้อมูลเปลี่ยน — โหลด/เริ่มใหม่)" : ""}`); return null; }
+      if (!res.ok || data.ok === false) {
+        setErr(`${res.status}: ${data.error ?? data.draft?.error ?? "error"}${res.status === 409 ? " (ข้อมูลเปลี่ยน — โหลด/เริ่มใหม่)" : ""}`);
+        return data.draft ? data : null;
+      }
       return data as { draft?: DraftView; contentPostId?: string; status?: string };
     } catch (e) { setErr(String(e)); return null; }
     finally { setBusy(false); }
@@ -53,6 +56,31 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
     setRevision(r.revision); setStatus(r.status); setDays(r.days); setSavedKey(daysKey(r.days));
     persist(r.session);
   }, [persist]);
+
+  const replayFinalize = useCallback(async (sess: Session, rev: number, backgroundIdOverride?: string) => {
+    if (!sess.draftId) return;
+    const selectedBackgroundId = backgroundIdOverride || sess.backgroundId;
+    if (!selectedBackgroundId) {
+      setErr("ยังไม่มีพื้นหลังสำหรับเช็คผล finalize เดิม — เลือกพื้นหลังแล้วกดเช็คอีกครั้ง");
+      return;
+    }
+    setBusy(true); setErr("");
+    try {
+      const res = await fetch(`/content-creator/api/daily/draft/${sess.draftId}/finalize`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ finalizeKey: sess.finalizeKey, expectedRevision: rev, backgroundId: selectedBackgroundId }),
+      });
+      const o = reduceFinalize(await res.json());
+      if (o.kind === "queue") { persist(null); onFinalized(); return; }
+      if (o.kind === "processing") {
+        const next = { ...sess, backgroundId: selectedBackgroundId };
+        setSession(next); setRevision(rev); setStatus("FINALIZED"); persist(next);
+      } else {
+        persist(null); setStatus(""); setDays([]); setSavedKey(""); setErr(o.message);
+      }
+    } catch (e) { setErr(String(e)); }
+    finally { setBusy(false); }
+  }, [persist, onFinalized]);
 
   // bg pool (surface error)
   useEffect(() => {
@@ -66,16 +94,21 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
     const s = parseSession(localStorage.getItem(SKEY));
     if (!s) return;
     setSession(s); setTargetDate(s.targetDate);
+    if (s.backgroundId) setBackgroundId(s.backgroundId);
     const act = mountAction(s);
     (async () => {
       if (act.kind === "restore") {
         const res = await fetch(`/content-creator/api/daily/draft/${act.draftId}`);
-        if (res.ok) onDraft((await res.json()).draft, s);
+        if (!res.ok) return;
+        const draft = (await res.json()).draft as DraftView;
+        const ra = restoreAction(draft);
+        if (ra.kind === "replay-finalize") await replayFinalize(s, ra.revision, s.backgroundId);
+        else onDraft(draft, s);
       } else if (act.kind === "resume") {
         onDraft((await send("/content-creator/api/daily/draft", { requestKey: act.requestKey, targetDate: act.targetDate }))?.draft, s);
       }
     })();
-  }, [onDraft, send]);
+  }, [onDraft, send, replayFinalize]);
 
   const dirty = useMemo(() => status === "READY" && daysKey(days) !== savedKey, [status, days, savedKey]);
   const previewBody = useMemo(
@@ -130,20 +163,9 @@ export default function Daily7Authoring({ onFinalized }: { onFinalized: () => vo
     if (!session?.draftId || !backgroundId) return;
     let rev = revision;
     if (dirty) { const saved = await save(); if (!saved) return; rev = saved.revision; }
-    // ไม่ใช้ send() (ที่ทิ้ง body เมื่อ non-2xx) — finalize ต้องอ่าน body ที่ 202/502 ด้วย [ตู๋ P1]
-    setBusy(true); setErr("");
-    try {
-      const res = await fetch(`/content-creator/api/daily/draft/${session.draftId}/finalize`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ finalizeKey: session.finalizeKey, expectedRevision: rev, backgroundId }),
-      });
-      // หลัง finalize draft ถูก lock = FINALIZED แล้ว → client ต้องไม่ถือ READY/editor ต่อ [ตู๋ P1]
-      const o = reduceFinalize(await res.json());
-      if (o.kind === "queue") { persist(null); onFinalized(); return; }
-      if (o.kind === "processing") { setStatus("FINALIZED"); } // lock — panel โชว์ ; keep session ให้ retry replay
-      else { persist(null); setStatus(""); setDays([]); setSavedKey(""); setErr(o.message); } // failed → reset เริ่มใหม่
-    } catch (e) { setErr(String(e)); }
-    finally { setBusy(false); }
+    const finalizedSession = { ...session, backgroundId };
+    persist(finalizedSession);
+    await replayFinalize(finalizedSession, rev, backgroundId);
   };
 
   const canEdit = status === "READY";

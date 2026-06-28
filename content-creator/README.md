@@ -62,13 +62,18 @@ caption ที่ gen ต้อง: **ฟันธงสั้น (≤ `captionM
 ## ▶️ วิธีรัน (runnable target)
 
 ```bash
+npm run content-creator:preflight # ตรวจ Node/env/local DB โดยไม่ยิง Gemini/Facebook
 npm run content-creator:dev      # = CONTENT_CREATOR_ENABLED=true next dev
 # เปิด http://localhost:3000/content-creator
 ```
 
 ต้องมีใน `.env.local`:
+- `DATABASE_URL` — ต้องชี้ local Postgres (เช่น `postgresql://postgres:postgres@localhost:5432/mmv_tarots_dev`) เพราะ app shell/auth route ใช้ DB หลัก แม้ content-creator เก็บงานใน SQLite
+- `CONTENT_CREATOR_ENABLED=true` — เปิดเฉพาะ local dev; production fail-closed
 - `CONTENT_DB_PATH` — path ของ SQLite file (default `content-creator/content.db`, persistent บนเครื่อง, gitignored)
-- `GOOGLE_GENERATIVE_AI_API_KEY`, `CONTENT_FB_PAGE_ID`, `CONTENT_FB_PAGE_ACCESS_TOKEN` (สำหรับ gen/post)
+- `CONTENT_MEDIA_DIR` — directory สำหรับไฟล์ภาพที่ gen
+- `GOOGLE_GENERATIVE_AI_API_KEY`, `CONTENT_TEXT_MODEL`, `CONTENT_IMAGE_MODEL`, `CONTENT_REF_IMAGE_MODEL` (สำหรับ gen)
+- `CONTENT_FB_PAGE_ID`, `CONTENT_FB_PAGE_ACCESS_TOKEN` (สำหรับ post จริง; publish tests ต้อง mock เท่านั้น)
 
 > **Node 22** เท่านั้น (`.nvmrc`) — better-sqlite3 เป็น native module (ABI ผูกกับ Node version)
 > Windows: ตั้ง env ผ่าน `.env.local` หรือ cross-env (inline env ใน script เป็น mac/linux)

@@ -10,6 +10,7 @@ import { getContentDb } from "@/content-creator/db/client";
 import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
 import { createDaily7Draft, draftErrorStatus } from "@/content-creator/daily7-service";
 import { isValidIsoDate } from "@/content-creator/templates/daily7";
+import { draftRouteResponse } from "@/content-creator/lib/draft-route-response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   }
   try {
     const draft = await createDaily7Draft(getContentDb(), body.requestKey, body.targetDate);
-    return NextResponse.json({ ok: draft.status !== "FAILED", draft }, { status: 200 });
+    return draftRouteResponse(draft);
   } catch (e) {
     const { status, error } = draftErrorStatus(e);
     return NextResponse.json({ ok: false, error }, { status });

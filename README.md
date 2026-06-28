@@ -106,7 +106,7 @@ erDiagram
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22.18.0 (see `.nvmrc`; content-creator uses native SQLite modules)
 - npm 10+
 - PostgreSQL database
 - LINE developer credentials

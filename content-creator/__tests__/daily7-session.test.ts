@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseSession, freshSession, reduceDraft, mountAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "../lib/daily7-session";
+import { parseSession, freshSession, reduceDraft, mountAction, restoreAction, regenAttemptKey, createButtonMode, reduceFinalize, type Session, type DraftView } from "../lib/daily7-session";
 
 const S: Session = { requestKey: "rk", targetDate: "2026-06-15", finalizeKey: "fk" };
 
@@ -12,10 +12,11 @@ describe("parseSession guard [ตู๋ P2]", () => {
     expect(parseSession("{not json")).toBeNull();
     expect(parseSession(JSON.stringify({ requestKey: "x" }))).toBeNull(); // ขาด targetDate/finalizeKey
   });
-  it("draftId/pendingAttemptKey optional restore", () => {
-    const s = parseSession(JSON.stringify({ ...S, draftId: "d1", pendingAttemptKey: "a1" }));
+  it("draftId/pendingAttemptKey/backgroundId optional restore", () => {
+    const s = parseSession(JSON.stringify({ ...S, draftId: "d1", pendingAttemptKey: "a1", backgroundId: "bg-1" }));
     expect(s?.draftId).toBe("d1");
     expect(s?.pendingAttemptKey).toBe("a1");
+    expect(s?.backgroundId).toBe("bg-1");
   });
 });
 
@@ -39,13 +40,22 @@ describe("reduceDraft [ตู๋ P1 finalize-restore]", () => {
     expect(r.session?.draftId).toBe("d1");
     expect(r.postId).toBeNull();
   });
-  it("FINALIZED → อ่าน contentPostId + clear session (กัน finalize-response หายแล้วค้าง)", () => {
+  it("FINALIZED → อ่าน contentPostId + keep session/finalizeKey ไว้ replay classify หลัง reload", () => {
     const r = reduceDraft({ ...base, status: "FINALIZED", contentPostId: "post-9" }, { ...S, draftId: "d1" });
     expect(r.postId).toBe("post-9");
-    expect(r.session).toBeNull();
+    expect(r.session?.draftId).toBe("d1");
+    expect(r.session?.finalizeKey).toBe("fk");
   });
   it("GENERATING → keep session (รอ/reclaim)", () => {
     expect(reduceDraft({ ...base, status: "GENERATING" }, S).session?.draftId).toBe("d1");
+  });
+});
+
+describe("restoreAction [ตู๋ P1 finalize reload]", () => {
+  it("FINALIZED → replay-finalize ; READY/FAILED → show-draft", () => {
+    expect(restoreAction({ id: "d", revision: 3, status: "FINALIZED", contentPostId: "p" })).toEqual({ kind: "replay-finalize", revision: 3 });
+    expect(restoreAction({ id: "d", revision: 1, status: "READY" })).toEqual({ kind: "show-draft" });
+    expect(restoreAction({ id: "d", revision: 2, status: "FAILED" })).toEqual({ kind: "show-draft" });
   });
 });
 
