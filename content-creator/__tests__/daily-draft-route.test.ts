@@ -53,6 +53,19 @@ describe("POST /api/daily/draft regression [ตู๋ P1.1/P1.3]", () => {
     expect(mockGenObject).toHaveBeenCalledTimes(1); // retry ไม่ gen ซ้ำ
   });
 
+  it("Gemini ล้ม → 200 ok:false + definitive FAILED + draft/error เพื่อให้ UI recover ได้", async () => {
+    mockGenObject.mockRejectedValue(new Error("API key missing"));
+    const res = await createDraft(req({ requestKey: "rk-fail", targetDate: "2026-06-15" }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(false);
+    expect(body.definitive).toBe(true);
+    expect(body.status).toBe("FAILED");
+    expect(body.error).toContain("API key missing");
+    expect(body.draft.status).toBe("FAILED");
+    expect(body.draft.error).toContain("API key missing");
+  });
+
   it("key เดิ่ม + targetDate ต่าง → 409 (key reuse, ไม่ idempotent ผิด ๆ)", async () => {
     await createDraft(req({ requestKey: "rk", targetDate: "2026-06-15" }));
     const res = await createDraft(req({ requestKey: "rk", targetDate: "2026-12-31" }));

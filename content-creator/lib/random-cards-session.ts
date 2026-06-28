@@ -19,6 +19,7 @@ export interface DraftView {
   status: string;
   draftData?: { cardIds?: string[]; quote?: string; body?: string };
   contentPostId?: string | null;
+  error?: string | null;
 }
 
 /** parse session กัน corrupt → null */

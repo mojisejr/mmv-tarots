@@ -4,7 +4,7 @@
  * จุดประสงค์: recovery จาก lost-response/reload ให้ใช้ backend idempotency จริง (ไม่จ่าย Gemini ซ้ำ):
  *  - persist {requestKey, finalizeKey, targetDate, draftId?, pendingAttemptKey?} (localStorage)
  *  - mount: มี draftId → restore (GET) ; มี requestKey แต่ยังไม่มี draftId → resume (POST key เดิม)
- *  - reduceDraft: FINALIZED → อ่าน contentPostId + clear session (กัน finalize-response หาย แล้วค้าง)
+ *  - reduceDraft: FINALIZED → keep session เพื่อ replay finalize แล้ว classify contentPost จริง
  *  - regen reuse pendingAttemptKey (retry response หาย) ; "เริ่มใหม่" = key ชุดใหม่ (intentional)
  */
 export type Session = {
@@ -13,6 +13,7 @@ export type Session = {
   finalizeKey: string;
   draftId?: string;
   pendingAttemptKey?: string;
+  backgroundId?: string;
 };
 
 export interface DraftView {
@@ -21,6 +22,7 @@ export interface DraftView {
   status: string;
   draftData?: { days?: { day: string; fortune: string }[] };
   contentPostId?: string | null;
+  error?: string | null;
 }
 
 /** parse session แบบกัน corrupt (JSON เสีย/ขาด field) → null [ตู๋ P2] */
@@ -35,6 +37,7 @@ export function parseSession(raw: string | null): Session | null {
         finalizeKey: s.finalizeKey,
         draftId: typeof s.draftId === "string" ? s.draftId : undefined,
         pendingAttemptKey: typeof s.pendingAttemptKey === "string" ? s.pendingAttemptKey : undefined,
+        backgroundId: typeof s.backgroundId === "string" ? s.backgroundId : undefined,
       };
     }
     return null;
@@ -52,7 +55,7 @@ export interface Reduced {
   status: string;
   days: { day: string; fortune: string }[];
   postId: string | null;
-  /** session ที่ต้อง persist (null = clear — เช่น FINALIZED แล้ว) */
+  /** session ที่ต้อง persist (null = clear เฉพาะ finalize success/failed หลัง classify แล้ว) */
   session: Session | null;
 }
 
@@ -60,9 +63,14 @@ export interface Reduced {
 export function reduceDraft(draft: DraftView, session: Session): Reduced {
   const days = draft.draftData?.days ?? [];
   if (draft.status === "FINALIZED") {
-    return { revision: draft.revision, status: "FINALIZED", days, postId: draft.contentPostId ?? null, session: null };
+    return { revision: draft.revision, status: "FINALIZED", days, postId: draft.contentPostId ?? null, session: { ...session, draftId: draft.id } };
   }
   return { revision: draft.revision, status: draft.status, days, postId: null, session: { ...session, draftId: draft.id } };
+}
+
+export type RestoreAction = { kind: "replay-finalize"; revision: number } | { kind: "show-draft" };
+export function restoreAction(draft: DraftView): RestoreAction {
+  return draft.status === "FINALIZED" ? { kind: "replay-finalize", revision: draft.revision } : { kind: "show-draft" };
 }
 
 export type MountAction =

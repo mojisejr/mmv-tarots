@@ -71,6 +71,22 @@ It seeds master data, then adds a local dev user and a completed reading:
 npm run dev
 ```
 
+For content-creator, use the dedicated target. It runs a local-only preflight first and does not call Gemini or Facebook:
+
+```bash
+npm run content-creator:preflight
+npm run content-creator:dev
+```
+
+Content-creator also requires these `.env.local` values:
+
+- `CONTENT_CREATOR_ENABLED=true`
+- `CONTENT_DB_PATH` and `CONTENT_MEDIA_DIR`
+- `GOOGLE_GENERATIVE_AI_API_KEY`
+- `CONTENT_TEXT_MODEL`, `CONTENT_IMAGE_MODEL`, `CONTENT_REF_IMAGE_MODEL`
+
+Keep `DATABASE_URL` pointed at local Postgres. The content-creator SQLite DB is separate, but the app shell/auth routes still use the main local DB.
+
 ## 6. Issue a dev session
 
 Open this route in the same browser:

@@ -22,7 +22,8 @@
     "seed:dev": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "db:snapshot-prod": "chmod +x scripts/neon-snapshot-rotate.sh && ./scripts/neon-snapshot-rotate.sh",
     "migrate:safe": "node scripts/prisma-safety-check.js && prisma migrate deploy",
-    "content-creator:dev": "CONTENT_CREATOR_ENABLED=true next dev",
+    "content-creator:preflight": "node scripts/content-creator-preflight.js",
+    "content-creator:dev": "npm run content-creator:preflight && CONTENT_CREATOR_ENABLED=true next dev",
     "postinstall": "patch-package"
   },
   "dependencies": {

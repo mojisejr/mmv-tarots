@@ -26,12 +26,15 @@ export default function RandomCardsAuthoring({ onFinalized }: { onFinalized: () 
     else localStorage.removeItem(SKEY);
   }, []);
 
-  const send = useCallback(async (url: string, body: object): Promise<{ draft?: DraftView } | null> => {
+  const send = useCallback(async (url: string, body: object): Promise<{ draft?: DraftView; error?: string } | null> => {
     setBusy(true); setErr("");
     try {
       const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await res.json();
-      if (!res.ok || d.ok === false) { setErr(`${res.status}: ${d.error ?? "error"}${res.status === 409 ? " (ข้อมูลเปลี่ยน — เริ่มใหม่)" : ""}`); return null; }
+      if (!res.ok || d.ok === false) {
+        setErr(`${res.status}: ${d.error ?? d.draft?.error ?? "error"}${res.status === 409 ? " (ข้อมูลเปลี่ยน — เริ่มใหม่)" : ""}`);
+        return d.draft ? d : null;
+      }
       return d;
     } catch (e) { setErr(String(e)); return null; } finally { setBusy(false); }
   }, []);

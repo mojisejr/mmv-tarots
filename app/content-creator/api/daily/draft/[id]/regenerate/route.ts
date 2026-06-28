@@ -8,6 +8,7 @@ import { z } from "zod";
 import { getContentDb } from "@/content-creator/db/client";
 import { isContentCreatorEnabled } from "@/content-creator/lib/enabled";
 import { regenDaily7Draft, draftErrorStatus } from "@/content-creator/daily7-service";
+import { draftRouteResponse } from "@/content-creator/lib/draft-route-response";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   try {
     const draft = await regenDaily7Draft(getContentDb(), id, body.attemptKey, body.expectedRevision);
-    return NextResponse.json({ ok: draft.status !== "FAILED", draft }, { status: 200 });
+    return draftRouteResponse(draft);
   } catch (e) {
     const { status, error } = draftErrorStatus(e);
     return NextResponse.json({ ok: false, error }, { status });
