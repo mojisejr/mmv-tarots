@@ -13,6 +13,7 @@ describe('slip-verification-service phase2 contract', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     process.env = { ...originalEnv };
+    process.env.SLIPOK_VERIFY_LOG = 'true';
   });
 
   afterEach(() => {

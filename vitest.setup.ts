@@ -47,6 +47,7 @@ vi.mock('@react-three/fiber', () => ({
     // Mock animation frame
     callback(Date.now() * 0.001);
   }),
+  extend: vi.fn(),
   useThree: vi.fn(() => ({
     camera: {
       position: { x: 0, y: 0, z: 5 },

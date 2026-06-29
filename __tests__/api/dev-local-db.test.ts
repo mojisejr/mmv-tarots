@@ -11,6 +11,7 @@ describe("Local DB Safety Guards", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+    delete process.env.DATABASE_URL;
   });
 
   afterEach(() => {

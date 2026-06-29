@@ -81,21 +81,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Prepare test database
+        run: npx prisma migrate deploy
+
       - name: Test
-        run: |
-          # Prove-phase subset: exclude pre-existing CI-unready suites tracked separately.
-          # Excluded:
-          # - __tests__/app/billing-page-phase4.test.tsx: react-three/fiber mock missing extend in CI.
-          # - __tests__/app/transactions-page-phase2.test.tsx: react-three/fiber mock missing extend in CI.
-          # - __tests__/services/slip-verification-service.test.ts: env contract expects SlipOK log=true.
-          # - __tests__/app/cards-import.test.ts: requires migrated cards table before test phase.
-          # - __tests__/api/dev-local-db.test.ts: expects undefined DATABASE_URL, but CI sets local DB URL.
-          npm run test -- \
-            --exclude __tests__/app/billing-page-phase4.test.tsx \
-            --exclude __tests__/app/transactions-page-phase2.test.tsx \
-            --exclude __tests__/services/slip-verification-service.test.ts \
-            --exclude __tests__/app/cards-import.test.ts \
-            --exclude __tests__/api/dev-local-db.test.ts
+        run: npm run test
 
       - name: Build
         run: npm run build
