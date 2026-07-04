@@ -5,11 +5,19 @@ import DesignShowcase from './showcase-client';
 // Renders every primitive + token from DESIGN.md in one route so /design-verify
 // (and the /ggg design gate) have a single canonical surface to audit.
 // Guarded: 404 in production so it never ships to customers.
-export const dynamic = 'force-static';
+//
+// `?static=1` (C3) renders a deterministic variant: an opaque backdrop hides the
+// layout's animated LiquidBackground so screenshot regression is pixel-stable.
+export const dynamic = 'force-dynamic';
 
-export default function DesignPage() {
+export default async function DesignPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ static?: string }>;
+}) {
   if (process.env.NODE_ENV === 'production') {
     notFound();
   }
-  return <DesignShowcase />;
+  const sp = await searchParams;
+  return <DesignShowcase staticMode={sp.static === '1'} />;
 }

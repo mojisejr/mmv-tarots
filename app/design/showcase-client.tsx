@@ -40,13 +40,25 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-export default function DesignShowcase() {
+export default function DesignShowcase({ staticMode = false }: { staticMode?: boolean }) {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
+    <>
+      {/* C3 static mode: opaque full-viewport backdrop hides the layout's animated
+          LiquidBackground (CSS orbs bleed through the max-w gutters) so screenshot
+          regression is deterministic. Paired with a Playwright-side animation freeze. */}
+      {staticMode && (
+        <div
+          aria-hidden
+          data-testid="static-backdrop"
+          className="fixed inset-0 z-0 bg-background"
+        />
+      )}
     <main
       data-testid="design-showcase"
-      className="min-h-screen bg-background text-foreground p-6 sm:p-10 max-w-5xl mx-auto"
+      data-static={staticMode ? '1' : '0'}
+      className="relative z-10 min-h-screen bg-background text-foreground p-6 sm:p-10 max-w-5xl mx-auto"
     >
       <header className="mb-10">
         <h1 className="text-3xl font-serif text-foreground">mmv-tarots — Design Showcase</h1>
@@ -147,5 +159,6 @@ export default function DesignShowcase() {
         </Modal>
       </Section>
     </main>
+    </>
   );
 }
